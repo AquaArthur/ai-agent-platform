@@ -1,7 +1,3 @@
-好的，已根据您的要求将表名 `agent_knowledge_base` 修改为 `agent_knowledge`，将 `agent_plugin_binding` 修改为 `agent_plugin`，并同步更新了全文所有的关联引用、ER 图和索引设计。
-
------
-
 # 智能体创作平台数据库设计文档
 
 ## 1\. 表设计概览
