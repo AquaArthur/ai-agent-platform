@@ -1,376 +1,507 @@
+好的，已根据您的要求将表名 `agent_knowledge_base` 修改为 `agent_knowledge`，将 `agent_plugin_binding` 修改为 `agent_plugin`，并同步更新了全文所有的关联引用、ER 图和索引设计。
+
+-----
+
 # 智能体创作平台数据库设计文档
 
-## 1. 表设计概览
+## 1\. 表设计概览
 
 | 表名 | 核心功能 | 关联用户故事 |
-|------|----------|--------------|
-| `user` | 存储用户账号信息及认证数据 | US-019, US-020, US-021 |
-| `agent` | 存储智能体基本信息及配置 | US-001, US-002, US-003, US-004, US-005, US-017, US-022 |
-| `workflow` | 存储工作流定义及状态 | US-011, US-012, US-013 |
-| `knowledge_base` | 存储知识库基本信息 | US-006, US-008, US-010 |
-| `document` | 存储知识库关联的文档信息 | US-007, US-008 |
-| `plugin` | 存储插件注册信息及状态 | US-014, US-015, US-016 |
-| `system_log` | 存储系统操作日志及审计信息 | US-023 |
-| `system_config` | 存储系统全局配置信息 | US-022 |
+|:---|:---|:---|
+| user | 存储用户账号信息及认证数据 | US-019, US-020, US-021 |
+| agent | 存储智能体基本信息及配置 | US-001, US-002, US-003, US-005, US-017 |
+| agent\_knowledge | 存储智能体与知识库的关联关系 | US-001, US-010 |
+| agent\_plugin | 存储智能体与插件的关联及运行配置 | US-001, US-016 |
+| agent\_conversation | 存储智能体对话历史记录 | US-004, US-018 |
+| workflow | 存储工作流定义、状态及编排数据 | US-011 |
+| workflow\_run | 存储工作流执行历史、状态和调试信息 | US-012, US-013 |
+| knowledge\_base | 存储知识库基本信息和元数据 | US-006, US-010 |
+| document | 存储知识库关联的文档信息及处理状态 | US-007, US-008 |
+| document\_chunk | 存储文档切片内容及向量映射信息 | US-007, US-009 |
+| plugin | 存储插件注册信息及状态 | US-014, US-015 |
+| system\_config | 存储系统全局配置信息 | US-022 |
+| system\_log | 存储系统操作日志及审计信息 | US-023 |
 
-## 2. 详细表设计
+## 2\. 详细表设计
 
 ### 2.1 user 表（用户表）
 
 #### 设计理由
-用于存储用户的账号信息、认证数据及个人资料，支持用户注册、登录、个人信息管理等功能，是系统所有资源的权限控制基础，对应用户管理模块的所有用户故事。
+
+用于存储用户的账号信息、认证数据及个人资料，是系统所有资源的权限控制基础。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 用户唯一标识 |
-| `username` | VARCHAR(50) | NOT NULL, UNIQUE | 用户名（必填,用于登录,US-019注册功能） |
-| `email` | VARCHAR(100) | NOT NULL, UNIQUE | 邮箱地址（必填,用于登录和验证,US-019注册功能） |
-| `password` | VARCHAR(255) | NOT NULL | 密码（加密存储,US-019注册、US-021修改密码） |
-| `nickname` | VARCHAR(100) | NULL | 昵称（可选，US-021个人资料编辑） |
-| `avatar` | VARCHAR(512) | NULL | 头像URL（可选，US-021个人资料编辑） |
-| `avatar_url` | VARCHAR(500) | NULL | 头像URL（别名字段，与avatar保持一致） |
-| `bio` | TEXT | NULL | 个人简介（可选，US-021个人资料编辑） |
-| `role` | VARCHAR(20) | NOT NULL, DEFAULT 'user' | 用户角色（user/admin，权限控制） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'active' | 账户状态（active/locked/inactive） |
-| `email_verified` | BOOLEAN | NOT NULL, DEFAULT FALSE | 邮箱是否已验证（US-019注册验证） |
-| `login_attempts` | INT | NOT NULL, DEFAULT 0 | 登录失败次数（US-020安全限制） |
-| `locked_until` | DATETIME | NULL | 账户锁定截止时间（US-020多次失败锁定） |
-| `last_login_time` | DATETIME | NULL | 最后登录时间 |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 用户唯一标识 |
+| username | VARCHAR(50) | NOT NULL, UNIQUE | 用户名 |
+| email | VARCHAR(100) | NOT NULL, UNIQUE | 邮箱地址 |
+| password | VARCHAR(255) | NOT NULL | 密码（加密存储） |
+| nickname | VARCHAR(100) | NULL | 昵称 |
+| avatar | VARCHAR(512) | NULL | 头像URL |
+| bio | TEXT | NULL | 个人简介 |
+| role | VARCHAR(20) | NOT NULL, DEFAULT 'user' | 用户角色 |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'active' | 账户状态 |
+| email\_verified | BOOLEAN | NOT NULL, DEFAULT FALSE | 邮箱是否已验证 |
+| login\_attempts | INT | NOT NULL, DEFAULT 0 | 登录失败次数 |
+| locked\_until | DATETIME | NULL | 账户锁定截止时间 |
+| last\_login\_time | DATETIME | NULL | 最后登录时间 |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
 
 #### 约束说明
-- 唯一索引：`username` 和 `email` 分别具有唯一索引，确保用户名和邮箱不重复（US-019注册校验）
-- 角色枚举限制：`role` 只能为 `user`（普通用户）或 `admin`（管理员）
-- 状态枚举限制：`status` 只能为 `active`（活跃）、`locked`（锁定）或 `inactive`（停用）
-- 密码安全：`password` 字段存储加密后的密码（使用 BCrypt 或类似算法）
-- 登录安全：通过 `login_attempts` 和 `locked_until` 实现登录失败锁定机制（US-020 AC3）
+
+  - 唯一索引：username 和 email 字段必须全局唯一，以保证账户的唯一性。
+  - 密码安全：password 字段应存储经过哈希和加盐处理（如 bcrypt）的密码，绝不能存储明文。
+  - 枚举限制：role 字段值限于 user, admin；status 字段值限于 active, locked, inactive。
+  - 登录安全：通过 login\_attempts 和 locked\_until 字段实现登录失败次数限制和账户临时锁定机制。
 
 ### 2.2 agent 表（智能体表）
 
 #### 设计理由
-用于存储智能体的基本信息、配置及状态，支持智能体的创建、查询、更新、删除和发布等功能，对应智能体管理模块的所有用户故事。
+
+存储智能体的核心定义、配置和发布状态。支持智能体的创建、查看、编辑、删除和发布。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 智能体唯一标识 |
-| `name` | VARCHAR(100) | NOT NULL | 智能体名称（必填，US-001 AC2） |
-| `description` | TEXT | NULL | 智能体描述 |
-| `prompt` | TEXT | NULL | 智能体提示词（US-003 编辑功能） |
-| `prompt_template` | TEXT | NULL | 系统提示词模板（别名字段，与prompt保持一致） |
-| `model_config` | JSON | NULL | 模型配置（存储model、temperature、api_key_id等参数，US-003和US-022） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | 智能体状态（draft/published，US-001发布功能） |
-| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID（关联用户表，US-005 权限控制） |
-| `workflow_id` | VARCHAR(64) | NULL, FOREIGN KEY | 绑定的工作流ID（关联workflow表，US-001配置功能） |
-| `knowledge_base_id` | VARCHAR(64) | NULL, FOREIGN KEY | 绑定的知识库ID（关联knowledge_base表，US-001配置功能） |
-| `kb_ids` | JSON | NULL | 关联的知识库ID列表（JSON数组格式，支持多知识库绑定） |
-| `tools_config` | JSON | NULL | 绑定的插件配置（JSON数组存储插件ID列表，US-016） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间（US-003编辑功能） |
-| `deleted_at` | DATETIME | NULL | 软删除时间（US-005） |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 智能体唯一标识 |
+| name | VARCHAR(100) | NOT NULL | 智能体名称 |
+| description | TEXT | NULL | 智能体描述 |
+| prompt | TEXT | NULL | 智能体提示词 |
+| model\_config | JSON | NULL | 模型配置（model, temperature等） |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | 状态（draft/published） |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID |
+| workflow\_id | VARCHAR(64) | NULL, FOREIGN KEY | 绑定的工作流ID |
+| published\_at | DATETIME | NULL | 发布时间 |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
+| deleted\_at | DATETIME | NULL | 软删除时间 |
 
 #### 约束说明
-- 联合唯一索引：`(user_id, name)` 确保同一用户下智能体名称不重复
-- 状态枚举限制：`status` 只能为 `draft`（草稿）或 `published`（已发布）
-- JSON字段说明：
-  - `model_config`：存储大模型参数（如 {"model": "gpt-4", "temperature": 0.7}）
-  - `kb_ids`：存储知识库ID数组（如 [1, 2, 3]）
-  - `tools_config`：存储插件ID数组（如 ["plugin_1", "plugin_2"]）
-- 软删除：通过 `deleted_at` 字段实现，保障数据可恢复性
 
-### 2.3 workflow 表（工作流表）
+  - 联合唯一索引：(user\_id, name) 确保同一用户下的智能体名称不重复。
+  - 外键关联：workflow\_id 关联 workflow(id)，设置为 ON DELETE SET NULL，删除工作流时不影响智能体本身。
+  - 软删除：通过 deleted\_at 字段实现软删除，便于恢复。
+  - 枚举限制：status 字段值限于 draft, published。
+
+### 2.3 agent\_knowledge 表（智能体-知识库关联表）
 
 #### 设计理由
-用于存储工作流的定义、配置及状态，支持工作流的创建、执行和调试功能，对应工作流管理模块的用户故事。
+
+用于解决智能体与知识库之间的多对多关系，支持引用完整性检查和高效的反向查询。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 工作流唯一标识 |
-| `agent_id` | VARCHAR(64) | NULL, FOREIGN KEY | 所属智能体ID（关联agent表，US-001绑定功能） |
-| `name` | VARCHAR(100) | NOT NULL | 工作流名称 |
-| `description` | TEXT | NULL | 工作流描述 |
-| `definition` | JSON | NOT NULL | 工作流定义（存储节点和连线信息，US-011可视化设计） |
-| `graph_data` | JSON | NULL | 画布数据（存储前端Reactflow/X6的节点坐标、连线信息，用于US-011画布回显） |
-| `is_valid` | BOOLEAN | NOT NULL, DEFAULT FALSE | DAG校验是否通过（0-否, 1-是，US-011 AC5） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'active' | 工作流状态（active/inactive） |
-| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID（关联用户表） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+|:---|:---|:---|:---|
+| id | BIGINT | PRIMARY KEY, AUTO\_INCREMENT | 自增主键 |
+| agent\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 智能体ID |
+| kb\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 知识库ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 绑定时间 |
 
 #### 约束说明
-- 联合唯一索引：`(user_id, name)` 确保同一用户下工作流名称不重复
-- `definition` 字段存储工作流的完整拓扑结构，包含节点类型、参数和连接关系
-- `graph_data` 字段存储前端画布的可视化信息（节点位置、连线样式等），用于编辑器回显
-- `is_valid` 字段记录最后一次DAG校验结果，确保工作流拓扑合法性
-- 外键关联：`agent_id` 关联 `agent.id`，支持智能体绑定工作流（ON DELETE CASCADE）
 
-### 2.4 knowledge_base 表（知识库表）
+  - 联合唯一索引：(agent\_id, kb\_id) 确保绑定关系的唯一性。
+  - 外键级联：建议配置 ON DELETE CASCADE，当任一关联实体（智能体或知识库）被物理删除时，自动清理关联关系。
+  - 查询优化：利用 (kb\_id) 索引加速删除知识库时的引用检查。
+
+### 2.4 agent\_plugin 表（智能体-插件关联表）
 
 #### 设计理由
-用于存储知识库的基本信息，支持知识库的创建、查询和删除功能，对应知识库管理模块的用户故事。
+
+用于解决智能体与插件之间的多对多关系，并允许为每个智能体独立配置插件的运行参数。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 知识库唯一标识 |
-| `name` | VARCHAR(100) | NOT NULL | 知识库名称（必填，US-006 AC2） |
-| `description` | TEXT | NULL | 知识库描述 |
-| `embedding_model` | VARCHAR(50) | NULL | 向量模型（如text-embedding-3，用于RAG检索） |
-| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID（关联用户表，US-010权限控制） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
-| `deleted_at` | DATETIME | NULL | 软删除时间（US-010） |
+|:---|:---|:---|:---|
+| id | BIGINT | PRIMARY KEY, AUTO\_INCREMENT | 自增主键 |
+| agent\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 智能体ID |
+| plugin\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 插件ID |
+| plugin\_config | JSON | NULL | 运行时配置（参数默认值等） |
+| is\_enabled | BOOLEAN | NOT NULL, DEFAULT TRUE | 在该智能体中是否启用 |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 绑定时间 |
 
 #### 约束说明
-- 联合唯一索引：`(user_id, name)` 确保同一用户下知识库名称不重复
-- `embedding_model` 字段用于记录向量化模型，确保RAG检索时使用正确的Embedding接口
-- 软删除：通过 `deleted_at` 字段实现，删除时同步级联删除关联文档（US-010 AC3）
 
-### 2.5 document 表（文档表）
+  - 联合唯一索引：(agent\_id, plugin\_id) 确保绑定关系的唯一性。
+  - 配置隔离：plugin\_config 字段存储智能体特有的插件配置。
+  - 状态控制：is\_enabled 允许在不解除绑定的情况下控制插件的激活状态。
+
+### 2.5 agent\_conversation 表（智能体对话历史表）
 
 #### 设计理由
-用于存储知识库中上传的文档信息及处理状态，支持文档上传、状态跟踪功能，对应知识库文档管理的用户故事。
+
+分离存储智能体的对话历史，支持按会话聚合消息。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 文档唯一标识 |
-| `filename` | VARCHAR(255) | NOT NULL | 文档文件名（原始文件名） |
-| `file_name` | VARCHAR(255) | NOT NULL | 文档文件名（别名字段，与filename保持一致） |
-| `file_url` | VARCHAR(500) | NULL | 文件存储URL（对象存储地址） |
-| `file_path` | VARCHAR(512) | NOT NULL | 文档存储路径 |
-| `file_size` | BIGINT | NOT NULL | 文档大小（字节） |
-| `file_type` | VARCHAR(50) | NOT NULL | 文档类型（txt/markdown/pdf，US-007格式校验） |
-| `chunk_count` | INT | NOT NULL, DEFAULT 0 | 切分片段数量（用于统计文档分块结果） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'processing' | 处理状态（processing/completed/failed，US-007 AC4） |
-| `process_status` | TINYINT | NULL | 处理状态数值（0-等待, 1-处理中, 2-完成, 3-失败，与status字段对应） |
-| `error_msg` | TEXT | NULL | 处理失败原因（记录错误详情） |
-| `knowledge_base_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 所属知识库ID（关联knowledge_base表） |
-| `kb_id` | VARCHAR(64) | NULL, FOREIGN KEY | 所属知识库ID（别名字段，与knowledge_base_id保持一致） |
-| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 上传者ID（关联用户表） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 上传时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 状态更新时间 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 对话记录ID |
+| session\_id | VARCHAR(64) | NOT NULL | 会话ID（聚合多轮对话） |
+| agent\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 智能体ID |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 用户ID |
+| query | TEXT | NOT NULL | 用户提问 |
+| answer | LONGTEXT | NOT NULL | 智能体回答 |
+| metadata | JSON | NULL | 元数据（引用来源、Token消耗） |
+| conversation\_type | VARCHAR(20) | NOT NULL | 类型（chat/debug） |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
 
 #### 约束说明
-- 状态枚举限制：`status` 只能为 `processing`（处理中）、`completed`（已完成）或 `failed`（失败）
-- `process_status` 与 `status` 字段对应：0-等待, 1-处理中, 2-完成, 3-失败
-- `chunk_count` 字段记录文档切分后的片段数量，用于RAG检索统计
-- `error_msg` 字段记录处理失败的详细原因，便于排错
-- 外键级联：当知识库被删除时，关联文档同时删除（ON DELETE CASCADE）
 
-### 2.6 plugin 表（插件表）
+  - 性能优化：必须在 (session\_id, create\_time) 上建立复合索引，以保证加载历史聊天记录的性能。
+  - 枚举限制：conversation\_type 字段值限于 chat, debug。
+  - 级联清理：当用户或智能体被物理删除时，相关的对话记录应一并删除。
+
+### 2.6 workflow 表（工作流表）
 
 #### 设计理由
-用于存储插件的注册信息、配置及状态，支持插件的注册、启用/禁用功能，对应插件管理模块的用户故事。
+
+存储工作流的静态定义，包括节点、连线和画布布局信息，支持可视化编排。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 插件唯一标识 |
-| `name` | VARCHAR(100) | NOT NULL | 插件名称（US-014 AC4） |
-| `identifier` | VARCHAR(100) | NULL, UNIQUE | 插件唯一标识符（key，用于系统内部引用） |
-| `description` | TEXT | NULL | 插件描述 |
-| `openapi_spec` | JSON | NOT NULL | OpenAPI规范内容（US-014解析功能） |
-| `openapi_schema` | JSON | NULL | OpenAPI规范（别名字段，与openapi_spec保持一致） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'disabled' | 插件状态（enabled/disabled，US-015切换功能） |
-| `is_enabled` | BOOLEAN | NOT NULL, DEFAULT FALSE | 是否启用（与status字段对应，US-015） |
-| `auth_info` | JSON | NULL | 鉴权信息（存储API Key等） |
-| `auth_type` | VARCHAR(20) | NULL, DEFAULT 'none' | 鉴权类型（none/api_key/oauth等） |
-| `auth_config` | JSON | NULL | 鉴权配置（别名字段，与auth_info保持一致） |
-| `user_id` | VARCHAR(64) | NULL, FOREIGN KEY | 注册者ID（关联用户表，NULL代表系统插件） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 工作流ID |
+| name | VARCHAR(100) | NOT NULL | 名称 |
+| description | TEXT | NULL | 描述 |
+| definition | JSON | NOT NULL | 逻辑定义（DSL） |
+| graph\_data | JSON | NULL | 画布UI数据 |
+| is\_valid | BOOLEAN | NOT NULL, DEFAULT FALSE | DAG校验状态 |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
 
 #### 约束说明
-- 联合唯一索引：`(user_id, name)` 确保同一用户下插件名称不重复
-- 唯一索引：`identifier` 确保插件标识符全局唯一
-- 状态枚举限制：`status` 只能为 `enabled`（启用）或 `disabled`（禁用）
-- `is_enabled` 与 `status` 字段对应：TRUE-启用, FALSE-禁用
-- `auth_type` 字段支持多种鉴权方式：none（无鉴权）、api_key（API密钥）、oauth（OAuth认证）
-- 系统插件：`user_id` 为 NULL 时表示系统级插件，所有用户可用
 
-### 2.7 system_log 表（系统日志表）
+  - 联合唯一索引：(user\_id, name) 确保同一用户下的工作流名称不重复。
+  - 数据一致性：is\_valid 字段记录后端 DAG 校验结果，确保执行的工作流拓扑合法。
+  - JSON结构：definition 存储后端执行逻辑；graph\_data 存储前端可视化信息。
+
+### 2.7 workflow\_run 表（工作流执行历史表）
 
 #### 设计理由
-用于存储系统操作日志及审计信息，支持管理员查看系统日志功能，对应系统管理模块的用户故事。记录用户操作、系统事件、错误信息等，用于审计和排错。
+
+记录工作流的每一次动态执行实例，包括完整运行和单节点调试，支持状态跟踪和结果回溯。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 日志唯一标识 |
-| `user_id` | VARCHAR(64) | NULL, FOREIGN KEY | 操作人ID（关联用户表，NULL表示系统操作） |
-| `module` | VARCHAR(50) | NOT NULL | 操作模块（agent/workflow/plugin/knowledge_base等） |
-| `action` | VARCHAR(50) | NOT NULL | 操作动作（create/update/delete/execute等） |
-| `level` | VARCHAR(20) | NOT NULL, DEFAULT 'info' | 日志级别（info/warn/error） |
-| `content` | TEXT | NULL | 日志详情/错误堆栈 |
-| `request_params` | JSON | NULL | 请求参数快照（用于审计） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 执行记录ID |
+| workflow\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 工作流ID |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 执行者ID |
+| status | VARCHAR(20) | NOT NULL | 状态 |
+| inputs | JSON | NULL | 初始输入 |
+| outputs | JSON | NULL | 最终输出 |
+| error | TEXT | NULL | 错误信息 |
+| node\_states | JSON | NULL | 节点执行快照 |
+| run\_type | VARCHAR(20) | NOT NULL | 类型（full/debug） |
+| start\_time | DATETIME | NULL | 开始时间 |
+| end\_time | DATETIME | NULL | 结束时间 |
 
 #### 约束说明
-- 普通索引：`(create_time)` 支持按时间范围查询日志
-- 普通索引：`(module)` 支持按模块筛选日志
-- 普通索引：`(user_id)` 支持按用户查询操作历史
-- 日志级别：`level` 只能为 `info`（信息）、`warn`（警告）或 `error`（错误）
-- 高并发优化：该表为高频写入场景，建议定期归档历史数据
 
-### 2.8 system_config 表（系统配置表）
+  - 枚举限制：status 字段值限于 pending, running, completed, failed, terminated；run\_type 限于 full, debug。
+  - 历史不可变：执行记录一旦生成，原则上只读，不可修改。
+  - 调试支持：node\_states 存储各节点的执行快照，是实现单节点调试和完整执行过程追溯的核心。
+
+### 2.8 knowledge\_base 表（知识库表）
 
 #### 设计理由
-用于存储系统全局配置信息，支持管理员配置大模型参数、系统开关等功能，对应系统配置模块的用户故事。
+
+存储知识库的元信息，是 RAG（检索增强生成）系统的核心容器。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
-|--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 配置唯一标识 |
-| `config_key` | VARCHAR(100) | NOT NULL, UNIQUE | 配置键（如default_model、max_upload_size） |
-| `config_value` | TEXT | NOT NULL | 配置值 |
-| `description` | VARCHAR(255) | NULL | 配置说明 |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 知识库ID |
+| name | VARCHAR(100) | NOT NULL | 名称 |
+| description | TEXT | NULL | 描述 |
+| embedding\_model | VARCHAR(100) | NULL | 向量模型 |
+| file\_count | INT | NOT NULL, DEFAULT 0 | 文档数量（冗余字段） |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
+| deleted\_at | DATETIME | NULL | 软删除时间 |
 
 #### 约束说明
-- 唯一索引：`config_key` 确保配置键唯一
-- 配置示例：
-  - `default_model`: 默认大模型（如"gpt-4"）
-  - `max_upload_size`: 最大上传文件大小（字节）
-  - `enable_registration`: 是否开放注册（true/false）
-- 读取优化：该表为高频读取场景，建议应用层做缓存
 
-## 3. 表关系说明
+  - 联合唯一索引：(user\_id, name) 确保同一用户下的知识库名称唯一。
+  - 模型一致性：embedding\_model 字段一旦设定，应保持不变，以确保知识库内所有文档处于同一向量空间。
+  - 软删除：通过 deleted\_at 字段实现逻辑删除。
+
+### 2.9 document 表（文档表）
+
+#### 设计理由
+
+存储知识库中的文档文件信息、处理状态和元数据。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 文档ID |
+| filename | VARCHAR(255) | NOT NULL | 文件名 |
+| file\_path | VARCHAR(512) | NOT NULL | 存储路径 |
+| file\_size | BIGINT | NOT NULL | 文件大小 |
+| file\_type | VARCHAR(50) | NOT NULL | 文件类型 |
+| chunk\_count | INT | NOT NULL, DEFAULT 0 | 切片数量 |
+| status | VARCHAR(20) | NOT NULL | 状态 |
+| error\_msg | TEXT | NULL | 失败原因 |
+| knowledge\_base\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 知识库ID |
+| user\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 上传者ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
+| deleted\_at | DATETIME | NULL | 软删除时间 |
+
+#### 约束说明
+
+  - 性能索引：(knowledge\_base\_id, status) 索引用于快速查询知识库下的文档列表及其处理状态。
+  - 状态流转：status 字段值限于 processing, completed, failed。
+  - 级联删除：当所属知识库被物理删除时，文档及其切片应被级联删除。
+
+### 2.10 document\_chunk 表（文档切片表）
+
+#### 设计理由
+
+存储文档切分后的详细文本块信息，用于 RAG 检索的精准溯源、调试和上下文组装。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 切片唯一ID |
+| document\_id | VARCHAR(64) | NOT NULL, FOREIGN KEY | 所属文档ID |
+| content | LONGTEXT | NOT NULL | 切片文本内容 |
+| chunk\_index | INT | NOT NULL | 在文档中的序号 |
+| token\_count | INT | NULL | Token 数量估算 |
+| vector\_id | VARCHAR(64) | NULL | 外部向量库对应ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+
+#### 约束说明
+
+  - 性能索引：(document\_id, chunk\_index) 索引用于按顺序读取文档全文或在删除文档时快速定位所有切片。
+  - RAG 映射：vector\_id 字段是关系数据与外部向量数据库中的向量数据的唯一关联键。
+  - 数据完整性：当所属文档被删除时，切片数据应被级联删除。
+
+### 2.11 plugin 表（插件表）
+
+#### 设计理由
+
+存储插件的注册信息、OpenAPI 规范定义和基础配置，作为智能体的可扩展能力。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 插件ID |
+| name | VARCHAR(100) | NOT NULL | 名称 |
+| identifier | VARCHAR(100) | NULL, UNIQUE | 唯一标识符 |
+| description | TEXT | NULL | 描述 |
+| openapi\_spec | JSON | NOT NULL | OpenAPI 规范 |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'disabled' | 状态 |
+| auth\_info | TEXT | NULL | 鉴权信息 |
+| auth\_type | VARCHAR(20) | NULL, DEFAULT 'none' | 鉴权类型 |
+| user\_id | VARCHAR(64) | NULL, FOREIGN KEY | 注册者ID |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+| update\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP | 更新时间 |
+
+#### 约束说明
+
+  - 数据安全：auth\_info 字段必须在应用层加密存储，以保护 API Key 等敏感信息。
+  - 全局标识：identifier 必须全局唯一，作为插件在系统内部调用的关键标识。
+  - 索引优化：(status) 索引用于快速筛选已启用的插件。
+
+### 2.12 system\_log 表（系统日志表）
+
+#### 设计理由
+
+存储系统操作日志及审计信息，用于问题排查和行为审计。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | 日志ID |
+| user\_id | VARCHAR(64) | NULL, FOREIGN KEY | 操作人ID |
+| module | VARCHAR(50) | NOT NULL | 模块 |
+| action | VARCHAR(50) | NOT NULL | 动作 |
+| level | VARCHAR(20) | NOT NULL, DEFAULT 'info' | 级别 |
+| content | TEXT | NULL | 详情 |
+| request\_params | JSON | NULL | 参数快照 |
+| create\_time | DATETIME | NOT NULL, DEFAULT CURRENT\_TIMESTAMP | 创建时间 |
+
+#### 约束说明
+
+  - 索引优化：(create\_time) 和 (module, action) 索引用于优化日志的查询和筛选性能。
+  - 高频写入：此表为高频写入表，生产环境建议考虑分区或定期归档策略。
+
+### 2.13 system\_config 表（系统配置表）
+
+#### 设计理由
+
+存储系统全局配置信息，如默认模型、系统级 API 密钥等。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|:---|:---|:---|:---|
+| id | VARCHAR(64) | PRIMARY KEY | ID |
+| config\_key | VARCHAR(100) | NOT NULL, UNIQUE | 配置键 |
+| config\_value | TEXT | NOT NULL | 配置值 |
+| description | VARCHAR(255) | NULL | 说明 |
+| create\_time | DATETIME | NOT NULL | 创建时间 |
+| update\_time | DATETIME | NOT NULL | 更新时间 |
+
+#### 约束说明
+
+  - 唯一索引：config\_key 必须唯一，确保配置项不重复。
+  - 性能优化：此表为高频读取表，建议在应用层增加缓存机制以提升性能。
+
+## 3\. 表关系说明 (ER 图)
 
 ```mermaid
 erDiagram
     USER {
-        VARCHAR id PK
-        VARCHAR username UK
-        VARCHAR email UK
-        VARCHAR password
-        VARCHAR role
-        VARCHAR status
+        string id PK
+        string username UK
+        string email UK
     }
     AGENT {
-        VARCHAR id PK
-        VARCHAR name
-        TEXT prompt
-        JSON model_config
-        JSON kb_ids
-        VARCHAR status
-        VARCHAR user_id FK
-        VARCHAR workflow_id FK
-        VARCHAR knowledge_base_id FK
+        string id PK
+        string name
+        string user_id FK
+        string workflow_id FK
     }
     WORKFLOW {
-        VARCHAR id PK
-        VARCHAR agent_id FK
-        VARCHAR name
-        JSON definition
-        JSON graph_data
-        VARCHAR user_id FK
+        string id PK
+        string user_id FK
     }
     KNOWLEDGE_BASE {
-        VARCHAR id PK
-        VARCHAR name
-        VARCHAR embedding_model
-        VARCHAR user_id FK
-    }
-    DOCUMENT {
-        VARCHAR id PK
-        VARCHAR file_name
-        INT chunk_count
-        VARCHAR status
-        VARCHAR knowledge_base_id FK
-        VARCHAR user_id FK
+        string id PK
+        string user_id FK
     }
     PLUGIN {
-        VARCHAR id PK
-        VARCHAR name
-        VARCHAR identifier UK
-        JSON openapi_spec
-        VARCHAR status
-        VARCHAR user_id FK
+        string id PK
+        string identifier UK
     }
-    SYSTEM_LOG {
-        VARCHAR id PK
-        VARCHAR user_id FK
-        VARCHAR module
-        VARCHAR action
-        VARCHAR level
+    AGENT_KNOWLEDGE {
+        string agent_id FK
+        string kb_id FK
     }
-    SYSTEM_CONFIG {
-        VARCHAR id PK
-        VARCHAR config_key UK
-        TEXT config_value
+    AGENT_PLUGIN {
+        string agent_id FK
+        string plugin_id FK
+        json plugin_config
     }
-    
+    DOCUMENT {
+        string id PK
+        string kb_id FK
+    }
+    DOCUMENT_CHUNK {
+        string id PK
+        string document_id FK
+        string vector_id
+    }
+    AGENT_CONVERSATION {
+        string id PK
+        string session_id
+        string agent_id FK
+        string user_id FK
+    }
+
     USER ||--o{ AGENT : "creates"
     USER ||--o{ WORKFLOW : "creates"
     USER ||--o{ KNOWLEDGE_BASE : "creates"
-    USER ||--o{ DOCUMENT : "uploads"
     USER ||--o{ PLUGIN : "registers"
-    USER ||--o{ SYSTEM_LOG : "operates"
-    AGENT }o--|| WORKFLOW : "binds"
-    AGENT }o--|| KNOWLEDGE_BASE : "binds"
-    AGENT }o--o{ PLUGIN : "uses"
-    WORKFLOW }o--|| AGENT : "belongs to"
+    USER ||--o{ AGENT_CONVERSATION : "has"
+
+    AGENT ||--o{ AGENT_KNOWLEDGE : "binds"
+    KNOWLEDGE_BASE ||--o{ AGENT_KNOWLEDGE : "is used by"
+    
+    AGENT ||--o{ AGENT_PLUGIN : "binds"
+    PLUGIN ||--o{ AGENT_PLUGIN : "is used by"
+
+    AGENT }o--|| WORKFLOW : "uses (optional)"
+
     KNOWLEDGE_BASE ||--o{ DOCUMENT : "contains"
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "splits into"
+
+    AGENT ||--o{ AGENT_CONVERSATION : "generates"
+    WORKFLOW ||--o{ WORKFLOW_RUN : "executes"
 ```
 
-### 关键关系说明
-1. **用户与资源的关系**：所有表通过 `user_id` 与用户表关联，实现资源的归属控制（如US-005仅允许删除自己的智能体）
-2. **智能体与依赖资源的关系**：
-   - `agent.workflow_id` 关联 `workflow.id`：实现智能体绑定工作流（US-001配置功能）
-   - `agent.knowledge_base_id` 关联 `knowledge_base.id`：实现智能体绑定单个知识库
-   - `agent.kb_ids` 存储JSON数组：支持智能体绑定多个知识库（US-001配置功能）
-   - `agent.tools_config` 存储JSON数组：支持智能体绑定多个插件（US-016调用功能）
-   - `agent.model_config` 存储JSON对象：配置大模型参数（US-003和US-022）
-3. **工作流与智能体的关系**：
-   - `workflow.agent_id` 关联 `agent.id`：工作流归属于智能体（US-001绑定功能）
-   - `workflow.graph_data` 存储画布可视化数据，用于前端编辑器回显（US-011）
-4. **知识库与文档的关系**：
-   - `document.knowledge_base_id` 关联 `knowledge_base.id`：一个知识库可包含多个文档（US-007上传功能）
-   - `document.chunk_count` 记录文档切分结果，用于RAG检索统计
-   - `knowledge_base.embedding_model` 指定向量模型，确保RAG检索一致性
-5. **插件系统**：
-   - `plugin.identifier` 作为全局唯一标识符，用于系统内部引用
-   - `plugin.user_id` 为NULL时表示系统级插件，所有用户可用
-   - 智能体通过 `agent.tools_config` JSON数组引用插件ID
-6. **系统日志与审计**：
-   - `system_log.user_id` 关联用户操作记录（US-023）
-   - `system_log.request_params` 存储请求快照，用于审计追溯
-7. **外键约束策略**：
-   - 智能体与工作流/知识库为松散关联（ON DELETE SET NULL）：删除工作流/知识库时仅解除绑定，不删除智能体
-   - 知识库与文档为强关联（ON DELETE CASCADE）：删除知识库时同步删除关联文档（US-010 AC3）
-   - 工作流与智能体为强关联（ON DELETE CASCADE）：删除智能体时同步删除关联工作流
-   - 软删除策略：agent、knowledge_base 表通过 `deleted_at` 实现软删除，保障数据可恢复性
+## 关键关系说明
 
-## 4. 索引设计
+### 用户与资源的关系
 
-| 表名 | 索引类型 | 索引字段 | 用途 |
-|------|----------|----------|------|
-| user | 唯一索引 | (username) | 确保用户名唯一，支持用户名登录（US-020） |
-| user | 唯一索引 | (email) | 确保邮箱唯一，支持邮箱登录（US-019, US-020） |
-| user | 普通索引 | (status) | 快速查询特定状态的用户 |
-| agent | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
-| agent | 普通索引 | (user_id, status) | 快速查询用户的特定状态智能体 |
-| workflow | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
-| knowledge_base | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
-| document | 普通索引 | (knowledge_base_id, status) | 快速查询知识库下的文档及状态 |
-| plugin | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
-| plugin | 唯一索引 | (identifier) | 确保插件标识符全局唯一 |
-| plugin | 普通索引 | (status) | 快速筛选启用的插件（US-015） |
-| system_log | 普通索引 | (create_time) | 按时间范围查询日志（US-023） |
-| system_log | 普通索引 | (module) | 按模块筛选日志 |
-| system_log | 普通索引 | (user_id) | 按用户查询操作历史 |
-| system_config | 唯一索引 | (config_key) | 确保配置键唯一 |
-| workflow | 普通索引 | (agent_id) | 快速查询智能体的工作流 |
+所有核心资源表（agent, workflow, knowledge\_base, document, plugin）均通过 user\_id 与 user 表关联，以此确立资源的归属，是实现多租户数据隔离和权限控制的基础。
+
+### 智能体与依赖资源的关系
+
+  - 多对多关联（知识库）：agent 与 knowledge\_base 之间通过 agent\_knowledge 中间表关联。这种设计支持一个智能体绑定多个知识库，同时利用中间表索引实现删除知识库时的快速引用检查。
+  - 多对多关联（插件）：agent 与 plugin 之间通过 agent\_plugin 中间表关联。plugin\_config 字段存储于中间表，实现了配置的隔离与复用。
+  - 一对一关联（工作流）：agent.workflow\_id 关联 workflow.id。这种松耦合的设计允许工作流作为模板被多个智能体复用。
+  - 模型配置：agent.model\_config 字段支持为智能体独立配置大模型参数，实现个性化响应。
+
+### 工作流设计
+
+workflow 表与 agent 表是解耦的，workflow.graph\_data 存储画布的可视化数据，用于前端编辑器回显，实现所见即所得的编排体验。
+
+### 知识库与文档的关系（RAG）
+
+  - 分层结构：知识库（knowledge\_base）包含文档（document），文档又被切分为切片（document\_chunk）。
+  - RAG 核心：document\_chunk 记录了文本块内容和 vector\_id，建立了关系数据与外部向量数据之间的映射，确保 RAG 检索结果的溯源和精准性。
+
+### 插件系统
+
+  - plugin.identifier 作为全局唯一的业务标识符，供系统内部可靠引用。
+  - 具体的插件调用参数和启用状态由 agent\_plugin 表控制。
+
+### 系统日志与审计
+
+  - system\_log.user\_id 关联具体操作的用户，为行为审计提供明确主体。
+  - system\_log.request\_params 存储关键操作的请求参数快照，用于问题排查和安全追溯。
+
+### 约束策略
+
+  - 松散关联（ON DELETE SET NULL）：agent 与 workflow 关联，当工作流被删除时，仅将 agent.workflow\_id 置为 NULL，不影响智能体本身。
+  - 强关联（ON DELETE CASCADE）：knowledge\_base 与 document 以及 document 与 document\_chunk 之间应采用级联删除，确保数据完整性。
+  - 引用保护：删除核心资源（如知识库）前，必须通过查询关联表（如 agent\_knowledge）进行引用检查。
+  - 软删除：核心业务表通过 deleted\_at 字段实现软删除，提供数据恢复能力。
+
+## 4\. 索引设计
+
+| 表名 | 索引类型 | 索引字段 | 优化用途 |
+| :--- | :--- | :--- | :--- |
+| user | 唯一索引 | (username) | 确保用户名唯一，支持用户名登录。 |
+| user | 唯一索引 | (email) | 确保邮箱唯一，支持邮箱登录。 |
+| user | 普通索引 | (status) | 快速查询特定状态的用户。 |
+| agent | 联合唯一索引 | (user\_id, name) | 确保用户内名称唯一。 |
+| agent | 普通索引 | (user\_id, status) | 快速查询用户的特定状态智能体列表。 |
+| agent\_knowledge | 联合唯一索引 | (agent\_id, kb\_id) | 确保绑定关系的唯一性。 |
+| agent\_knowledge | 普通索引 | (kb\_id) | 关键：加速反向查询，用于知识库删除保护。 |
+| agent\_plugin | 联合唯一索引 | (agent\_id, plugin\_id) | 确保绑定关系的唯一性。 |
+| agent\_conversation | 复合索引 | (session\_id, create\_time) | 关键：快速加载特定会话的所有历史消息，保证顺序。 |
+| agent\_conversation | 普通索引 | (agent\_id, user\_id, create\_time) | 快速查询特定智能体或用户的对话历史记录。 |
+| workflow | 联合唯一索引 | (user\_id, name) | 确保用户内名称唯一。 |
+| workflow | 普通索引 | (user\_id) | 快速查询用户创建的所有工作流列表。 |
+| workflow\_run | 普通索引 | (workflow\_id, create\_time) | 快速查询某个工作流的所有执行历史。 |
+| knowledge\_base | 联合唯一索引 | (user\_id, name) | 确保用户内名称唯一。 |
+| document | 普通索引 | (knowledge\_base\_id, status) | 快速查询知识库下的文档列表及其处理状态。 |
+| document\_chunk | 普通索引 | (document\_id, chunk\_index) | 用于按顺序读取文档切片内容，或快速清理切片。 |
+| document\_chunk | 普通索引 | (vector\_id) | 用于 RAG 检索后，根据外部向量 ID 快速反查文本内容。 |
+| plugin | 唯一索引 | (identifier) | 确保插件标识符全局唯一，用于系统内部可靠引用。 |
+| plugin | 普通索引 | (status) | 快速筛选启用的插件。 |
+| system\_log | 普通索引 | (create\_time) | 按时间范围查询日志。 |
+| system\_log | 普通索引 | (module, action) | 按模块和操作类型筛选日志。 |
+| system\_log | 普通索引 | (user\_id) | 按用户查询操作历史。 |
+| system\_config | 唯一索引 | (config\_key) | 确保配置键唯一。 |
+
