@@ -6,7 +6,9 @@
 |------|----------|--------------|
 | `user` | 存储用户账号信息及认证数据 | US-019, US-020, US-021 |
 | `agent` | 存储智能体基本信息及配置 | US-001, US-002, US-003, US-004, US-005, US-017, US-022 |
+| `agent_conversation` | 存储智能体对话历史记录 | US-004, US-018 |
 | `workflow` | 存储工作流定义及状态 | US-011, US-012, US-013 |
+| `workflow_run` | 存储工作流执行历史、状态和调试信息 | US-012, US-013 |
 | `knowledge_base` | 存储知识库基本信息 | US-006, US-008, US-010 |
 | `document` | 存储知识库关联的文档信息 | US-007, US-008 |
 | `plugin` | 存储插件注册信息及状态 | US-014, US-015, US-016 |
@@ -82,7 +84,32 @@
   - `tools_config`：存储插件ID数组（如 ["plugin_1", "plugin_2"]）
 - 软删除：通过 `deleted_at` 字段实现，保障数据可恢复性
 
-### 2.3 workflow 表（工作流表）
+### 2.3 agent_conversation 表（智能体对话历史表）
+
+#### 设计理由
+分离存储智能体的对话历史，支持按会话聚合消息，对应智能体对话管理和测试功能。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|--------|------|------|------|
+| `id` | VARCHAR(64) | PRIMARY KEY | 对话记录ID |
+| `session_id` | VARCHAR(64) | NOT NULL | 会话ID（聚合多轮对话） |
+| `agent_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 智能体ID |
+| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 用户ID |
+| `query` | TEXT | NOT NULL | 用户提问 |
+| `answer` | LONGTEXT | NOT NULL | 智能体回答 |
+| `metadata` | JSON | NULL | 元数据（引用来源、Token消耗） |
+| `conversation_type` | VARCHAR(20) | NOT NULL | 类型（chat/debug） |
+| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+
+#### 约束说明
+- 性能优化：必须在 `(session_id, create_time)` 上建立复合索引，以保证加载历史聊天记录的性能
+- 枚举限制：`conversation_type` 字段值限于 `chat`、`debug`
+- 级联清理：当用户或智能体被物理删除时，相关的对话记录应一并删除
+- 外键关联：`agent_id` 关联 `agent.id`，`user_id` 关联 `user.id`（ON DELETE CASCADE）
+
+### 2.4 workflow 表（工作流表）
 
 #### 设计理由
 用于存储工作流的定义、配置及状态，支持工作流的创建、执行和调试功能，对应工作流管理模块的用户故事。
@@ -110,7 +137,36 @@
 - `is_valid` 字段记录最后一次DAG校验结果，确保工作流拓扑合法性
 - 外键关联：`agent_id` 关联 `agent.id`，支持智能体绑定工作流（ON DELETE CASCADE）
 
-### 2.4 knowledge_base 表（知识库表）
+### 2.5 workflow_run 表（工作流执行历史表）
+
+#### 设计理由
+记录工作流的每一次动态执行实例，包括完整运行和单节点调试，支持状态跟踪和结果回溯，对应工作流执行和调试功能。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|--------|------|------|------|
+| `id` | VARCHAR(64) | PRIMARY KEY | 执行记录ID |
+| `workflow_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 工作流ID |
+| `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 执行者ID |
+| `status` | VARCHAR(20) | NOT NULL | 状态（pending/running/completed/failed/terminated） |
+| `inputs` | JSON | NULL | 初始输入 |
+| `outputs` | JSON | NULL | 最终输出 |
+| `error` | TEXT | NULL | 错误信息 |
+| `node_states` | JSON | NULL | 节点执行快照 |
+| `run_type` | VARCHAR(20) | NOT NULL | 类型（full/debug） |
+| `start_time` | DATETIME | NULL | 开始时间 |
+| `end_time` | DATETIME | NULL | 结束时间 |
+| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+
+#### 约束说明
+- 枚举限制：`status` 字段值限于 `pending`、`running`、`completed`、`failed`、`terminated`；`run_type` 限于 `full`、`debug`
+- 历史不可变：执行记录一旦生成，原则上只读，不可修改
+- 调试支持：`node_states` 存储各节点的执行快照，是实现单节点调试和完整执行过程追溯的核心
+- 外键关联：`workflow_id` 关联 `workflow.id`，`user_id` 关联 `user.id`（ON DELETE CASCADE）
+- 性能优化：建议在 `(workflow_id, create_time)` 上建立索引，用于快速查询某个工作流的所有执行历史
+
+### 2.6 knowledge_base 表（知识库表）
 
 #### 设计理由
 用于存储知识库的基本信息，支持知识库的创建、查询和删除功能，对应知识库管理模块的用户故事。
@@ -133,7 +189,7 @@
 - `embedding_model` 字段用于记录向量化模型，确保RAG检索时使用正确的Embedding接口
 - 软删除：通过 `deleted_at` 字段实现，删除时同步级联删除关联文档（US-010 AC3）
 
-### 2.5 document 表（文档表）
+### 2.7 document 表（文档表）
 
 #### 设计理由
 用于存储知识库中上传的文档信息及处理状态，支持文档上传、状态跟踪功能，对应知识库文档管理的用户故事。
@@ -166,7 +222,7 @@
 - `error_msg` 字段记录处理失败的详细原因，便于排错
 - 外键级联：当知识库被删除时，关联文档同时删除（ON DELETE CASCADE）
 
-### 2.6 plugin 表（插件表）
+### 2.8 plugin 表（插件表）
 
 #### 设计理由
 用于存储插件的注册信息、配置及状态，支持插件的注册、启用/禁用功能，对应插件管理模块的用户故事。
@@ -198,7 +254,7 @@
 - `auth_type` 字段支持多种鉴权方式：none（无鉴权）、api_key（API密钥）、oauth（OAuth认证）
 - 系统插件：`user_id` 为 NULL 时表示系统级插件，所有用户可用
 
-### 2.7 system_log 表（系统日志表）
+### 2.9 system_log 表（系统日志表）
 
 #### 设计理由
 用于存储系统操作日志及审计信息，支持管理员查看系统日志功能，对应系统管理模块的用户故事。记录用户操作、系统事件、错误信息等，用于审计和排错。
@@ -223,7 +279,7 @@
 - 日志级别：`level` 只能为 `info`（信息）、`warn`（警告）或 `error`（错误）
 - 高并发优化：该表为高频写入场景，建议定期归档历史数据
 
-### 2.8 system_config 表（系统配置表）
+### 2.10 system_config 表（系统配置表）
 
 #### 设计理由
 用于存储系统全局配置信息，支持管理员配置大模型参数、系统开关等功能，对应系统配置模块的用户故事。
@@ -270,6 +326,16 @@ erDiagram
         VARCHAR workflow_id FK
         VARCHAR knowledge_base_id FK
     }
+    AGENT_CONVERSATION {
+        VARCHAR id PK
+        VARCHAR session_id
+        VARCHAR agent_id FK
+        VARCHAR user_id FK
+        TEXT query
+        LONGTEXT answer
+        JSON metadata
+        VARCHAR conversation_type
+    }
     WORKFLOW {
         VARCHAR id PK
         VARCHAR agent_id FK
@@ -277,6 +343,16 @@ erDiagram
         JSON definition
         JSON graph_data
         VARCHAR user_id FK
+    }
+    WORKFLOW_RUN {
+        VARCHAR id PK
+        VARCHAR workflow_id FK
+        VARCHAR user_id FK
+        VARCHAR status
+        JSON inputs
+        JSON outputs
+        JSON node_states
+        VARCHAR run_type
     }
     KNOWLEDGE_BASE {
         VARCHAR id PK
@@ -314,15 +390,19 @@ erDiagram
     }
     
     USER ||--o{ AGENT : "creates"
+    USER ||--o{ AGENT_CONVERSATION : "has"
     USER ||--o{ WORKFLOW : "creates"
+    USER ||--o{ WORKFLOW_RUN : "executes"
     USER ||--o{ KNOWLEDGE_BASE : "creates"
     USER ||--o{ DOCUMENT : "uploads"
     USER ||--o{ PLUGIN : "registers"
     USER ||--o{ SYSTEM_LOG : "operates"
+    AGENT ||--o{ AGENT_CONVERSATION : "generates"
     AGENT }o--|| WORKFLOW : "binds"
     AGENT }o--|| KNOWLEDGE_BASE : "binds"
     AGENT }o--o{ PLUGIN : "uses"
     WORKFLOW }o--|| AGENT : "belongs to"
+    WORKFLOW ||--o{ WORKFLOW_RUN : "executes"
     KNOWLEDGE_BASE ||--o{ DOCUMENT : "contains"
 ```
 
@@ -363,7 +443,10 @@ erDiagram
 | user | 普通索引 | (status) | 快速查询特定状态的用户 |
 | agent | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
 | agent | 普通索引 | (user_id, status) | 快速查询用户的特定状态智能体 |
+| agent_conversation | 复合索引 | (session_id, create_time) | 快速加载特定会话的所有历史消息，保证顺序 |
+| agent_conversation | 普通索引 | (agent_id, user_id, create_time) | 快速查询特定智能体或用户的对话历史记录 |
 | workflow | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
+| workflow_run | 普通索引 | (workflow_id, create_time) | 快速查询某个工作流的所有执行历史 |
 | knowledge_base | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
 | document | 普通索引 | (knowledge_base_id, status) | 快速查询知识库下的文档及状态 |
 | plugin | 联合唯一索引 | (user_id, name) | 确保用户内名称唯一 |
