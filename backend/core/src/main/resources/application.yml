@@ -22,3 +22,19 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 开启SQL日志输出
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id # 使用雪花算法生成ID
+
+# 开发环境日志级别
+logging:
+  level:
+    root: INFO
+    org.demo.core.mapper: DEBUG # 开启Mapper层日志

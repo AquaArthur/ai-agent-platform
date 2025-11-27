@@ -123,7 +123,7 @@ public class AgentController {
      */
     @Operation(
             summary = "删除智能体",
-            description = "根据ID删除指定的智能体。由于Agent实体配置了@TableLogic逻辑删除，实际执行的是软删除操作，会设置deleted_at字段而不是物理删除记录，这样可以保留历史数据并支持恢复"
+            description = "根据ID删除指定的智能体。执行物理删除操作，直接从数据库中移除记录"
     )
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(

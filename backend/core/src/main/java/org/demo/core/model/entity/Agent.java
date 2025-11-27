@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
@@ -91,7 +90,7 @@ public class Agent {
      * 绑定的插件配置（JSON数组存储插件ID列表）
      */
     @TableField(value = "tools_config", typeHandler = JacksonTypeHandler.class)
-    private List<Map<String, Object>> toolsConfig;
+    private List<String> toolsConfig;
 
     /**
      * 创建时间
@@ -104,11 +103,4 @@ public class Agent {
      */
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-
-    /**
-     * 软删除时间
-     */
-    @TableField("deleted_at")
-    @TableLogic
-    private LocalDateTime deletedAt;
 }
