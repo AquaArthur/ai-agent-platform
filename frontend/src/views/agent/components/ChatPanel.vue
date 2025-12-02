@@ -273,7 +273,7 @@ const selectedOperationId = ref<string>('')
 
 // ========== 智能参数（根据操作类型自动填充） ==========
 // 全局：设备UUID
-const deviceUuid = ref<string>('1fcb3c12-63eb-4a67-9f85-293e24bf367c')
+const deviceUuid = ref<string>('ab3b34d1-fae0-489b-80e8-19a8a6c7543d')
 // getSensorData: 传感器类型
 const sensorType = ref<string>('温度')
 // controlDevice: 设备类型、端口、动作、值
