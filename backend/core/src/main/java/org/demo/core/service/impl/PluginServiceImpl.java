@@ -241,6 +241,7 @@ public class PluginServiceImpl implements PluginService {
         vo.setId(plugin.getId());
         vo.setName(plugin.getName());
         vo.setDescription(plugin.getDescription());
+        vo.setIsEnabled(plugin.getIsEnabled());
         vo.setCreateTime(toTimestamp(plugin.getCreateTime()));
         vo.setUpdateTime(toTimestamp(plugin.getUpdateTime()));
         return vo;

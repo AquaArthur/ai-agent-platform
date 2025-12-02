@@ -25,6 +25,12 @@ public class PluginListItemVO {
     private String description;
 
     /**
+     * 是否启用
+     */
+    @JsonProperty("is_enabled")
+    private Boolean isEnabled;
+
+    /**
      * 创建时间（毫秒时间戳）
      */
     @JsonProperty("create_time")

@@ -1,6 +1,6 @@
 # Plugin 模块实现情况总结
 
-> 更新日期：2025-12-01
+> 更新日期：2025-12-02
 
 ---
 
@@ -368,3 +368,460 @@ $r = Invoke-WebRequest -Uri "http://localhost:8080/api/v1/plugins/plugin-001-led
 - API 封装示例代码
 - 页面设计建议
 - Pinia Store 示例
+
+---
+
+## 八、数据库架构变更记录
+
+### 1. 新增表
+
+#### 8.1 plugin_operation 表（新增）
+
+**创建原因**: 支持一个插件包含多个操作（多操作插件）
+
+**表结构**:
+```sql
+CREATE TABLE plugin_operation (
+    id VARCHAR(64) PRIMARY KEY COMMENT '插件操作唯一标识',
+    plugin_id VARCHAR(64) NOT NULL COMMENT '所属插件ID',
+    operation_id VARCHAR(100) NOT NULL COMMENT 'OpenAPI中的operationId',
+    name VARCHAR(100) NOT NULL COMMENT '操作名称',
+    method VARCHAR(10) NOT NULL COMMENT 'HTTP方法',
+    path VARCHAR(255) NOT NULL COMMENT '请求路径',
+    description TEXT COMMENT '操作描述',
+    input_schema JSON COMMENT '入参结构',
+    output_schema JSON COMMENT '出参结构',
+    is_enabled BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+    create_time DATETIME NOT NULL COMMENT '创建时间',
+    update_time DATETIME NOT NULL COMMENT '更新时间',
+    FOREIGN KEY (plugin_id) REFERENCES plugin(id) ON DELETE CASCADE
+);
+```
+
+**关键特性**:
+- ✅ 支持级联删除（删除插件时自动删除所有操作）
+- ✅ 支持操作级别的启用/禁用
+- ✅ 存储完整的 input_schema 和 output_schema（JSON格式）
+
+### 2. plugin 表字段修改
+
+#### 8.2 字段变更
+
+| 变更类型 | 字段名 | 变更说明 | 影响 |
+|---------|--------|---------|------|
+| **新增** | `base_url` | VARCHAR(255) - 插件基础URL | ✅ 支持多操作插件共享base_url |
+| **新增** | `auth_type` | VARCHAR(20) - 鉴权类型 | ✅ 替代原 auth_info 字段 |
+| **新增** | `auth_config` | JSON - 鉴权配置 | ✅ 结构化存储鉴权信息 |
+| **新增** | `type` | VARCHAR(20) - 插件类型 | ✅ 支持 http/mqtt/local 类型 |
+| **修改** | `openapi_spec` | 存储格式优化 | ✅ 简化为基础信息（详细操作移至 plugin_operation） |
+| **弃用** | `method` | 已移至 plugin_operation.method | ⚠️ 兼容性:旧数据需迁移 |
+| **弃用** | `endpoint` | 已移至 plugin_operation.path | ⚠️ 兼容性:旧数据需迁移 |
+
+#### 8.3 auth_type 支持的鉴权方式
+
+| 类型 | auth_type 值 | auth_config 结构 | 说明 |
+|------|-------------|-----------------|------|
+| 无鉴权 | `none` | `{}` | 不需要鉴权 |
+| API Key | `api_key` | `{"headerName": "X-API-Key", "apiKey": "xxx"}` | API Key放入Header |
+| Bearer Token | `bearer` | `{"token": "xxx"}` | Authorization: Bearer xxx |
+| Basic Auth | `basic` | `{"username": "xxx", "password": "xxx"}` | HTTP Basic Auth |
+| 自定义 | `custom` | `{"headers": {"key": "value"}}` | 自定义请求头 |
+
+### 3. 索引优化
+
+#### 8.4 新增索引
+
+```sql
+-- plugin 表
+ALTER TABLE plugin ADD INDEX idx_status (status);
+ALTER TABLE plugin ADD UNIQUE INDEX uk_identifier (identifier);
+ALTER TABLE plugin ADD UNIQUE INDEX uk_user_name (user_id, name);
+
+-- plugin_operation 表
+ALTER TABLE plugin_operation ADD INDEX idx_plugin_id (plugin_id);
+ALTER TABLE plugin_operation ADD UNIQUE INDEX uk_plugin_operation (plugin_id, operation_id);
+```
+
+**优化效果**:
+- ✅ `idx_status`: 加速按状态查询插件（enabled/disabled）
+- ✅ `uk_identifier`: 保证插件唯一标识符不重复
+- ✅ `uk_user_name`: 同一用户下插件名称不重复
+- ✅ `idx_plugin_id`: 加速根据插件ID查询操作
+- ✅ `uk_plugin_operation`: 同一插件下operationId不重复
+
+---
+
+## 九、API 接口变更记录
+
+### 1. 新增 API 接口
+
+| 序号 | 接口名称 | Method | Endpoint | 新增原因 |
+|------|---------|--------|----------|----------|
+| 1 | 导入OpenAPI | POST | `/api/v1/plugins/import-openapi` | 支持从OpenAPI规范批量导入多操作插件 |
+| 2 | 获取操作列表 | GET | `/api/v1/plugins/{id}/operations` | 查询插件的所有操作 |
+| 3 | 调用插件操作 | POST | `/api/v1/plugins/{pluginId}/operations/{operationId}/invoke` | 执行具体的插件操作（核心功能） |
+| 4 | 启用/禁用插件 | PATCH | `/api/v1/plugins/{id}/status` | 快速切换插件状态 |
+
+### 2. 修改的 API 接口
+
+#### 9.1 GET /api/v1/plugins/{id} - 获取插件详情
+
+**变更**: 响应数据新增 `operations` 字段
+
+**旧版响应**:
+```json
+{
+  "id": "plugin_xxx",
+  "name": "测试插件",
+  "description": "...",
+  "method": "GET",
+  "endpoint": "/api/test"
+}
+```
+
+**新版响应**:
+```json
+{
+  "id": "plugin_xxx",
+  "name": "测试插件",
+  "description": "...",
+  "baseUrl": "https://api.example.com",
+  "authType": "api_key",
+  "authConfig": {
+    "headerName": "X-API-Key",
+    "apiKey": "***"
+  },
+  "operations": [
+    {
+      "id": "op_001",
+      "operationId": "getSensorData",
+      "name": "获取传感器数据",
+      "method": "GET",
+      "path": "/sensor-data",
+      "inputSchema": {...},
+      "outputSchema": {...}
+    }
+  ]
+}
+```
+
+**影响**: ✅ 向后兼容（新增字段不影响旧版解析）
+
+#### 9.2 POST /api/v1/plugins - 创建插件
+
+**变更**: 请求参数结构调整
+
+**旧版请求**:
+```json
+{
+  "name": "测试插件",
+  "method": "GET",
+  "endpoint": "/api/test"
+}
+```
+
+**新版请求**（兼容两种模式）:
+
+**模式1: 简单模式**（向后兼容）
+```json
+{
+  "name": "测试插件",
+  "baseUrl": "https://api.example.com",
+  "method": "GET",
+  "endpoint": "/api/test",
+  "authType": "api_key",
+  "authConfig": {
+    "headerName": "X-API-Key",
+    "apiKey": "your-key"
+  }
+}
+```
+
+**模式2: 多操作模式**（推荐使用 /import-openapi）
+```json
+{
+  "name": "AIOT插件",
+  "baseUrl": "https://plugin.aiot.hello1023.com",
+  "authType": "none",
+  "operations": [
+    {
+      "operationId": "getSensorData",
+      "name": "获取传感器数据",
+      "method": "GET",
+      "path": "/sensor-data",
+      "inputSchema": {...}
+    }
+  ]
+}
+```
+
+**影响**: ✅ 完全向后兼容
+
+---
+
+## 十、功能变更记录
+
+### 1. 核心功能增强
+
+#### 10.1 插件调用功能（invokeOperation）
+
+**位置**: `PluginServiceImpl.invokeOperation()` (L508-L700)
+
+**新增功能**:
+
+| 功能 | 说明 | 实现细节 |
+|------|------|---------|
+| **多HTTP方法支持** | GET/POST/PUT/DELETE | 根据 operation.method 动态构建请求 |
+| **智能参数处理** | GET参数拼接URL,POST参数放Body | `buildRequestUrl()` + `buildRequestEntity()` |
+| **多种鉴权方式** | 5种鉴权类型 | `buildHttpHeaders()` 根据 auth_type 构建 |
+| **超时控制** | 自定义超时时间 | RestTemplate 配置超时（默认30秒） |
+| **异常处理** | HTTP错误、网络错误、超时 | 统一异常捕获和状态码返回 |
+| **结果封装** | 详细的调用结果 | `PluginInvokeResult` 包含 status/httpCode/rawBody/parsedData/duration |
+
+**代码示例**:
+```java
+public PluginInvokeResult invokeOperation(
+    String pluginId, String operationId, 
+    Map<String, Object> params, Integer timeout) {
+    
+    // 1. 查询插件和操作信息
+    Plugin plugin = getById(pluginId);
+    PluginOperation operation = operationService.getByOperationId(pluginId, operationId);
+    
+    // 2. 构建请求URL（GET参数拼接）
+    String requestUrl = buildRequestUrl(plugin.getBaseUrl(), operation.getPath(), 
+                                        operation.getMethod(), params);
+    
+    // 3. 构建鉴权头
+    HttpHeaders headers = buildHttpHeaders(plugin.getAuthType(), plugin.getAuthConfig());
+    
+    // 4. 执行HTTP请求
+    ResponseEntity<String> response = restTemplate.exchange(
+        requestUrl, HttpMethod.valueOf(operation.getMethod()), 
+        requestEntity, String.class);
+    
+    // 5. 封装结果
+    return PluginInvokeResult.success(response.getStatusCode(), 
+                                      response.getBody(), duration);
+}
+```
+
+#### 10.2 OpenAPI 导入功能
+
+**位置**: `PluginServiceImpl.importFromOpenApi()` (L300-L450)
+
+**支持格式**:
+
+1. **标准 OpenAPI 3.0 规范**
+```json
+{
+  "openapi": "3.0.0",
+  "info": {"title": "AIOT API"},
+  "servers": [{"url": "https://api.example.com"}],
+  "paths": {
+    "/sensor-data": {
+      "get": {
+        "operationId": "getSensorData",
+        "parameters": [...]
+      }
+    }
+  }
+}
+```
+
+2. **简化 JSON 格式**（推荐）
+```json
+{
+  "name": "AIOT插件",
+  "baseUrl": "https://plugin.aiot.hello1023.com",
+  "operations": [
+    {
+      "operationId": "getSensorData",
+      "name": "获取传感器数据",
+      "method": "GET",
+      "path": "/sensor-data",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sensor": {"type": "string"}
+        }
+      }
+    }
+  ]
+}
+```
+
+**导入流程**:
+1. 解析 OpenAPI 规范或简化 JSON
+2. 创建 plugin 记录
+3. 批量创建 plugin_operation 记录（使用事务）
+4. 返回完整插件信息（含operations列表）
+
+#### 10.3 鉴权信息脱敏
+
+**位置**: `PluginDetailVO.fromEntity()` + `PluginListItemVO.fromEntity()`
+
+**脱敏规则**:
+```java
+// authConfig 中的敏感字段返回时显示为 ***
+if (authConfig.containsKey("apiKey")) {
+    authConfig.put("apiKey", "***");
+}
+if (authConfig.containsKey("token")) {
+    authConfig.put("token", "***");
+}
+if (authConfig.containsKey("password")) {
+    authConfig.put("password", "***");
+}
+```
+
+**效果**:
+- ✅ 列表查询: authConfig 显示为 `{"headerName": "X-API-Key", "apiKey": "***"}`
+- ✅ 详情查询: 同上
+- ✅ 数据库存储: 明文存储（后续需加密）
+
+---
+
+## 十一、集成框架功能
+
+### 1. Workflow 集成（工作流插件节点）
+
+**位置**: `workflow/WorkflowPluginExecutor.java`
+
+**核心功能**:
+- ✅ 支持参数表达式解析 (`${input.xxx}`, `${context.xxx}`, `${nodes.xxx}`)
+- ✅ 支持输出映射到上下文变量
+- ✅ 支持重试机制（retryCount）
+- ✅ 支持超时配置
+
+**使用示例**:
+```java
+PluginNodeConfig config = new PluginNodeConfig();
+config.setPluginId("plugin_xxx");
+config.setOperationId("getSensorData");
+config.setParamMappings(Map.of(
+    "sensor", "${input.sensorType}",  // 从工作流输入获取
+    "uuid", "${context.deviceId}"     // 从上下文获取
+));
+config.setOutputMapping("sensorResult"); // 结果存入上下文
+config.setRetryCount(2);                 // 失败重试2次
+
+PluginNodeResult result = workflowPluginExecutor.execute(config, context);
+```
+
+### 2. Agent 工具调用框架（LLM Function Calling）
+
+**位置**: `agent/AgentToolExecutor.java`
+
+**核心功能**:
+- ✅ 生成 OpenAI 兼容的工具定义（`getAvailableTools()`）
+- ✅ 执行工具调用（`executeToolCall()`）
+- ✅ 批量执行工具（`executeToolCalls()`）
+- ✅ 工具映射缓存（提高性能）
+
+**工具定义格式**:
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "plugin_xxx_getSensorData",
+    "description": "获取传感器数据",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sensor": {"type": "string", "description": "传感器类型"},
+        "uuid": {"type": "string", "description": "设备UUID"}
+      },
+      "required": ["sensor", "uuid"]
+    }
+  }
+}
+```
+
+**使用示例**:
+```java
+// 1. 获取Agent可用工具
+List<AgentToolDefinition> tools = agentToolExecutor.getAvailableTools("agent_002");
+
+// 2. 执行LLM返回的工具调用
+AgentToolCallResult result = agentToolExecutor.executeToolCall(
+    "call_abc123",
+    "plugin_xxx_getSensorData",
+    "{\"sensor\":\"温度\",\"uuid\":\"device-001\"}"
+);
+```
+
+### 3. Chat 集成（对话中调用插件）
+
+**位置**: `controller/ChatController.sendMessage()` (L90-L180)
+
+**实现方式**:
+
+**模式1: 手动指定插件调用（兼容旧方式）**
+```java
+// 前端请求格式
+{
+  "agentId": "agent_002",
+  "query": "查询lorem设备温度",
+  "pluginCall": {
+    "pluginId": "plugin_xxx",
+    "operationId": "getSensorData",
+    "params": {"sensor": "温度", "uuid": "xxx"}
+  }
+}
+
+// 后端处理流程
+if (conversation.getPluginCall() != null) {
+    // 1. 执行插件调用
+    PluginInvokeResult result = pluginService.invokeOperation(...);
+    
+    // 2. 构造工具结果摘要
+    String toolSummary = "插件调用成功，结果: " + result.getParsedData();
+    
+    // 3. 将结果作为上下文给LLM
+    String llmInput = toolSummary + "\n原始问题: " + query;
+    
+    // 4. LLM生成自然语言回答
+    String answer = llmService.chat(agentId, llmModelId, llmInput);
+}
+```
+
+**模式2: 自动 Function Calling（推荐，新方式）**
+```java
+// 前端请求格式（无需指定 pluginCall）
+{
+  "sessionId": "xxx-xxx-xxx",
+  "agentId": "agent_002",
+  "query": "设备 1fcb3c12-63eb-4a67-9f85-293e24bf367c 温度多少",
+  "metadata": {"llmModelId": "model-001-qwen-turbo"}
+}
+
+// 后端处理流程
+else {
+    // 1. 获取对话历史（用于提取之前使用过的设备 UUID）
+    List<Map<String, String>> conversationHistory = getConversationHistory(sessionId);
+    
+    // 2. 使用 Function Calling 服务
+    answer = functionCallingService.chatWithFunctions(
+        agentId, llmModelId, query, sessionId, conversationHistory);
+}
+```
+
+**特点**:
+- ✅ 模式1: 用户/前端显式指定要调用的插件（精准控制）
+- ✅ 模式2: 基于关键词自动匹配工具并执行（智能识别）
+- ✅ 模式2 支持从用户问题中提取设备 UUID
+- ✅ 模式2 支持会话级别的 UUID 缓存（后续对话无需重复提供 UUID）
+
+---
+
+## 十二、技术文档索引
+
+| 文档名称 | 路径 | 说明 |
+|---------|------|------|
+| Plugin API文档 | `docs/PLUGIN_change.md` | 本文档 |
+| 前端对接文档 | `docs/frontend-plugin-integration.md` | API封装、类型定义、Store示例 |
+| 系统完整性报告 | `docs/PLUGIN_SYSTEM_COMPLETION_REPORT.md` | P0/P1任务完成情况 |
+| 快速参考手册 | `docs/PLUGIN_SYSTEM_QUICK_REFERENCE.md` | API速查、测试用例 |
+| 数据库设计 | `docs/database.md` | 表结构、字段说明 |
+| 需求文档 | `docs/requirements/requirement.md` | 原始需求 |
