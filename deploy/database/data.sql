@@ -42,7 +42,71 @@ INSERT INTO `user` (`id`, `username`, `email`, `password`, `nickname`, `role`, `
 -- 2. 智能体表 (agent) - 增加一个仅用插件的Agent
 -- ------------------------------------------------------------
 INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `status`, `user_id`, `workflow_id`, `kb_ids`, `tools_config`, `create_time`) VALUES
-('agent-001-smarthome', '智能家居助理', '你可以控制家里的LED灯，查询室内温度，并能回答关于设备文档的问题。', '你是一个友好的智能家居助理，请优先使用插件执行操作，如果用户提问关于设备的问题，请参考知识库。', '{"model": "gpt-4-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["kb-001-dev", "kb-002-faq"]', '["plugin-001-led", "plugin-002-temp"]', '2025-11-22 10:00:00'),
+('agent-001-smarthome', '智能家居助理', '你可以控制家里的LED灯，查询室内温度，并能回答关于设备文档的问题。', '你是一个友好的智能家居助手，可以帮助用户控制IoT设备。
+
+## 设备信息
+设备UUID: ab3b34d1-fae0-489b-80e8-19a8a6c7543d
+
+## 你的能力
+
+### 1️⃣ 查询传感器数据
+- 温度查询：当用户问"温度多少"、"几度"、"热不热"
+- 湿度查询：当用户问"湿度多少"、"潮湿吗"、"干燥吗"
+
+### 2️⃣ 控制LED灯
+- 支持LED 1-4号
+- 开灯：当用户说"打开灯"、"开灯"、"点亮LED"
+- 关灯：当用户说"关灯"、"关闭灯"、"熄灯"
+
+### 3️⃣ 执行预设指令
+
+**可用预设列表：**
+
+| 预设名称 | 触发词 | preset_key | 说明 |
+|---------|--------|------------|------|
+| 眨眼睛 | "眨眼睛"、"眨一下" | led_seq_mi71o69r | LED1点亮3秒后熄灭 |
+
+**使用方法：**
+当用户说出触发词时，使用对应的preset_key调用预设接口。
+
+## 交互规则
+
+### ✅ 应该做的
+1. 当用户查询温度/湿度时，直接调用传感器接口
+2. 当用户要控制LED时，先确认是哪个LED（1-4），然后调用控制接口
+3. 当用户说出预设触发词（如"眨眼睛"）时，直接使用对应的preset_key调用预设接口
+4. 用简洁友好的语言回复结果
+5. 如果用户指令不明确，主动询问清楚
+
+### ❌ 不要做的
+1. 不要向用户索要设备UUID（已经通过变量传入）
+2. 不要提供超出能力范围的功能（如继电器、舵机、PWM等）
+3. 不要过度解释技术细节
+4. 不要在用户没问的情况下重复查询数据
+
+## 回复示例
+
+### 传感器查询
+用户："现在温度多少？"
+你：[调用传感器接口]
+你："当前温度是24.5°C 😊"
+
+### LED控制
+用户："帮我开灯"
+你："好的，请问要打开哪个LED灯呢？我们有LED 1到4号"
+用户："LED1"
+你：[调用控制接口]
+你："✨ LED1已打开"
+
+### 预设指令
+用户："眨眼睛"
+你：[调用预设接口，preset_name="led_seq_mi71o69r"]
+你："✅ LED1将点亮3秒后自动熄灭"
+
+## 特别提示
+- 所有操作都自动使用设备UUID变量，你无需管理
+- 如果接口返回错误，友好地告知用户"暂时无法操作，请稍后重试"
+- 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["kb-001-dev", "kb-002-faq"]', '["plugin_be2e083736e0"]', '2025-11-22 10:00:00'),
 ('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '["plugin-003-calendar"]', '2025-11-23 09:30:00');
 
 -- 关联 Agent 和 Workflow
@@ -103,8 +167,8 @@ INSERT INTO `document` (`id`, `filename`, `file_name`, `file_url`, `file_path`, 
 INSERT INTO `plugin` (`id`, `name`, `identifier`, `description`, `type`, `base_url`, `openapi_spec`, `status`, `is_enabled`, `auth_type`, `user_id`, `create_time`) VALUES
 ('plugin-001-led', '智能灯光控制', 'led_controller', '用于开启、关闭和调整智能LED灯的亮度或颜色。', 'http', 'https://plugin.smarthome.local', '{"openapi": "3.0.0", "info": {"title": "LED Control API"}, "paths": {"/light/on": {}, "/light/off": {}}}', 'enabled', TRUE, 'api_key', 'user-002-home', '2025-11-15 10:00:00'),
 ('plugin-002-temp', '室内温度查询', 'temperature_sensor', '获取当前房间的实时温度和湿度数据。', 'http', 'https://plugin.smarthome.local', '{"openapi": "3.0.0", "info": {"title": "Temperature API"}, "paths": {"/sensor/current_temp": {}}}', 'enabled', TRUE, 'none', 'user-002-home', '2025-11-15 11:30:00'),
-('plugin-003-calendar', '家庭日程提醒', 'family_calendar', '用于查询和添加家庭共享日历事件。', 'http', 'https://calendar.api.local', '{"openapi": "3.0.0", "info": {"title": "Calendar API"}, "paths": {"/events": {}}}', 'disabled', FALSE, 'oauth', 'user-004-dev', '2025-11-18 14:00:00');
-
+('plugin-003-calendar', '家庭日程提醒', 'family_calendar', '用于查询和添加家庭共享日历事件。', 'http', 'https://calendar.api.local', '{"openapi": "3.0.0", "info": {"title": "Calendar API"}, "paths": {"/events": {}}}', 'disabled', FALSE, 'oauth', 'user-004-dev', '2025-11-18 14:00:00'),
+('plugin_be2e083736e0','IoT设备控制','iot','传感器查询、设备控制（LED/继电器/舵机/PWM）、预设指令','http','https://plugin.aiot.hello1023.com','{"type": "openapi", "baseUrl": "https://plugin.aiot.hello1023.com", "originalSpec": {"info": {"title": "IoT设备控制", "version": "1.2.0", "description": "传感器查询、设备控制（LED/继电器/舵机/PWM）、预设指令"}, "paths": {"/plugin/preset": {"post": {"tags": ["预设指令"], "summary": "执行预设", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}}}, "description": "成功"}}, "description": "通过preset_key执行用户自定义预设", "operationId": "executePreset", "requestBody": {"content": {"application/json": {"schema": {"type": "object", "required": ["device_uuid", "preset_name"], "properties": {"parameters": {"type": "object", "example": {}, "description": "可选参数（通常为空）", "additionalProperties": true}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}, "preset_name": {"type": "string", "example": "led_blink_k8x9y2", "description": "预设标识(preset_key)，如：led_blink_k8x9y2"}}}, "example": {"parameters": {}, "device_uuid": "test", "preset_name": "led_blink_k8x9y2"}}}, "required": true}}}, "/plugin/control": {"post": {"tags": ["设备控制"], "summary": "控制设备", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}}}, "description": "成功"}}, "description": "控制LED、继电器、舵机、PWM等设备", "operationId": "controlDevice", "requestBody": {"content": {"application/json": {"schema": {"type": "object", "required": ["device_uuid", "port_type", "port_id", "action"], "properties": {"value": {"type": "integer", "example": 90, "maximum": 180, "minimum": 0, "description": "设置值：舵机角度(0-180)或PWM占空比(0-100)，仅当action为set时需要"}, "action": {"enum": ["on", "off", "set"], "type": "string", "example": "on", "description": "动作：on(打开)/off(关闭)/set(设置值，用于舵机角度或PWM占空比)"}, "port_id": {"type": "integer", "example": 1, "maximum": 4, "minimum": 1, "description": "端口ID：LED和继电器为1-4，舵机为1-4，PWM为1-2"}, "port_type": {"enum": ["led", "relay", "servo", "pwm"], "type": "string", "example": "led", "description": "设备类型：led(LED灯)、relay(继电器)、servo(舵机)、pwm(PWM输出)"}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}}}, "example": {"action": "on", "port_id": 1, "port_type": "led", "device_uuid": "test"}}}, "required": true}}}, "/plugin/sensor-data": {"get": {"tags": ["传感器"], "summary": "查询传感器", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"unit": {"type": "string", "example": "°C"}, "value": {"type": "number", "example": 24.5}}}}}, "example": {"msg": "成功", "code": 200, "data": {"unit": "°C", "value": 24.5}}}}, "description": "成功"}}, "parameters": [{"in": "query", "name": "uuid", "schema": {"type": "string", "example": "test"}, "required": true, "description": "UUID"}, {"in": "query", "name": "sensor", "schema": {"enum": ["温度", "湿度", "雨水", "雨水级别", "DS18B20", "DS18B20温度", "temperature", "humidity", "rain", "rain_level"], "type": "string", "example": "温度"}, "required": true, "description": "传感器类型"}], "description": "获取各类传感器数据（温度、湿度、雨水、DS18B20等）", "operationId": "getSensorData"}}}, "openapi": "3.0.0", "servers": [{"url": "https://plugin.aiot.hello1023.com", "description": "生产服务器"}]}}','enabled',TRUE,'none','user-004-dev','2025-12-03 14:37:30');
 
 -- ============================================================
 -- 9. 插件操作表 (plugin_operation) - 插件接口操作数据
@@ -114,8 +178,10 @@ INSERT INTO `plugin_operation` (`id`, `plugin_id`, `operation_id`, `name`, `meth
 ('op-002-led-off', 'plugin-001-led', 'turnOffLight', '关灯', 'POST', '/light/off', '关闭指定位置的LED灯', '{"type": "object", "properties": {"location": {"type": "string", "description": "位置"}}}', '{"type": "object", "properties": {"success": {"type": "boolean"}}}', '2025-11-15 10:00:00'),
 ('op-003-temp-get', 'plugin-002-temp', 'getCurrentTemp', '获取当前温度', 'GET', '/sensor/current_temp', '获取当前房间的实时温度和湿度', '{"type": "object", "properties": {"room": {"type": "string", "description": "房间名称"}}}', '{"type": "object", "properties": {"temperature": {"type": "number"}, "humidity": {"type": "number"}}}', '2025-11-15 11:30:00'),
 ('op-004-calendar-list', 'plugin-003-calendar', 'listEvents', '查询日程', 'GET', '/events', '查询家庭共享日历事件列表', '{"type": "object", "properties": {"date": {"type": "string", "format": "date"}}}', '{"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "time": {"type": "string"}}}}', '2025-11-18 14:00:00'),
-('op-005-calendar-add', 'plugin-003-calendar', 'addEvent', '添加日程', 'POST', '/events', '添加新的家庭日历事件', '{"type": "object", "properties": {"title": {"type": "string"}, "date": {"type": "string"}, "time": {"type": "string"}}}', '{"type": "object", "properties": {"id": {"type": "string"}, "success": {"type": "boolean"}}}', '2025-11-18 14:00:00');
-
+('op-005-calendar-add', 'plugin-003-calendar', 'addEvent', '添加日程', 'POST', '/events', '添加新的家庭日历事件', '{"type": "object", "properties": {"title": {"type": "string"}, "date": {"type": "string"}, "time": {"type": "string"}}}', '{"type": "object", "properties": {"id": {"type": "string"}, "success": {"type": "boolean"}}}', '2025-11-18 14:00:00'),
+('02262dac8f89447e','plugin_be2e083736e0','getSensorData','查询传感器','GET','/plugin/sensor-data','获取各类传感器数据（温度、湿度、雨水、DS18B20等）',NULL,'{"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"unit": {"type": "string", "example": "°C"}, "value": {"type": "number", "example": 24.5}}}}}','2025-12-03 14:37:30'),
+('9916f4ddca17488f','plugin_be2e083736e0','executePreset','执行预设','POST','/plugin/preset','通过preset_key执行用户自定义预设','{"type": "object", "required": ["device_uuid", "preset_name"], "properties": {"parameters": {"type": "object", "example": {}, "description": "可选参数（通常为空）", "additionalProperties": true}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}, "preset_name": {"type": "string", "example": "led_blink_k8x9y2", "description": "预设标识(preset_key)，如：led_blink_k8x9y2"}}}','{"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}','2025-12-03 14:37:30'),
+('f00c229544d34a09','plugin_be2e083736e0','controlDevice','控制设备','POST','/plugin/control','控制LED、继电器、舵机、PWM等设备','{"type": "object", "required": ["device_uuid", "port_type", "port_id", "action"], "properties": {"value": {"type": "integer", "example": 90, "maximum": 180, "minimum": 0, "description": "设置值：舵机角度(0-180)或PWM占空比(0-100)，仅当action为set时需要"}, "action": {"enum": ["on", "off", "set"], "type": "string", "example": "on", "description": "动作：on(打开)/off(关闭)/set(设置值，用于舵机角度或PWM占空比)"}, "port_id": {"type": "integer", "example": 1, "maximum": 4, "minimum": 1, "description": "端口ID：LED和继电器为1-4，舵机为1-4，PWM为1-2"}, "port_type": {"enum": ["led", "relay", "servo", "pwm"], "type": "string", "example": "led", "description": "设备类型：led(LED灯)、relay(继电器)、servo(舵机)、pwm(PWM输出)"}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}}}','{"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}','2025-12-03 14:37:30');
 
 -- ============================================================
 -- 9. 系统日志表 (system_log) - 增加操作审计和错误日志
