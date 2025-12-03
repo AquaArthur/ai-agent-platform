@@ -145,20 +145,49 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_run` (
 
 -- ============================================================
 -- 6. 知识库表 (knowledge_base)
--- 功能: 存储知识库的基本信息
+-- 功能: 存储知识库的基本信息，支持分级设计
 -- 关联用户故事: US-006, US-008, US-010
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`knowledge_base` (
     `id` VARCHAR(64) NOT NULL COMMENT '知识库唯一标识',
+    `uuid` VARCHAR(36) DEFAULT NULL COMMENT 'UUID标识',
     `name` VARCHAR(100) NOT NULL COMMENT '知识库名称（必填）',
     `description` TEXT DEFAULT NULL COMMENT '知识库描述',
+    `icon` VARCHAR(200) DEFAULT NULL COMMENT '知识库图标URL',
+    
+    -- 层级与归属
+    `scope_type` VARCHAR(20) NOT NULL DEFAULT 'personal' COMMENT '作用域类型（system/school/course/agent/personal）',
+    `scope_id` INT DEFAULT NULL COMMENT '作用域ID',
+    `parent_kb_id` VARCHAR(64) DEFAULT NULL COMMENT '父知识库ID',
+    
+    -- 创建者与权限
+    `owner_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
+    `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID（别名字段）',
+    `access_level` VARCHAR(20) NOT NULL DEFAULT 'private' COMMENT '访问级别（public/protected/private）',
+    
+    -- 统计信息
+    `document_count` INT NOT NULL DEFAULT 0 COMMENT '文档数量',
+    `chunk_count` INT NOT NULL DEFAULT 0 COMMENT '分块数量',
+    `total_size` BIGINT NOT NULL DEFAULT 0 COMMENT '总文件大小（字节）',
+    
+    -- 配置参数
+    `chunk_size` INT NOT NULL DEFAULT 800 COMMENT '分块大小',
+    `chunk_overlap` INT NOT NULL DEFAULT 50 COMMENT '分块重叠',
     `embedding_model` VARCHAR(50) DEFAULT NULL COMMENT '向量模型（如text-embedding-3）',
-    `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
+    `embedding_model_id` VARCHAR(64) DEFAULT NULL COMMENT '向量模型ID（外键）',
+    `retrieval_config` JSON DEFAULT NULL COMMENT '检索配置',
+    
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_uuid` (`uuid`),
     UNIQUE KEY `uk_user_name` (`user_id`, `name`),
-    CONSTRAINT `fk_kb_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+    KEY `idx_scope` (`scope_type`, `scope_id`),
+    KEY `idx_access_level` (`access_level`),
+    KEY `idx_parent_kb` (`parent_kb_id`),
+    CONSTRAINT `fk_kb_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_kb_parent` FOREIGN KEY (`parent_kb_id`) REFERENCES `knowledge_base` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
 
 -- ============================================================
