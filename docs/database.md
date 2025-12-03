@@ -198,27 +198,35 @@
 | 字段名 | 类型 | 约束 | 含义 |
 |--------|------|------|------|
 | `id` | VARCHAR(64) | PRIMARY KEY | 文档唯一标识 |
+| `uuid` | VARCHAR(36) | NOT NULL, UNIQUE | 文档UUID（用于外部接口） |
+| `name` | VARCHAR(255) | NOT NULL | 文档名称（显示名称） |
 | `filename` | VARCHAR(255) | NOT NULL | 文档文件名（原始文件名） |
 | `file_name` | VARCHAR(255) | NOT NULL | 文档文件名（别名字段，与filename保持一致） |
 | `file_url` | VARCHAR(500) | NULL | 文件存储URL（对象存储地址） |
-| `file_path` | VARCHAR(512) | NOT NULL | 文档存储路径 |
-| `file_size` | BIGINT | NOT NULL | 文档大小（字节） |
-| `file_type` | VARCHAR(50) | NOT NULL | 文档类型（txt/markdown/pdf，US-007格式校验） |
+| `file_path` | VARCHAR(512) | NULL | 文档存储路径 |
+| `file_size` | BIGINT | NOT NULL, DEFAULT 0 | 文档大小（字节） |
+| `file_type` | VARCHAR(50) | NOT NULL | 文档类型（txt/md/markdown，US-007格式校验） |
 | `chunk_count` | INT | NOT NULL, DEFAULT 0 | 切分片段数量（用于统计文档分块结果） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'processing' | 处理状态（processing/completed/failed，US-007 AC4） |
-| `process_status` | TINYINT | NULL | 处理状态数值（0-等待, 1-处理中, 2-完成, 3-失败，与status字段对应） |
-| `error_msg` | TEXT | NULL | 处理失败原因（记录错误详情） |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'uploading' | 处理状态（uploading/processing/processed/failed，US-007 AC4） |
+| `process_status` | TINYINT | NULL | 处理状态数值（0-上传中, 1-处理中, 2-已完成, 3-失败，与status字段对应） |
+| `error_message` | TEXT | NULL | 处理失败原因（记录错误详情） |
+| `processed_at` | DATETIME | NULL | 处理完成时间 |
 | `knowledge_base_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 所属知识库ID（关联knowledge_base表） |
 | `kb_id` | VARCHAR(64) | NULL, FOREIGN KEY | 所属知识库ID（别名字段，与knowledge_base_id保持一致） |
 | `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 上传者ID（关联用户表） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 上传时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 状态更新时间 |
+| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间（别名字段，与create_time保持一致） |
+| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+| `updated_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间（别名字段，与update_time保持一致） |
 
 #### 约束说明
-- 状态枚举限制：`status` 只能为 `processing`（处理中）、`completed`（已完成）或 `failed`（失败）
-- `process_status` 与 `status` 字段对应：0-等待, 1-处理中, 2-完成, 3-失败
+- 唯一索引：`uuid` 确保文档UUID全局唯一
+- 状态枚举限制：`status` 只能为 `uploading`（上传中）、`processing`（处理中）、`processed`（已完成）或 `failed`（失败）
+- `process_status` 与 `status` 字段对应：0-上传中, 1-处理中, 2-已完成, 3-失败
 - `chunk_count` 字段记录文档切分后的片段数量，用于RAG检索统计
-- `error_msg` 字段记录处理失败的详细原因，便于排错
+- `error_message` 字段记录处理失败的详细原因，便于排错
+- `processed_at` 字段记录文档处理完成的时间
+- 文件类型限制：仅支持 `txt`、`md`、`markdown` 格式（参考文档要求）
 - 外键级联：当知识库被删除时，关联文档同时删除（ON DELETE CASCADE）
 
 ### 2.8 plugin 表（插件表）
