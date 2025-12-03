@@ -62,7 +62,7 @@ INSERT INTO `agent_conversation` (`id`, `session_id`, `agent_id`, `user_id`, `qu
 
 
 -- ============================================================
--- 4. 工作流表 (workflow) - 增加一个定时任务工作流
+-- 5. 工作流表 (workflow) - 增加一个定时任务工作流
 -- ------------------------------------------------------------
 INSERT INTO `workflow` (`id`, `name`, `description`, `definition`, `graph_data`, `is_valid`, `status`, `user_id`, `create_time`) VALUES
 ('wf-001-home-ctrl', '智能家居控制与反馈', '根据用户请求，执行灯光控制或温度查询，并提供知识库支持。', '{"nodes": ["start", "check_intent", "call_plugin", "llm_feedback"], "edges": []}', '{"nodes": [], "edges": []}', TRUE, 'active', 'user-002-home', '2025-11-20 09:00:00'),
@@ -70,7 +70,7 @@ INSERT INTO `workflow` (`id`, `name`, `description`, `definition`, `graph_data`,
 
 
 -- ============================================================
--- 5. 工作流执行历史表 (workflow_run) - 增加执行记录
+-- 6. 工作流执行历史表 (workflow_run) - 增加执行记录
 -- ------------------------------------------------------------
 INSERT INTO `workflow_run` (`id`, `workflow_id`, `user_id`, `status`, `inputs`, `outputs`, `run_type`, `start_time`, `end_time`, `create_time`) VALUES
 ('run-001', 'wf-001-home-ctrl', 'user-003-tester', 'completed', '{"intent": "turn_on_light", "location": "living_room"}', '{"result": "success", "plugin_used": "led_controller"}', 'full', '2025-11-23 11:00:00', '2025-11-23 11:00:03', '2025-11-23 11:00:00'),
@@ -80,7 +80,7 @@ INSERT INTO `workflow_run` (`id`, `workflow_id`, `user_id`, `status`, `inputs`, 
 
 
 -- ============================================================
--- 6. 知识库表 (knowledge_base) - 增加第二个知识库
+-- 7. 知识库表 (knowledge_base) - 增加第二个知识库
 -- ------------------------------------------------------------
 INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scope_type`, `scope_id`, `parent_kb_id`, `owner_id`, `user_id`, `access_level`, `document_count`, `chunk_count`, `total_size`, `chunk_size`, `chunk_overlap`, `embedding_model`, `embedding_model_id`, `retrieval_config`, `create_time`) VALUES
 ('kb-001-dev', 'kb-uuid-001', '智能设备开发文档', '包含LED灯、传感器等设备的API和故障排除文档。', NULL, 'personal', NULL, NULL, 'user-002-home', 'user-002-home', 'private', 2, 40, 1098576, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-10 09:10:00'),
@@ -88,7 +88,15 @@ INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scop
 
 
 -- ============================================================
--- 7. 文档表 (document) - 增加文档数量
+-- 8. 智能体知识库关联表 (agent_knowledge_base) - 增加关联记录
+-- ------------------------------------------------------------
+INSERT INTO `agent_knowledge_base` (`id`, `agent_id`, `knowledge_base_id`, `priority`, `is_enabled`, `create_time`) VALUES
+('akb-001', 'agent-001-smarthome', 'kb-001-dev', 10, TRUE, '2025-11-22 10:10:00'),
+('akb-002', 'agent-001-smarthome', 'kb-002-faq', 5, TRUE, '2025-11-22 10:15:00'),
+('akb-003', 'agent-002-scheduler', 'kb-002-faq', 1, FALSE, '2025-11-23 09:35:00');
+
+-- ============================================================
+-- 9. 文档表 (document) - 增加文档数量
 -- ------------------------------------------------------------
 INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url`, `file_path`, `file_size`, `file_type`, `chunk_count`, `status`, `process_status`, `error_message`, `processed_at`, `knowledge_base_id`, `kb_id`, `user_id`, `create_time`, `created_at`, `update_time`, `updated_at`) VALUES
 ('doc-001', 'doc-uuid-001', 'LED设备操作手册', 'LED_Manual.txt', 'LED_Manual.txt', 'http://storage.com/kb-001/led_manual.txt', '/files/kb-001/led_manual.txt', 1048576, 'txt', 30, 'processed', 2, NULL, '2025-11-10 10:35:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 10:30:00', '2025-11-10 10:30:00', '2025-11-10 10:35:00', '2025-11-10 10:35:00'),
@@ -98,7 +106,7 @@ INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url
 
 
 -- ============================================================
--- 8. 插件表 (plugin) - 增加一个第三方插件
+-- 10. 插件表 (plugin) - 增加一个第三方插件
 -- ------------------------------------------------------------
 INSERT INTO `plugin` (`id`, `name`, `identifier`, `description`, `type`, `base_url`, `openapi_spec`, `status`, `is_enabled`, `auth_type`, `user_id`, `create_time`) VALUES
 ('plugin-001-led', '智能灯光控制', 'led_controller', '用于开启、关闭和调整智能LED灯的亮度或颜色。', 'http', 'https://plugin.smarthome.local', '{"openapi": "3.0.0", "info": {"title": "LED Control API"}, "paths": {"/light/on": {}, "/light/off": {}}}', 'enabled', TRUE, 'api_key', 'user-002-home', '2025-11-15 10:00:00'),
@@ -107,7 +115,7 @@ INSERT INTO `plugin` (`id`, `name`, `identifier`, `description`, `type`, `base_u
 
 
 -- ============================================================
--- 9. 插件操作表 (plugin_operation) - 插件接口操作数据
+-- 11. 插件操作表 (plugin_operation) - 插件接口操作数据
 -- ------------------------------------------------------------
 INSERT INTO `plugin_operation` (`id`, `plugin_id`, `operation_id`, `name`, `method`, `path`, `description`, `input_schema`, `output_schema`, `create_time`) VALUES
 ('op-001-led-on', 'plugin-001-led', 'turnOnLight', '开灯', 'POST', '/light/on', '打开指定位置的LED灯', '{"type": "object", "properties": {"location": {"type": "string", "description": "位置"}}}', '{"type": "object", "properties": {"success": {"type": "boolean"}}}', '2025-11-15 10:00:00'),
@@ -118,7 +126,7 @@ INSERT INTO `plugin_operation` (`id`, `plugin_id`, `operation_id`, `name`, `meth
 
 
 -- ============================================================
--- 9. 系统日志表 (system_log) - 增加操作审计和错误日志
+-- 12. 系统日志表 (system_log) - 增加操作审计和错误日志
 -- ------------------------------------------------------------
 INSERT INTO `system_log` (`id`, `user_id`, `module`, `action`, `level`, `content`, `create_time`, `request_params`) VALUES
 ('log-001', 'user-002-home', 'agent', 'create', 'info', '用户 [home_creator] 创建了智能体 [智能家居助理]', '2025-11-22 10:00:00', '{"name": "智能家居助理"}'),
@@ -129,7 +137,7 @@ INSERT INTO `system_log` (`id`, `user_id`, `module`, `action`, `level`, `content
 
 
 -- ============================================================
--- 10. 系统配置表 (system_config) 
+-- 13. 系统配置表 (system_config) 
 -- ------------------------------------------------------------
 -- 这些数据已经存在，无需重复插入
 /*
@@ -141,7 +149,7 @@ INSERT INTO `ai_agent_platform_db`.`system_config` (`id`, `config_key`, `config_
 
 
 -- ============================================================
--- 11. LLM提供商表 (llm_providers) - 初始数据
+-- 14. LLM提供商表 (llm_providers) - 初始数据
 -- ------------------------------------------------------------
 INSERT INTO `llm_providers` (`id`, `code`, `name`, `title`, `description`, `apply_url`, `doc_url`, `default_api_base`, `has_free_quota`, `tag_type`, `country`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
 ('provider-001-qwen', 'qwen', '通义千问', '阿里云通义千问（模型服务平台百炼）', '阿里云自研的大语言模型，支持中文对话、代码生成、Function Calling 等功能。提供 Turbo、Plus、Max 等多个版本，性能强劲，响应快速。', 'https://dashscope.console.aliyun.com/', 'https://help.aliyun.com/zh/model-studio/qwen-api-reference', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 1, 'primary', 'cn', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -150,7 +158,7 @@ INSERT INTO `llm_providers` (`id`, `code`, `name`, `title`, `description`, `appl
 
 
 -- ============================================================
--- 12. LLM模型表 (llm_models) - 初始数据
+-- 15. LLM模型表 (llm_models) - 初始数据
 -- 注意：API密钥需要自行配置
 -- ------------------------------------------------------------
 INSERT INTO `llm_models` (`id`, `name`, `display_name`, `provider`, `model_type`, `api_base`, `api_key`, `max_tokens`, `temperature`, `top_p`, `enable_deep_thinking`, `frequency_penalty`, `presence_penalty`, `config`, `description`, `is_active`, `is_default`, `is_system`, `sort_order`, `created_at`, `updated_at`) VALUES
