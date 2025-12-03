@@ -82,9 +82,9 @@ INSERT INTO `workflow_run` (`id`, `workflow_id`, `user_id`, `status`, `inputs`, 
 -- ============================================================
 -- 6. 知识库表 (knowledge_base) - 增加第二个知识库
 -- ------------------------------------------------------------
-INSERT INTO `knowledge_base` (`id`, `name`, `description`, `embedding_model`, `user_id`, `create_time`) VALUES
-('kb-001-dev', '智能设备开发文档', '包含LED灯、传感器等设备的API和故障排除文档。', 'text-embedding-3-small', 'user-002-home', '2025-11-10 09:10:00'),
-('kb-002-faq', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', 'text-embedding-3-small', 'user-001-admin', '2025-11-12 14:00:00');
+INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scope_type`, `scope_id`, `parent_kb_id`, `owner_id`, `user_id`, `access_level`, `document_count`, `chunk_count`, `total_size`, `chunk_size`, `chunk_overlap`, `embedding_model`, `embedding_model_id`, `retrieval_config`, `create_time`) VALUES
+('kb-001-dev', 'kb-uuid-001', '智能设备开发文档', '包含LED灯、传感器等设备的API和故障排除文档。', NULL, 'personal', NULL, NULL, 'user-002-home', 'user-002-home', 'private', 2, 40, 1098576, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-10 09:10:00'),
+('kb-002-faq', 'kb-uuid-002', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', NULL, 'system', NULL, NULL, 'user-001-admin', 'user-001-admin', 'public', 2, 35, 780288, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-12 14:00:00');
 
 
 -- ============================================================
