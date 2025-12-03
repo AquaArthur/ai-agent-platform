@@ -90,11 +90,11 @@ INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scop
 -- ============================================================
 -- 7. 文档表 (document) - 增加文档数量
 -- ------------------------------------------------------------
-INSERT INTO `document` (`id`, `filename`, `file_name`, `file_url`, `file_path`, `file_size`, `file_type`, `chunk_count`, `status`, `process_status`, `knowledge_base_id`, `kb_id`, `user_id`, `create_time`) VALUES
-('doc-001', 'LED_Manual.pdf', 'LED_Manual.pdf', 'http://storage.com/kb-001/led_manual.pdf', '/files/kb-001/led_manual.pdf', 1048576, 'pdf', 30, 'completed', 2, 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 10:30:00'),
-('doc-002', 'Temp_Sensor_Spec.txt', 'Temp_Sensor_Spec.txt', 'http://storage.com/kb-001/temp_spec.txt', '/files/kb-001/temp_spec.txt', 50000, 'txt', 10, 'completed', 2, 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 11:00:00'),
-('doc-003', 'Troubleshooting.md', 'Troubleshooting.md', 'http://storage.com/kb-002/trouble.md', '/files/kb-002/trouble.md', 256000, 'markdown', 20, 'completed', 2, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 09:00:00'),
-('doc-004', 'Installation_Guide.pdf', 'Installation_Guide.pdf', 'http://storage.com/kb-002/install.pdf', '/files/kb-002/install.pdf', 524288, 'pdf', 15, 'processing', 1, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 10:00:00');
+INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url`, `file_path`, `file_size`, `file_type`, `chunk_count`, `status`, `process_status`, `error_message`, `processed_at`, `knowledge_base_id`, `kb_id`, `user_id`, `create_time`, `created_at`, `update_time`, `updated_at`) VALUES
+('doc-001', 'doc-uuid-001', 'LED设备操作手册', 'LED_Manual.txt', 'LED_Manual.txt', 'http://storage.com/kb-001/led_manual.txt', '/files/kb-001/led_manual.txt', 1048576, 'txt', 30, 'processed', 2, NULL, '2025-11-10 10:35:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 10:30:00', '2025-11-10 10:30:00', '2025-11-10 10:35:00', '2025-11-10 10:35:00'),
+('doc-002', 'doc-uuid-002', '温度传感器技术规格', 'Temp_Sensor_Spec.txt', 'Temp_Sensor_Spec.txt', 'http://storage.com/kb-001/temp_spec.txt', '/files/kb-001/temp_spec.txt', 50000, 'txt', 10, 'processed', 2, NULL, '2025-11-10 11:05:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 11:00:00', '2025-11-10 11:00:00', '2025-11-10 11:05:00', '2025-11-10 11:05:00'),
+('doc-003', 'doc-uuid-003', '常见问题排查指南', 'Troubleshooting.md', 'Troubleshooting.md', 'http://storage.com/kb-002/trouble.md', '/files/kb-002/trouble.md', 256000, 'md', 20, 'processed', 2, NULL, '2025-11-13 09:10:00', 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 09:00:00', '2025-11-13 09:00:00', '2025-11-13 09:10:00', '2025-11-13 09:10:00'),
+('doc-004', 'doc-uuid-004', '设备安装指南', 'Installation_Guide.md', 'Installation_Guide.md', 'http://storage.com/kb-002/install.md', '/files/kb-002/install.md', 524288, 'markdown', 15, 'processing', 1, NULL, NULL, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00');
 
 
 -- ============================================================
