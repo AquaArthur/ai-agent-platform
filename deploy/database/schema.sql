@@ -190,8 +190,31 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`knowledge_base` (
     CONSTRAINT `fk_kb_parent` FOREIGN KEY (`parent_kb_id`) REFERENCES `knowledge_base` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
 
+
 -- ============================================================
--- 7. 文档表 (document)
+-- 7. 智能体知识库关联表 (agent_knowledge_base)
+-- 功能: 存储智能体与知识库的多对多关联关系
+-- 关联用户故事: US-001, US-006
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_knowledge_base` (
+    `id` VARCHAR(64) NOT NULL COMMENT '关联记录唯一标识',
+    `agent_id` VARCHAR(64) NOT NULL COMMENT '智能体ID',
+    `knowledge_base_id` VARCHAR(64) NOT NULL COMMENT '知识库ID',
+    `priority` INT NOT NULL DEFAULT 0 COMMENT '优先级（数值越大优先级越高）',
+    `is_enabled` BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否启用',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_agent_kb` (`agent_id`, `knowledge_base_id`),
+    KEY `idx_agent` (`agent_id`),
+    KEY `idx_kb` (`knowledge_base_id`),
+    KEY `idx_priority` (`priority`),
+    CONSTRAINT `fk_agent_kb_agent` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_agent_kb_kb` FOREIGN KEY (`knowledge_base_id`) REFERENCES `knowledge_base` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='智能体知识库关联表';
+
+-- ============================================================
+-- 8. 文档表 (document)
 -- 功能: 存储知识库中上传的文档信息及处理状态
 -- 关联用户故事: US-007, US-008
 -- ============================================================
@@ -226,7 +249,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`document` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
 -- ============================================================
--- 8. 插件表 (plugin)
+-- 9. 插件表 (plugin)
 -- 功能: 存储插件的注册信息、配置及状态
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
@@ -255,7 +278,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件表';
 
 -- ============================================================
--- 9. 插件操作表 (plugin_operation)
+-- 10. 插件操作表 (plugin_operation)
 -- 功能: 存储每个插件的接口操作信息
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
@@ -277,7 +300,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin_operation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件操作表';
 
 -- ============================================================
--- 10. 系统日志表 (system_log)
+-- 11. 系统日志表 (system_log)
 -- 功能: 存储系统操作日志及审计信息
 -- 关联用户故事: US-023
 -- ============================================================
@@ -298,7 +321,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统日志表';
 
 -- ============================================================
--- 11. 系统配置表 (system_config)
+-- 12. 系统配置表 (system_config)
 -- 功能: 存储系统全局配置信息
 -- 关联用户故事: US-022
 -- ============================================================
@@ -314,7 +337,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
 
 -- ============================================================
--- 12. LLM提供商表 (llm_providers)
+-- 13. LLM提供商表 (llm_providers)
 -- 功能: 存储LLM提供商信息
 -- 关联用户故事: US-022
 -- ============================================================
@@ -341,7 +364,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_providers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LLM提供商表';
 
 -- ============================================================
--- 13. LLM模型表 (llm_models)
+-- 14. LLM模型表 (llm_models)
 -- 功能: 存储LLM模型配置信息
 -- 关联用户故事: US-022
 -- ============================================================
