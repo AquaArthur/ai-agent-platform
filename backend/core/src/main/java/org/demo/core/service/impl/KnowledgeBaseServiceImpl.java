@@ -43,7 +43,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         // 检查名称是否重复
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeBase::getUserId, userId)
-               .eq(KnowledgeBase::getName, dto.getName());
+                .eq(KnowledgeBase::getName, dto.getName());
         if (knowledgeBaseMapper.selectCount(wrapper) > 0) {
             throw new IllegalArgumentException("知识库名称已存在");
         }
@@ -66,7 +66,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         kb.setChunkSize(dto.getChunkSize() != null ? dto.getChunkSize() : 800);
         kb.setChunkOverlap(dto.getChunkOverlap() != null ? dto.getChunkOverlap() : 50);
         kb.setEmbeddingModelId(dto.getEmbeddingModelId());
-        
+
         // 设置默认检索配置
         if (dto.getRetrievalConfig() != null) {
             kb.setRetrievalConfig(dto.getRetrievalConfig());
@@ -85,25 +85,25 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     }
 
     @Override
-    public PageResult<KnowledgeBaseVO> listKnowledgeBases(Integer page, Integer pageSize, 
-                                                           String search, String scopeType, 
-                                                           String accessLevel, String userId) {
-        log.info("分页查询知识库，page: {}, pageSize: {}, search: {}, scopeType: {}, accessLevel: {}, userId: {}", 
-                 page, pageSize, search, scopeType, accessLevel, userId);
+    public PageResult<KnowledgeBaseVO> listKnowledgeBases(Integer page, Integer pageSize,
+                                                          String search, String scopeType,
+                                                          String accessLevel, String userId) {
+        log.info("分页查询知识库，page: {}, pageSize: {}, search: {}, scopeType: {}, accessLevel: {}, userId: {}",
+                page, pageSize, search, scopeType, accessLevel, userId);
 
         // 构建查询条件
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
 
         // 权限过滤：只能看到自己的和公开的
         wrapper.and(w -> w.eq(KnowledgeBase::getUserId, userId)
-                          .or()
-                          .eq(KnowledgeBase::getAccessLevel, "public"));
+                .or()
+                .eq(KnowledgeBase::getAccessLevel, "public"));
 
         // 搜索条件
         if (StringUtils.isNotBlank(search)) {
             wrapper.and(w -> w.like(KnowledgeBase::getName, search)
-                              .or()
-                              .like(KnowledgeBase::getDescription, search));
+                    .or()
+                    .like(KnowledgeBase::getDescription, search));
         }
 
         // 筛选条件
@@ -126,7 +126,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(pageResult.getTotal(), page, pageSize, voList);
+        return new PageResult<>(voList, pageResult.getTotal());
     }
 
     @Override

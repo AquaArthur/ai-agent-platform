@@ -2,9 +2,9 @@ package org.demo.core.model.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 /**
  * 知识库更新请求 DTO（部分更新）
