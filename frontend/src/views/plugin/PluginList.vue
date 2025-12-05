@@ -39,12 +39,12 @@
 
     <!-- 插件列表 - 卡片形式 -->
     <div v-loading="pluginStore.loading" class="plugins-grid">
-      <el-empty v-if="!pluginStore.loading && filteredPluginList.length === 0" description="暂无插件数据">
+      <el-empty v-if="!pluginStore.loading && paginatedPluginList.length === 0" description="暂无插件数据">
         <el-button type="primary" @click="handleCreate">创建第一个插件</el-button>
       </el-empty>
       
       <el-card
-        v-for="plugin in filteredPluginList"
+        v-for="plugin in paginatedPluginList"
         :key="plugin.id"
         class="plugin-card"
         shadow="hover"
@@ -114,6 +114,18 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 分页 -->
+    <el-pagination
+      v-model:current-page="pagination.page"
+      v-model:page-size="pagination.pageSize"
+      :total="pagination.total"
+      :page-sizes="[12, 24, 48]"
+      layout="total, sizes, prev, pager, next, jumper"
+      @size-change="handlePageChange"
+      @current-change="handlePageChange"
+      style="margin-top: 20px; justify-content: center;"
+    />
 
     <!-- 插件编辑/创建弹窗 -->
     <PluginDialog
@@ -200,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Edit, Delete, Connection, Document, Link, Clock, Switch, VideoPlay, Loading } from '@element-plus/icons-vue'
 import { usePluginStore } from '@/stores/usePluginStore'
@@ -218,6 +230,13 @@ const dialogVisible = ref(false)
 // 当前编辑的插件
 const currentPlugin = ref<Plugin | null>(null)
 
+// 分页配置
+const pagination = reactive({
+  page: 1,
+  pageSize: 12,
+  total: 0
+})
+
 // 测试弹窗相关
 const testDialogVisible = ref(false)
 const testPlugin = ref<Plugin | null>(null)
@@ -227,7 +246,7 @@ const testParams = ref('')
 const testLoading = ref(false)
 const testResult = ref<any>(null)
 
-// 过滤后的插件列表
+// 过滤后的插件列表（未分页）
 const filteredPluginList = computed(() => {
   let list = pluginStore.pluginList
 
@@ -253,7 +272,17 @@ const filteredPluginList = computed(() => {
     })
   }
 
+  // 更新总数
+  pagination.total = list.length
+
   return list
+})
+
+// 分页后的插件列表
+const paginatedPluginList = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredPluginList.value.slice(start, end)
 })
 
 // 格式化日期时间
@@ -271,13 +300,23 @@ const formatDateTime = (dateTime?: string) => {
 
 // 搜索处理
 const handleSearch = () => {
+  pagination.page = 1
   // 搜索逻辑已在 computed 中处理
+  // TODO: 如果有API，在这里调用API加载数据
+  // await loadPlugins()
 }
 
 // 重置筛选
 const resetFilters = () => {
   searchKeyword.value = ''
   filterStatus.value = ''
+  pagination.page = 1
+}
+
+// 分页变化处理
+const handlePageChange = () => {
+  // TODO: 如果有API，在这里调用API加载数据
+  // await loadPlugins()
 }
 
 // 创建插件
@@ -342,7 +381,7 @@ const handleTest = async (plugin: Plugin) => {
   try {
     // 获取插件详情（包含 operations）
     const detail = await pluginStore.fetchPluginById(plugin.id!)
-    testOperations.value = detail?.operations || []
+    testOperations.value = (detail as any)?.operations || []
     
     // 如果只有一个操作，自动选中
     if (testOperations.value.length === 1) {

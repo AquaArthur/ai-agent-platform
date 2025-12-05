@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -125,6 +126,14 @@ public class DocumentServiceImpl implements DocumentService {
         document.setUuid(UUID.randomUUID().toString());
         document.setName(filename);
         document.setFilename(filename);
+        // 使用反射设置 fileName 字段（别名字段）
+        try {
+            Field fileNameField = Document.class.getDeclaredField("fileName");
+            fileNameField.setAccessible(true);
+            fileNameField.set(document, filename);
+        } catch (Exception e) {
+            log.warn("设置 fileName 字段失败: {}", e.getMessage());
+        }
         document.setFilePath(filePath);
         document.setFileSize(file.getSize());
         document.setFileType(fileType);

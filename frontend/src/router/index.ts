@@ -1,10 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
+// @ts-ignore
 import MainLayout from '@/components/MainLayout.vue'
 const Home = () => import('@/views/HomeView.vue')
 const PluginList = () => import('@/views/plugin/PluginList.vue')
 const AgentList = () => import('@/views/agent/AgentList.vue')
 const AgentEditor = () => import('@/views/agent/AgentEditor.vue')
 const ChatView = () => import('@/views/chat/ChatView.vue')
+const KnowledgeBaseList = () => import('@/views/knowledgeBase/KnowledgeBaseList.vue')
+const KnowledgeBaseDetail = () => import('@/views/knowledgeBase/KnowledgeBaseDetail.vue')
 
 export default createRouter({
   history: createWebHistory(),
@@ -43,6 +46,18 @@ export default createRouter({
           name: 'chat',
           component: ChatView,
           meta: { title: '对话测试' }
+        },
+        {
+          path: '/knowledge-bases',
+          name: 'knowledge-base-list',
+          component: KnowledgeBaseList,
+          meta: { title: '知识库管理' }
+        },
+        {
+          path: '/knowledge-bases/:uuid',
+          name: 'knowledge-base-detail',
+          component: KnowledgeBaseDetail,
+          meta: { title: '知识库详情' }
         },
       ]
     },

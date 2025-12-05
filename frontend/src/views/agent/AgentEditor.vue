@@ -58,13 +58,10 @@
         </el-form-item>
 
         <el-form-item label="系统提示词" prop="prompt">
-          <el-input
-            v-model="formData.prompt"
-            type="textarea"
-            :rows="6"
-            placeholder="请输入系统提示词，定义智能体的角色和行为..."
-            maxlength="2000"
-            show-word-limit
+          <MonacoEditor
+            v-model="promptValue"
+            language="markdown"
+            height="300px"
           />
           <div class="form-tip">
             提示词用于定义智能体的角色、行为准则和回答风格
@@ -208,6 +205,7 @@ import { useAgentStore } from '@/stores/useAgentStore'
 import { getLlmModelList } from '@/api/llm'
 import { getPluginList } from '@/api'
 import type { Agent, LlmModel, Plugin } from '@/types/entity'
+import MonacoEditor from '@/components/MonacoEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -266,6 +264,14 @@ const formRules: FormRules = {
     { max: 2000, message: '提示词不能超过 2000 个字符', trigger: 'blur' }
   ]
 }
+
+// prompt 的计算属性，确保始终是字符串
+const promptValue = computed({
+  get: () => formData.value.prompt || '',
+  set: (value: string) => {
+    formData.value.prompt = value
+  }
+})
 
 // 处理知识库ID列表变化
 const handleKbIdsChange = () => {
@@ -347,7 +353,9 @@ const initFormData = async () => {
       if (agent) {
         formData.value = {
           ...agent,
-          status: agent.status || 'draft'
+          status: agent.status || 'draft',
+          prompt: agent.prompt || '',
+          promptTemplate: agent.promptTemplate || ''
         }
 
         // 处理模型配置

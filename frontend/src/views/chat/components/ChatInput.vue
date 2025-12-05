@@ -49,7 +49,7 @@ const emit = defineEmits<Emits>()
 const inputText = ref('')
 
 // 监听 loading 状态变化（用于重置状态）
-watch(() => props.loading, (newVal, oldVal) => {
+watch(() => props.loading, (_newVal, _oldVal) => {
   // 如果从发送中变为完成，但输入框已有内容，说明可能是失败重试
   // 这里不做自动清空，让用户决定是否重发
 })

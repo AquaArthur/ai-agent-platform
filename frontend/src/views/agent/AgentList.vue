@@ -39,12 +39,12 @@
 
     <!-- 智能体列表 - 卡片形式 -->
     <div v-loading="agentStore.loading" class="agents-grid">
-      <el-empty v-if="!agentStore.loading && filteredAgentList.length === 0" description="暂无智能体数据">
+      <el-empty v-if="!agentStore.loading && paginatedAgentList.length === 0" description="暂无智能体数据">
         <el-button type="primary" @click="handleCreate">创建第一个智能体</el-button>
       </el-empty>
       
       <el-card
-        v-for="agent in filteredAgentList"
+        v-for="agent in paginatedAgentList"
         :key="agent.id"
         class="agent-card"
         shadow="hover"
@@ -101,11 +101,23 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 分页 -->
+    <el-pagination
+      v-model:current-page="pagination.page"
+      v-model:page-size="pagination.pageSize"
+      :total="pagination.total"
+      :page-sizes="[12, 24, 48]"
+      layout="total, sizes, prev, pager, next, jumper"
+      @size-change="handlePageChange"
+      @current-change="handlePageChange"
+      style="margin-top: 20px; justify-content: center;"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Edit, Delete, ChatDotRound, ChatDotSquare, Connection, Clock } from '@element-plus/icons-vue'
@@ -120,7 +132,14 @@ const searchKeyword = ref('')
 // 状态筛选
 const filterStatus = ref<string>('')
 
-// 过滤后的智能体列表
+// 分页配置
+const pagination = reactive({
+  page: 1,
+  pageSize: 12,
+  total: 0
+})
+
+// 过滤后的智能体列表（未分页）
 const filteredAgentList = computed(() => {
   let list = agentStore.agentList
 
@@ -140,7 +159,17 @@ const filteredAgentList = computed(() => {
     list = list.filter((agent) => agent.status === filterStatus.value)
   }
 
+  // 更新总数
+  pagination.total = list.length
+
   return list
+})
+
+// 分页后的智能体列表
+const paginatedAgentList = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredAgentList.value.slice(start, end)
 })
 
 // 格式化日期时间
@@ -158,13 +187,23 @@ const formatDateTime = (dateTime?: string) => {
 
 // 搜索处理
 const handleSearch = () => {
+  pagination.page = 1
   // 搜索逻辑已在 computed 中处理
+  // TODO: 如果有API，在这里调用API加载数据
+  // await loadAgents()
 }
 
 // 重置筛选
 const resetFilters = () => {
   searchKeyword.value = ''
   filterStatus.value = ''
+  pagination.page = 1
+}
+
+// 分页变化处理
+const handlePageChange = () => {
+  // TODO: 如果有API，在这里调用API加载数据
+  // await loadAgents()
 }
 
 // 创建智能体

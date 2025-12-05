@@ -1,5 +1,5 @@
 import { http, USE_MOCK } from '@/utils/http'
-import { mockDb } from '@/mock/data'
+// import { mockDb } from '@/mock/data'
 
 // 后端统一响应格式
 export interface ApiResponse<T = any> {
@@ -24,6 +24,7 @@ export * from './agent'
 export * from './plugin'
 export * from './chat'
 export * from './llm'
+export * from './knowledgeBase'
 
 // 导出类型定义
 export * from '@/types/entity'
