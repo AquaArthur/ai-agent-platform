@@ -10,6 +10,7 @@ AI 智能体平台前端应用，基于 Vue 3 + TypeScript + Vite 构建的现�
 
 - **智能体管理** - 创建、编辑、删除和查看智能体配置
 - **插件管理** - 管理 AI 智能体可用的插件工具
+- **知识库管理** - 创建和管理知识库，上传文档，配置向量化参数
 - **对话测试** - 与智能体进行实时对话，测试智能体功能
 - **系统测试** - 系统功能测试页面
 
@@ -24,6 +25,7 @@ AI 智能体平台前端应用，基于 Vue 3 + TypeScript + Vite 构建的现�
 - **HTTP 客户端**: Axios 1.13+
 - **样式**: Tailwind CSS 4.1+
 - **图标**: Element Plus Icons
+- **代码编辑器**: Monaco Editor 0.55+
 
 ## 📁 项目结构
 
@@ -36,10 +38,12 @@ frontend/
 │   │   ├── chat.ts        # 对话相关 API
 │   │   ├── plugin.ts      # 插件相关 API
 │   │   ├── llm.ts         # LLM 模型相关 API
+│   │   ├── knowledgeBase.ts # 知识库相关 API
 │   │   └── index.ts       # API 统一导出
 │   ├── assets/            # 资源文件
 │   ├── components/        # 公共组件
 │   │   ├── MainLayout.vue # 主布局组件
+│   │   ├── MonacoEditor.vue # Monaco 代码编辑器组件
 │   │   └── HelloWorld.vue
 │   ├── mock/              # Mock 数据
 │   │   └── data.ts        # Mock 数据定义
@@ -61,12 +65,18 @@ frontend/
 │   │   │   ├── AgentList.vue
 │   │   │   ├── AgentEditor.vue
 │   │   │   └── components/
+│   │   │       └── ChatPanel.vue
 │   │   ├── chat/          # 对话相关页面
 │   │   │   ├── ChatView.vue
 │   │   │   └── components/
+│   │   │       ├── ChatInput.vue
+│   │   │       └── ChatMessage.vue
 │   │   ├── plugin/        # 插件相关页面
 │   │   │   ├── PluginList.vue
 │   │   │   └── PluginDialog.vue
+│   │   ├── knowledgeBase/ # 知识库相关页面
+│   │   │   ├── KnowledgeBaseList.vue
+│   │   │   └── KnowledgeBaseDetail.vue
 │   │   └── HomeView.vue   # 首页
 │   ├── App.vue            # 根组件
 │   └── main.ts            # 入口文件
@@ -194,6 +204,27 @@ docker run -d -p 80:80 ai-agent-platform-frontend
 - `GET /api/v1/chat/history/:sessionId` - 获取消息历史
 - `POST /api/v1/chat/message` - 发送消息
 
+### 知识库 API
+
+- `GET /api/v1/knowledge-bases` - 获取知识库列表（支持分页、搜索、筛选）
+- `GET /api/v1/knowledge-bases/:uuid` - 获取知识库详情
+- `POST /api/v1/knowledge-bases` - 创建知识库
+- `PATCH /api/v1/knowledge-bases/:uuid` - 更新知识库（部分更新）
+- `DELETE /api/v1/knowledge-bases/:uuid` - 删除知识库
+- `GET /api/v1/knowledge-bases/:kbUuid/documents` - 获取知识库的文档列表
+- `POST /api/v1/knowledge-bases/:kbUuid/documents` - 上传文档到知识库
+- `GET /api/v1/documents/:uuid` - 获取文档详情
+- `DELETE /api/v1/documents/:uuid` - 删除文档
+
+### LLM 模型 API
+
+- `GET /api/v1/llm/models` - 获取 LLM 模型列表
+- `GET /api/v1/llm/models/:id` - 获取 LLM 模型详情
+- `POST /api/v1/llm/models` - 创建 LLM 模型
+- `PUT /api/v1/llm/models/:id` - 更新 LLM 模型
+- `DELETE /api/v1/llm/models/:id` - 删除 LLM 模型
+- `GET /api/v1/llm/providers` - 获取 LLM 提供商列表
+
 ### 响应格式
 
 后端统一响应格式：
@@ -266,9 +297,12 @@ server: {
 - 初始版本
 - 实现智能体管理功能
 - 实现插件管理功能
+- 实现知识库管理功能（创建、编辑、删除知识库，上传和管理文档）
 - 实现对话测试功能
+- 支持 LLM 模型管理
 - 支持 Mock 数据模式
 - 支持 Docker 部署
+- 集成 Monaco Editor 代码编辑器
 
 ## 📄 许可证
 

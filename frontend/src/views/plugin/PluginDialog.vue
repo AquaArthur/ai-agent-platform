@@ -282,13 +282,13 @@ const parseAndFillForm = (jsonData: any) => {
   if (jsonData.components?.securitySchemes) {
     const schemes = jsonData.components.securitySchemes
     const schemeKeys = Object.keys(schemes)
-    if (schemeKeys.length > 0) {
+    if (schemeKeys.length > 0 && schemeKeys[0]) {
       const firstScheme = schemes[schemeKeys[0]]
-      if (firstScheme.type === 'apiKey') {
+      if (firstScheme?.type === 'apiKey') {
         formData.value.authType = 'api_key'
-      } else if (firstScheme.type === 'oauth2') {
+      } else if (firstScheme?.type === 'oauth2') {
         formData.value.authType = 'oauth'
-      } else if (firstScheme.scheme === 'bearer') {
+      } else if (firstScheme?.scheme === 'bearer') {
         formData.value.authType = 'api_key'
       }
     }
