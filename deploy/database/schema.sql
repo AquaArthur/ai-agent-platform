@@ -397,6 +397,38 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_models` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LLM模型表';
 
 -- ============================================================
+-- 15. 向量表 (vector)
+-- 功能: 存储文档分片后的向量
+
+-- ============================================================
+create table if not exists `ai_agent_platform_db`.`vector` (
+    id          bigint auto_increment comment '向量唯一标识'
+        primary key,
+    document_id VARCHAR(64)                         not null comment '所属文档id',
+    kb_id       VARCHAR(64)                         not null comment '所属知识库id',
+    chunk_index int                                 not null comment '分片序号，从0开始',
+    chunk_text  text                                not null comment 'chunk文本内容',
+    embedding   json                                not null comment '向量，存储为JSON 数组',
+    vector_dim  int                                 null comment '向量维度，便于一致性检查',
+    create_time timestamp default CURRENT_TIMESTAMP null,
+    constraint fk_vector_document
+        foreign key (document_id) references `ai_agent_platform_db`.`document` (id)
+            on delete cascade,
+    constraint fk_vector_kb
+        foreign key (kb_id) references `ai_agent_platform_db`.`knowledge_base` (id)
+            on delete cascade
+)
+ENGINE=InnoDB 
+DEFAULT CHARSET=utf8mb4 
+COLLATE=utf8mb4_unicode_ci  
+comment '文档向量表';
+
+create index idx_kb_document
+    on `ai_agent_platform_db`.`vector` (document_id, kb_id);
+
+
+
+-- ============================================================
 -- 初始化系统配置数据
 -- ============================================================
 INSERT INTO `ai_agent_platform_db`.`system_config` (`id`, `config_key`, `config_value`, `description`) VALUES

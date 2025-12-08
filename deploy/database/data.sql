@@ -148,7 +148,8 @@ INSERT INTO `workflow_run` (`id`, `workflow_id`, `user_id`, `status`, `inputs`, 
 -- ------------------------------------------------------------
 INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scope_type`, `scope_id`, `parent_kb_id`, `owner_id`, `user_id`, `access_level`, `document_count`, `chunk_count`, `total_size`, `chunk_size`, `chunk_overlap`, `embedding_model`, `embedding_model_id`, `retrieval_config`, `create_time`) VALUES
 ('kb-001-dev', 'kb-uuid-001', '智能设备开发文档', '包含LED灯、传感器等设备的API和故障排除文档。', NULL, 'personal', NULL, NULL, 'user-002-home', 'user-002-home', 'private', 2, 40, 1098576, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-10 09:10:00'),
-('kb-002-faq', 'kb-uuid-002', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', NULL, 'system', NULL, NULL, 'user-001-admin', 'user-001-admin', 'public', 2, 35, 780288, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-12 14:00:00');
+('kb-002-faq', 'kb-uuid-002', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', NULL, 'system', NULL, NULL, 'user-001-admin', 'user-001-admin', 'public', 2, 35, 780288, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.7, "max_context_length": 2000}', '2025-11-12 14:00:00'),
+('kb-003-tt', 'kb-uuid-003', '测试知识库', '测试知识库', null, 'system', null, null, 'user-001-admin', 'user-001-admin', 'public', 1, 3, 1145, 800, 50, 'text-embedding-v4', null, '{"top_k": 5, "max_context_length": 2000, "similarity_threshold": 0.7}', '2025-12-08 21:33:26', '2025-12-08 21:33:29');
 
 
 -- ============================================================
@@ -157,7 +158,8 @@ INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scop
 INSERT INTO `agent_knowledge_base` (`id`, `agent_id`, `knowledge_base_id`, `priority`, `is_enabled`, `create_time`) VALUES
 ('akb-001', 'agent-001-smarthome', 'kb-001-dev', 10, TRUE, '2025-11-22 10:10:00'),
 ('akb-002', 'agent-001-smarthome', 'kb-002-faq', 5, TRUE, '2025-11-22 10:15:00'),
-('akb-003', 'agent-002-scheduler', 'kb-002-faq', 1, FALSE, '2025-11-23 09:35:00');
+('akb-003', 'agent-002-scheduler', 'kb-002-faq', 1, FALSE, '2025-11-23 09:35:00'),
+('akb-004', 'agent-001-smarthome', 'kb-003-tt', 1, TRUE, '2025-11-23 09:35:00');
 
 -- ============================================================
 -- 9. 文档表 (document) - 增加文档数量
@@ -166,7 +168,8 @@ INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url
 ('doc-001', 'doc-uuid-001', 'LED设备操作手册', 'LED_Manual.txt', 'LED_Manual.txt', 'http://storage.com/kb-001/led_manual.txt', '/files/kb-001/led_manual.txt', 1048576, 'txt', 30, 'processed', 2, NULL, '2025-11-10 10:35:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 10:30:00', '2025-11-10 10:30:00', '2025-11-10 10:35:00', '2025-11-10 10:35:00'),
 ('doc-002', 'doc-uuid-002', '温度传感器技术规格', 'Temp_Sensor_Spec.txt', 'Temp_Sensor_Spec.txt', 'http://storage.com/kb-001/temp_spec.txt', '/files/kb-001/temp_spec.txt', 50000, 'txt', 10, 'processed', 2, NULL, '2025-11-10 11:05:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 11:00:00', '2025-11-10 11:00:00', '2025-11-10 11:05:00', '2025-11-10 11:05:00'),
 ('doc-003', 'doc-uuid-003', '常见问题排查指南', 'Troubleshooting.md', 'Troubleshooting.md', 'http://storage.com/kb-002/trouble.md', '/files/kb-002/trouble.md', 256000, 'md', 20, 'processed', 2, NULL, '2025-11-13 09:10:00', 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 09:00:00', '2025-11-13 09:00:00', '2025-11-13 09:10:00', '2025-11-13 09:10:00'),
-('doc-004', 'doc-uuid-004', '设备安装指南', 'Installation_Guide.md', 'Installation_Guide.md', 'http://storage.com/kb-002/install.md', '/files/kb-002/install.md', 524288, 'markdown', 15, 'processing', 1, NULL, NULL, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00');
+('doc-004', 'doc-uuid-004', '设备安装指南', 'Installation_Guide.md', 'Installation_Guide.md', 'http://storage.com/kb-002/install.md', '/files/kb-002/install.md', 524288, 'markdown', 15, 'processing', 1, NULL, NULL, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00'),
+('doc-005', 'doc-uuid-005', '测试文档', '测试文档.md', '测试文档.md', 'http://storage.com/kb-002/测试文档.md', '/files/kb-003/test.md', 1111, 'markdown', 3, DEFAULT, null, null, null, 'kb-003-tt', 'kb-003-tt', 'user-001-admin', DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 
 
 -- ============================================================
@@ -233,7 +236,8 @@ INSERT INTO `llm_models` (`id`, `name`, `display_name`, `provider`, `model_type`
 ('model-003-qwen-max', 'qwen-max', '通义千问-Max', 'qwen', 'chat', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 'YOUR_API_KEY_HERE', 8192, 0.70, 0.90, 0, 0.00, 0.00, NULL, '阿里云通义千问Max版本，最强理解能力，适合复杂任务', 1, 0, 1, 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('model-004-doubao-pro', 'doubao-pro-32k', '豆包-Pro-32k', 'doubao', 'chat', 'https://ark.cn-beijing.volces.com/api/v3', 'YOUR_API_KEY_HERE', 32768, 0.70, 0.90, 0, 0.00, 0.00, NULL, '字节跳动豆包Pro版本，支持32k上下文，适合长文本处理', 1, 0, 1, 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('model-005-gpt35-turbo', 'gpt-3.5-turbo', 'GPT-3.5 Turbo', 'openai', 'chat', 'https://api.openai.com/v1', 'YOUR_API_KEY_HERE', 4096, 0.70, 1.00, 0, 0.00, 0.00, NULL, 'OpenAI GPT-3.5 Turbo 模型，快速高效，性价比高', 1, 0, 1, 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('model-006-gpt4', 'gpt-4', 'GPT-4', 'openai', 'chat', 'https://api.openai.com/v1', 'YOUR_API_KEY_HERE', 8192, 0.70, 1.00, 0, 0.00, 0.00, NULL, 'OpenAI GPT-4 模型，更强大的推理和理解能力', 1, 0, 1, 21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('model-006-gpt4', 'gpt-4', 'GPT-4', 'openai', 'chat', 'https://api.openai.com/v1', 'YOUR_API_KEY_HERE', 8192, 0.70, 1.00, 0, 0.00, 0.00, NULL, 'OpenAI GPT-4 模型，更强大的推理和理解能力', 1, 0, 1, 21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('model-007-qwen-embedding','text-embedding-v4','通义千问向量化','qwen','embedding','https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings','YOUR_API_KET_HERE',8192, 0.70, 0.90, 0, 0.00, 0.00, NULL,'通义文本向量化模型',1,1,1,0,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 SET FOREIGN_KEY_CHECKS = 1;
 
