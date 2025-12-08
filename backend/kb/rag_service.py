@@ -1,10 +1,10 @@
 import json
 import datetime
 import numpy as np
-from database import get_db
-from chunker import smart_chunk
-from embed_client import EmbedClient, EMBEDDING_MODEL_NAME
-from utils.response import success, error
+from kb.database import get_db
+from kb.chunker import smart_chunk
+from kb.embed_client import EmbedClient, EMBEDDING_MODEL_NAME
+from kb.utils.response import success, error
 
 
 # -----------------------

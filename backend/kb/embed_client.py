@@ -1,5 +1,5 @@
 import requests
-from database import get_api_key
+from kb.database import get_api_key
 
 EMBEDDING_MODEL_NAME = "text-embedding-v4"
 

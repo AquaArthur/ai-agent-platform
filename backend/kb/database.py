@@ -3,14 +3,16 @@ backend.kb.db.database 的 Docstring
 提供数据库服务
 '''
 
+import os
 import pymysql
 
 
 def get_db():
-    db = pymysql.connect(host="localhost",
-                         user="root",
-                         password="123456",
-                         database="ai_agent_platform_db",
+    db = pymysql.connect(host=os.getenv("DB_HOST", "localhost"),
+                         user=os.getenv("DB_USER", "root"),
+                         port=int(os.getenv("DB_PORT", 3306)),
+                         password=os.getenv("DB_PASSWORD", ""),
+                         database=os.getenv("DB_NAME", ""),
                          charset='utf8mb4',
                          cursorclass=pymysql.cursors.DictCursor)
     cursor = db.cursor()

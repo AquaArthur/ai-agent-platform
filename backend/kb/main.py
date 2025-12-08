@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from models import EmbedDocInput, RagQueryInput
-from rag_service import vectorize_document, rag_search
+from kb.models import EmbedDocInput, RagQueryInput
+from kb.rag_service import vectorize_document, rag_search
 
 app = FastAPI(title="RAG Module API", version="1.0")
 
