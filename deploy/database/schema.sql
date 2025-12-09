@@ -411,9 +411,6 @@ create table if not exists `ai_agent_platform_db`.`vector` (
     embedding   json                                not null comment '向量，存储为JSON 数组',
     vector_dim  int                                 null comment '向量维度，便于一致性检查',
     create_time timestamp default CURRENT_TIMESTAMP null,
-    constraint fk_vector_document
-        foreign key (document_id) references `ai_agent_platform_db`.`document` (id)
-            on delete cascade,
     constraint fk_vector_kb
         foreign key (kb_id) references `ai_agent_platform_db`.`knowledge_base` (id)
             on delete cascade
