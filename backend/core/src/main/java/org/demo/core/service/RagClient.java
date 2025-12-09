@@ -3,6 +3,9 @@ package org.demo.core.service;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.model.dto.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -10,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class RagClient {
 
     @Value("${rag.api.base-url}")
-    private String baseUrl;   // 例如 http://localhost:9000
+    private String baseUrl = "http://localhost:9000";   // 例如 http://localhost:9000
 
     private final RestTemplate restTemplate;
 
@@ -63,8 +66,14 @@ public class RagClient {
      */
     public ApiResponse<RAGQueryData> query(String knowledgeBaseId, String query, int topK, Double similarityThreshold, String modelName) {
         String url = baseUrl + "/api/v1/rag/query";
+//        System.out.println("RagClient query url: "+ url);
         RAGQueryRequest request = new RAGQueryRequest(knowledgeBaseId, query, topK, similarityThreshold, modelName);
-        return restTemplate.postForObject(url, request, ApiResponse.class);
+        ParameterizedTypeReference<ApiResponse<RAGQueryData>> responseType =
+                new ParameterizedTypeReference<>() {};
+
+        return restTemplate.exchange(
+                url, HttpMethod.POST,
+                new HttpEntity<>(request),responseType).getBody();
     }
 
 }

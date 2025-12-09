@@ -9,7 +9,7 @@ JAVA_QUERY_API = "http://localhost:8080/api/v1/knowledge-bases/kb-uuid-003/query
 def test_rag_query():
     payload = {
         "knowledge_base_id": "kb-003-tt",
-        "query": "如何安装系统？",
+        "query": "智能家居",
         "top_k": 3,
         "similarity_threshold": 0.2
     }
