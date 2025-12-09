@@ -332,7 +332,8 @@ import {
   uploadDocument,
   deleteDocument,
   type KnowledgeBase,
-  type Document as DocumentVO
+  type Document as DocumentVO,
+  queryKnowledgeBase
 } from '@/api/knowledgeBase'
 
 const route = useRoute()
@@ -358,7 +359,7 @@ let pollingTimer: number | null = null
 // 向量检索相关
 const searchQuery = ref('')
 const searchTopK = ref(5)
-const searchSimilarityThreshold = ref(0.7)
+const searchSimilarityThreshold = ref(0.3)
 const searchResults = ref<any[]>([])
 const searching = ref(false)
 const hasSearched = ref(false)
@@ -649,15 +650,16 @@ const handleSearch = async () => {
 
   try {
     // TODO: 实现RAG检索API调用
-    // const res = await searchInKnowledgeBase(route.params.uuid as string, {
-    //   query: searchQuery.value,
-    //   top_k: searchTopK.value,
-    //   similarity_threshold: searchSimilarityThreshold.value
-    // })
-    
+    const res = await queryKnowledgeBase(route.params.uuid as string,
+      knowledgeBase.value.id,
+      searchQuery.value,
+      searchTopK.value,
+      searchSimilarityThreshold.value
+    )
+    // ElMessage.info(`相似度阈值:${searchSimilarityThreshold.value}`)
     // 暂时提示功能未实现
-    ElMessage.info('RAG检索功能正在开发中，敬请期待')
-    searchResults.value = []
+    // ElMessage.info('RAG检索功能正在开发中，敬请期待')
+    searchResults.value = res.results
   } catch (error: any) {
     console.error('检索失败:', error)
     ElMessage.error(error.message || '检索失败，请稍后重试')

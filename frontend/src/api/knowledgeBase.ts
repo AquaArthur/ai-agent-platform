@@ -83,6 +83,18 @@ export interface PageResult<T> {
   total: number
 }
 
+export interface RagQueryResultItem {
+  vector_id: number
+  chunk_index: number
+  score: number
+  content: string
+}
+
+export interface RagQueryResult {
+  result_num: number
+  results: RagQueryResultItem[]
+}
+
 /**
  * 创建知识库
  */
@@ -151,7 +163,7 @@ export const uploadDocument = async (
 ): Promise<Document> => {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return http.post(`/v1/knowledge-bases/${kbUuid}/documents`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -174,3 +186,19 @@ export const deleteDocument = async (uuid: string): Promise<void> => {
   return http.delete(`/v1/documents/${uuid}`)
 }
 
+/**
+ * 查询知识库
+ */
+export const queryKnowledgeBase = async (
+  kbUuid: string,
+  kb_id: string,
+  query: string,
+  top_k: number = 5,
+  similarity_threshold: number = 0.5): Promise<RagQueryResult> => {
+  return http.post(`/v1/knowledge-bases/${kbUuid}/query`, {
+    knowledge_base_id: kb_id,
+    query: query,
+    top_k: top_k,
+    similarity_threshold: similarity_threshold
+  })
+}
