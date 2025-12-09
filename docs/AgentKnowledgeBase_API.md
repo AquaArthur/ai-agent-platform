@@ -309,6 +309,64 @@ GET /api/v1/agents/{agentId}/knowledge-bases/{knowledgeBaseId}/exists
 }
 ```
 
+### 9. 知识库检索
+
+查询知识库
+
+**请求**
+```http
+POST /api/v1/knowledge-bases/{uuid}/query
+```
+
+**路径参数**
+- `uuid` (string, required): 知识库uuid
+
+**请求体参数**
+- `knowledge_base_id` (String, required): 知识库id
+- `query` (String, required): 查询文本
+- `top_k` (integer): 查询前k条,默认为5
+- `similarity_threshold` (double): 相似度阈值,在[0,1]之间,默认0.5
+
+
+**响应**
+```json
+{
+  "code": 200,
+  "message": "向量查询成功,共3条结果",
+  "data": {
+    "result_num": 3,
+    "results": [
+      {
+        "vector_id": 41,
+        "chunk_index": 2,
+        "score": 0.40727083683719734,
+        "content": "seq_mi71o69r\"]\n你：\"✅ LED1将点亮3秒后自动熄灭\"\n\n## 特别提示\n- 所有操作都自动使用设备UUID变量，你无需管理\n- 如果接口返回错误，友好地告知用户\"暂时无法操作，请稍后重试\"\n- 保持对话自然流畅，像朋友一样交流\n"
+      },
+      {
+        "vector_id": 5,
+        "chunk_index": 2,
+        "score": 0.40727083683719734,
+        "content": "seq_mi71o69r\"]\n你：\"✅ LED1将点亮3秒后自动熄灭\"\n\n## 特别提示\n- 所有操作都自动使用设备UUID变量，你无需管理\n- 如果接口返回错误，友好地告知用户\"暂时无法操作，请稍后重试\"\n- 保持对话自然流畅，像朋友一样交流\n"
+      },
+      {
+        "vector_id": 40,
+        "chunk_index": 1,
+        "score": 0.37672567370453064,
+        "content": "的\n1. 当用户查询温度/湿度时，直接调用传感器接口\n2. 当用户要控制LED时，先确认是哪个LED（1-4），然后调用控制接口\n3. 当用户说出预设触发词（如\"眨眼睛\"）时，直接使 用对应的preset_key调用预设接口\n4. 用简洁友好的语言回复结果\n5. 如果用户指令不明确，主动询问清楚\n\n### ❌ 不要做的\n1. 不要向用户索要设备UUID（已经通过变量传入）\n2. 不要提供超出能力 范围的功能（如继电器、舵机、PWM等）\n3. 不要过度解释技术细节\n4. 不要在用户没问的情况下重复查询数据\n\n## 回复示例\n\n### 传感器查询\n用户：\"现在温度多少？\"\n你：[调用传感器接口]\n你：\"当前温度是24.5°C 😊\"\n\n### LED控制\n用户：\"帮我开灯\"\n你：\"好的，请问要打开哪个LED灯呢？我们有LED 1到4号\"\n用户：\"LED1\"\n你：[调用控制接口]\n你：\"✨ LED1已打开\"\n\n### 预设指令\n用户：\"眨眼睛\"\n你：[调用预设接口，preset_name=\"led_seq_mi71o69r\"]\n你：\"✅ LED1将点亮3秒后自动熄灭\"\n\n## 特别提示\n- 所有操"
+      }
+    ]
+  },
+  "timestamp": 1765258234044
+}
+```
+**响应参数**
+- result_num: 数量
+- results: 查询结果列表
+    - vector_id: 向量唯一标识
+    - chunk_index: 分片序号（从0开始）
+    - score: 相似度得分
+    - content: 文本内容
+
 ---
 
 ## 错误响应

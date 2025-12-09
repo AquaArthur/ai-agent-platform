@@ -8,12 +8,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.demo.core.mapper.DocumentMapper;
 import org.demo.core.mapper.KnowledgeBaseMapper;
+import org.demo.core.model.dto.EmbedDocRequest;
+import org.demo.core.model.dto.EmbedDocResponse;
 import org.demo.core.model.entity.Document;
 import org.demo.core.model.entity.KnowledgeBase;
 import org.demo.core.model.vo.DocumentVO;
 import org.demo.core.model.vo.PageResult;
 import org.demo.core.service.DocumentService;
 import org.demo.core.service.KnowledgeBaseService;
+import org.demo.core.service.RagClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentMapper documentMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final RagClient ragClient;
 
     // 文件存储根目录（可配置）
     private static final String FILE_STORAGE_PATH = "data/documents/";
@@ -242,12 +246,23 @@ public class DocumentServiceImpl implements DocumentService {
             // 4. 存储到向量数据库
 
             // 模拟处理
-            Thread.sleep(2000);
+//            Thread.sleep(2000);
+            // 获取文档原文内容
+            String content = Files.readString(Paths.get(document.getFilePath()));
+
+            log.info("文档内容读取成功，开始向量化，documentId: {}, kb_id: {}", documentId, document.getKnowledgeBaseId());
+
+            EmbedDocResponse response = ragClient.embedDocument(document.getKnowledgeBaseId(),
+                    document.getId(), document.getFilename(), content);
+            // 处理结果检查
+            if (response == null || response.getCode() != 200) {
+                throw new RuntimeException("文档向量化失败: " + (response != null ? response.getMessage() : "无响应"));
+            }
 
             // 更新状态为已完成
             document.setStatus("processed");
             document.setProcessStatus(2);
-            document.setChunkCount(10); // 示例值
+            document.setChunkCount(response.getData().getChunks());
             document.setProcessedAt(LocalDateTime.now());
             document.setUpdatedAt(LocalDateTime.now());
             document.setUpdateTime(LocalDateTime.now());

@@ -38,3 +38,7 @@ logging:
   level:
     root: INFO
     org.demo.core.mapper: DEBUG # 开启Mapper层日志
+
+rag:
+  api:
+    base-url: http://localhost:9000
