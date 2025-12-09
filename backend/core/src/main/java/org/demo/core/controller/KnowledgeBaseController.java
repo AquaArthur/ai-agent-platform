@@ -7,9 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.model.dto.KnowledgeBaseCreateDTO;
 import org.demo.core.model.dto.KnowledgeBasePatchDTO;
+import org.demo.core.model.dto.RAGQueryData;
+import org.demo.core.model.dto.RAGQueryRequest;
 import org.demo.core.model.vo.KnowledgeBaseVO;
 import org.demo.core.model.vo.PageResult;
 import org.demo.core.service.KnowledgeBaseService;
+import org.demo.core.service.RagClient;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class KnowledgeBaseController {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final RagClient ragClient;
 
     /**
      * 创建知识库
@@ -132,5 +136,24 @@ public class KnowledgeBaseController {
         
         knowledgeBaseService.deleteKnowledgeBase(uuid, currentUserId);
         return ApiResponse.ok("删除成功", null);
+    }
+
+    /**
+     * 知识库查询
+     * POST /api/v1/knowledge-bases/{uuid}/query
+     *
+     * @param uuid 知识库UUID
+     * @param request 查询请求
+     * @return 查询结果
+     */
+    @Operation(summary = "知识库查询", description = "在指定知识库中进行查询，返回最相关的文档片段")
+    @PostMapping("/{uuid}/query")
+    public ApiResponse<RAGQueryData> queryKnowledgeBase(
+            @Parameter(description = "知识库UUID", required = true)
+            @PathVariable String uuid,
+            @RequestBody RAGQueryRequest request) {
+
+        return ragClient.query(request.getKnowledge_base_id(), request.getQuery(), request.getTop_k(),
+                request.getSimilarity_threshold(), request.getModel_name());
     }
 }
