@@ -145,52 +145,111 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_run` (
 
 -- ============================================================
 -- 6. 知识库表 (knowledge_base)
--- 功能: 存储知识库的基本信息
+-- 功能: 存储知识库的基本信息，支持分级设计
 -- 关联用户故事: US-006, US-008, US-010
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`knowledge_base` (
     `id` VARCHAR(64) NOT NULL COMMENT '知识库唯一标识',
+    `uuid` VARCHAR(36) DEFAULT NULL COMMENT 'UUID标识',
     `name` VARCHAR(100) NOT NULL COMMENT '知识库名称（必填）',
     `description` TEXT DEFAULT NULL COMMENT '知识库描述',
+    `icon` VARCHAR(200) DEFAULT NULL COMMENT '知识库图标URL',
+    
+    -- 层级与归属
+    `scope_type` VARCHAR(20) NOT NULL DEFAULT 'personal' COMMENT '作用域类型（system/school/course/agent/personal）',
+    `scope_id` INT DEFAULT NULL COMMENT '作用域ID',
+    `parent_kb_id` VARCHAR(64) DEFAULT NULL COMMENT '父知识库ID',
+    
+    -- 创建者与权限
+    `owner_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
+    `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID（别名字段）',
+    `access_level` VARCHAR(20) NOT NULL DEFAULT 'private' COMMENT '访问级别（public/protected/private）',
+    
+    -- 统计信息
+    `document_count` INT NOT NULL DEFAULT 0 COMMENT '文档数量',
+    `chunk_count` INT NOT NULL DEFAULT 0 COMMENT '分块数量',
+    `total_size` BIGINT NOT NULL DEFAULT 0 COMMENT '总文件大小（字节）',
+    
+    -- 配置参数
+    `chunk_size` INT NOT NULL DEFAULT 800 COMMENT '分块大小',
+    `chunk_overlap` INT NOT NULL DEFAULT 50 COMMENT '分块重叠',
     `embedding_model` VARCHAR(50) DEFAULT NULL COMMENT '向量模型（如text-embedding-3）',
-    `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
+    `embedding_model_id` VARCHAR(64) DEFAULT NULL COMMENT '向量模型ID（外键）',
+    `retrieval_config` JSON DEFAULT NULL COMMENT '检索配置',
+    
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_uuid` (`uuid`),
+    UNIQUE KEY `uk_user_name` (`user_id`, `name`),
+    KEY `idx_scope` (`scope_type`, `scope_id`),
+    KEY `idx_access_level` (`access_level`),
+    KEY `idx_parent_kb` (`parent_kb_id`),
+    CONSTRAINT `fk_kb_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_kb_parent` FOREIGN KEY (`parent_kb_id`) REFERENCES `knowledge_base` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
+
+
+-- ============================================================
+-- 7. 智能体知识库关联表 (agent_knowledge_base)
+-- 功能: 存储智能体与知识库的多对多关联关系
+-- 关联用户故事: US-001, US-006
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_knowledge_base` (
+    `id` VARCHAR(64) NOT NULL COMMENT '关联记录唯一标识',
+    `agent_id` VARCHAR(64) NOT NULL COMMENT '智能体ID',
+    `knowledge_base_id` VARCHAR(64) NOT NULL COMMENT '知识库ID',
+    `priority` INT NOT NULL DEFAULT 0 COMMENT '优先级（数值越大优先级越高）',
+    `is_enabled` BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否启用',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_name` (`user_id`, `name`),
-    CONSTRAINT `fk_kb_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
+    UNIQUE KEY `uk_agent_kb` (`agent_id`, `knowledge_base_id`),
+    KEY `idx_agent` (`agent_id`),
+    KEY `idx_kb` (`knowledge_base_id`),
+    KEY `idx_priority` (`priority`),
+    CONSTRAINT `fk_agent_kb_agent` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_agent_kb_kb` FOREIGN KEY (`knowledge_base_id`) REFERENCES `knowledge_base` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='智能体知识库关联表';
 
 -- ============================================================
--- 7. 文档表 (document)
+-- 8. 文档表 (document)
 -- 功能: 存储知识库中上传的文档信息及处理状态
 -- 关联用户故事: US-007, US-008
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`document` (
     `id` VARCHAR(64) NOT NULL COMMENT '文档唯一标识',
+    `uuid` VARCHAR(36) NOT NULL COMMENT '文档UUID（用于外部接口）',
+    `name` VARCHAR(255) NOT NULL COMMENT '文档名称（显示名称）',
     `filename` VARCHAR(255) NOT NULL COMMENT '文档文件名（原始文件名）',
     `file_name` VARCHAR(255) NOT NULL COMMENT '文档文件名（别名字段）',
     `file_url` VARCHAR(500) DEFAULT NULL COMMENT '文件存储URL（对象存储地址）',
-    `file_path` VARCHAR(512) NOT NULL COMMENT '文档存储路径',
-    `file_size` BIGINT NOT NULL COMMENT '文档大小（字节）',
-    `file_type` VARCHAR(50) NOT NULL COMMENT '文档类型（txt/markdown/pdf）',
+    `file_path` VARCHAR(512) DEFAULT NULL COMMENT '文档存储路径',
+    `file_size` BIGINT NOT NULL DEFAULT 0 COMMENT '文档大小（字节）',
+    `file_type` VARCHAR(50) NOT NULL COMMENT '文档类型（txt/md/markdown）',
     `chunk_count` INT NOT NULL DEFAULT 0 COMMENT '切分片段数量',
-    `status` VARCHAR(20) NOT NULL DEFAULT 'processing' COMMENT '处理状态（processing/completed/failed）',
-    `process_status` TINYINT DEFAULT NULL COMMENT '处理状态数值（0-等待, 1-处理中, 2-完成, 3-失败）',
-    `error_msg` TEXT DEFAULT NULL COMMENT '处理失败原因',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'uploading' COMMENT '处理状态（uploading/processing/processed/failed）',
+    `process_status` TINYINT DEFAULT NULL COMMENT '处理状态数值（0-上传中, 1-处理中, 2-已完成, 3-失败）',
+    `error_message` TEXT DEFAULT NULL COMMENT '处理失败原因',
+    `processed_at` DATETIME DEFAULT NULL COMMENT '处理完成时间',
     `knowledge_base_id` VARCHAR(64) NOT NULL COMMENT '所属知识库ID',
     `kb_id` VARCHAR(64) DEFAULT NULL COMMENT '所属知识库ID（别名字段）',
     `user_id` VARCHAR(64) NOT NULL COMMENT '上传者ID',
-    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '状态更新时间',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（别名字段）',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间（别名字段）',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_uuid` (`uuid`),
     KEY `idx_kb_status` (`knowledge_base_id`, `status`),
+    KEY `idx_created_at` (`created_at`),
     CONSTRAINT `fk_doc_kb` FOREIGN KEY (`knowledge_base_id`) REFERENCES `knowledge_base` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_doc_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
 -- ============================================================
--- 8. 插件表 (plugin)
+-- 9. 插件表 (plugin)
 -- 功能: 存储插件的注册信息、配置及状态
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
@@ -219,7 +278,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件表';
 
 -- ============================================================
--- 9. 插件操作表 (plugin_operation)
+-- 10. 插件操作表 (plugin_operation)
 -- 功能: 存储每个插件的接口操作信息
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
@@ -241,7 +300,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin_operation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件操作表';
 
 -- ============================================================
--- 10. 系统日志表 (system_log)
+-- 11. 系统日志表 (system_log)
 -- 功能: 存储系统操作日志及审计信息
 -- 关联用户故事: US-023
 -- ============================================================
@@ -262,7 +321,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统日志表';
 
 -- ============================================================
--- 11. 系统配置表 (system_config)
+-- 12. 系统配置表 (system_config)
 -- 功能: 存储系统全局配置信息
 -- 关联用户故事: US-022
 -- ============================================================
@@ -278,7 +337,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
 
 -- ============================================================
--- 12. LLM提供商表 (llm_providers)
+-- 13. LLM提供商表 (llm_providers)
 -- 功能: 存储LLM提供商信息
 -- 关联用户故事: US-022
 -- ============================================================
@@ -305,7 +364,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_providers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LLM提供商表';
 
 -- ============================================================
--- 13. LLM模型表 (llm_models)
+-- 14. LLM模型表 (llm_models)
 -- 功能: 存储LLM模型配置信息
 -- 关联用户故事: US-022
 -- ============================================================
@@ -336,6 +395,35 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_models` (
     KEY `idx_provider` (`provider`),
     KEY `idx_is_active_is_default` (`is_active`, `is_default`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LLM模型表';
+
+-- ============================================================
+-- 15. 向量表 (vector)
+-- 功能: 存储文档分片后的向量
+
+-- ============================================================
+create table if not exists `ai_agent_platform_db`.`vector` (
+    id          bigint auto_increment comment '向量唯一标识'
+        primary key,
+    document_id VARCHAR(64)                         not null comment '所属文档id',
+    kb_id       VARCHAR(64)                         not null comment '所属知识库id',
+    chunk_index int                                 not null comment '分片序号，从0开始',
+    chunk_text  text                                not null comment 'chunk文本内容',
+    embedding   json                                not null comment '向量，存储为JSON 数组',
+    vector_dim  int                                 null comment '向量维度，便于一致性检查',
+    create_time timestamp default CURRENT_TIMESTAMP null,
+    constraint fk_vector_kb
+        foreign key (kb_id) references `ai_agent_platform_db`.`knowledge_base` (id)
+            on delete cascade
+)
+ENGINE=InnoDB 
+DEFAULT CHARSET=utf8mb4 
+COLLATE=utf8mb4_unicode_ci  
+comment '文档向量表';
+
+create index idx_kb_document
+    on `ai_agent_platform_db`.`vector` (document_id, kb_id);
+
+
 
 -- ============================================================
 -- 初始化系统配置数据

@@ -49,5 +49,28 @@ services:
       - backend
     restart: always
 
+  # ============================
+  # KB（知识库服务）
+  # ============================
+  kb:
+    build:
+      context: ../backend/kb       
+      dockerfile: Dockerfile
+    container_name: aiagent-kb
+    restart: always
+    depends_on:
+      - mysql              # kb 依赖 mysql
+    ports:
+      - "9000:8000"        # 避免与其他 8000 端口冲突
+    environment:
+      PYTHONUNBUFFERED: "1"
+      KB_ENV: "production"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+
+
 volumes:
   mysql-data:

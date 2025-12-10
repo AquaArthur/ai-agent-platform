@@ -81,7 +81,7 @@
               <el-option
                 v-for="op in pluginOperations"
                 :key="op.operationId"
-                :label="op.name || op.operationId"
+                :label="op.summary || op.operationId"
                 :value="op.operationId"
               />
             </el-select>
@@ -170,13 +170,13 @@
             <!-- 用户消息 -->
             <ChatMessage
               v-if="msg.query"
-              :message="{ ...msg, answer: undefined, id: msg.id + '-query' }"
+              :message="{ ...msg, answer: undefined, id: (msg.id || '') + '-query' }"
               :is-user="true"
             />
             <!-- AI回答 -->
             <ChatMessage
               v-if="msg.answer"
-              :message="{ ...msg, query: undefined, id: msg.id + '-answer' }"
+              :message="{ ...msg, query: '', id: (msg.id || '') + '-answer' }"
               :is-user="false"
             />
           </template>

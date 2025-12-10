@@ -7,6 +7,7 @@
 | `user` | 存储用户账号信息及认证数据 | US-019, US-020, US-021 |
 | `agent` | 存储智能体基本信息及配置 | US-001, US-002, US-003, US-004, US-005, US-017, US-022 |
 | `agent_conversation` | 存储智能体对话历史记录 | US-004, US-018 |
+| `agent_knowledge_base` | 存储智能体与知识库的多对多关联关系 | US-001, US-006 |
 | `workflow` | 存储工作流定义及状态 | US-011, US-012, US-013 |
 | `workflow_run` | 存储工作流执行历史、状态和调试信息 | US-012, US-013 |
 | `knowledge_base` | 存储知识库基本信息 | US-006, US-008, US-010 |
@@ -109,7 +110,31 @@
 - 级联清理：当用户或智能体被物理删除时，相关的对话记录应一并删除
 - 外键关联：`agent_id` 关联 `agent.id`，`user_id` 关联 `user.id`（ON DELETE CASCADE）
 
-### 2.4 workflow 表（工作流表）
+### 2.4 agent_knowledge_base 表（智能体知识库关联表）
+
+#### 设计理由
+用于存储智能体与知识库之间的多对多关联关系，支持一个智能体绑定多个知识库，一个知识库也可以被多个智能体使用。替代 agent 表中的 kb_ids JSON 字段，提供更规范的关系管理和查询性能。
+
+#### 字段设计
+
+| 字段名 | 类型 | 约束 | 含义 |
+|--------|------|------|------|
+| `id` | VARCHAR(64) | PRIMARY KEY | 关联记录唯一标识 |
+| `agent_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 智能体ID（关联agent表） |
+| `knowledge_base_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 知识库ID（关联knowledge_base表） |
+| `priority` | INT | NOT NULL, DEFAULT 0 | 优先级（数值越大优先级越高，用于检索排序） |
+| `is_enabled` | BOOLEAN | NOT NULL, DEFAULT TRUE | 是否启用（支持临时禁用某个知识库而不删除关联） |
+| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+#### 约束说明
+- 联合唯一索引：`(agent_id, knowledge_base_id)` 确保同一智能体不会重复关联同一知识库
+- 外键关联：`agent_id` 关联 `agent.id`，`knowledge_base_id` 关联 `knowledge_base.id`（ON DELETE CASCADE）
+- 优先级排序：`priority` 字段用于控制多个知识库的检索顺序，数值越大优先级越高
+- 软删除支持：通过 `is_enabled` 字段支持临时禁用关联，无需物理删除
+- 级联删除：当智能体或知识库被删除时，相关的关联记录自动删除
+
+### 2.5 workflow 表（工作流表）
 
 #### 设计理由
 用于存储工作流的定义、配置及状态，支持工作流的创建、执行和调试功能，对应工作流管理模块的用户故事。
@@ -198,27 +223,35 @@
 | 字段名 | 类型 | 约束 | 含义 |
 |--------|------|------|------|
 | `id` | VARCHAR(64) | PRIMARY KEY | 文档唯一标识 |
+| `uuid` | VARCHAR(36) | NOT NULL, UNIQUE | 文档UUID（用于外部接口） |
+| `name` | VARCHAR(255) | NOT NULL | 文档名称（显示名称） |
 | `filename` | VARCHAR(255) | NOT NULL | 文档文件名（原始文件名） |
 | `file_name` | VARCHAR(255) | NOT NULL | 文档文件名（别名字段，与filename保持一致） |
 | `file_url` | VARCHAR(500) | NULL | 文件存储URL（对象存储地址） |
-| `file_path` | VARCHAR(512) | NOT NULL | 文档存储路径 |
-| `file_size` | BIGINT | NOT NULL | 文档大小（字节） |
-| `file_type` | VARCHAR(50) | NOT NULL | 文档类型（txt/markdown/pdf，US-007格式校验） |
+| `file_path` | VARCHAR(512) | NULL | 文档存储路径 |
+| `file_size` | BIGINT | NOT NULL, DEFAULT 0 | 文档大小（字节） |
+| `file_type` | VARCHAR(50) | NOT NULL | 文档类型（txt/md/markdown，US-007格式校验） |
 | `chunk_count` | INT | NOT NULL, DEFAULT 0 | 切分片段数量（用于统计文档分块结果） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'processing' | 处理状态（processing/completed/failed，US-007 AC4） |
-| `process_status` | TINYINT | NULL | 处理状态数值（0-等待, 1-处理中, 2-完成, 3-失败，与status字段对应） |
-| `error_msg` | TEXT | NULL | 处理失败原因（记录错误详情） |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'uploading' | 处理状态（uploading/processing/processed/failed，US-007 AC4） |
+| `process_status` | TINYINT | NULL | 处理状态数值（0-上传中, 1-处理中, 2-已完成, 3-失败，与status字段对应） |
+| `error_message` | TEXT | NULL | 处理失败原因（记录错误详情） |
+| `processed_at` | DATETIME | NULL | 处理完成时间 |
 | `knowledge_base_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 所属知识库ID（关联knowledge_base表） |
 | `kb_id` | VARCHAR(64) | NULL, FOREIGN KEY | 所属知识库ID（别名字段，与knowledge_base_id保持一致） |
 | `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 上传者ID（关联用户表） |
-| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 上传时间 |
-| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 状态更新时间 |
+| `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间（别名字段，与create_time保持一致） |
+| `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+| `updated_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间（别名字段，与update_time保持一致） |
 
 #### 约束说明
-- 状态枚举限制：`status` 只能为 `processing`（处理中）、`completed`（已完成）或 `failed`（失败）
-- `process_status` 与 `status` 字段对应：0-等待, 1-处理中, 2-完成, 3-失败
+- 唯一索引：`uuid` 确保文档UUID全局唯一
+- 状态枚举限制：`status` 只能为 `uploading`（上传中）、`processing`（处理中）、`processed`（已完成）或 `failed`（失败）
+- `process_status` 与 `status` 字段对应：0-上传中, 1-处理中, 2-已完成, 3-失败
 - `chunk_count` 字段记录文档切分后的片段数量，用于RAG检索统计
-- `error_msg` 字段记录处理失败的详细原因，便于排错
+- `error_message` 字段记录处理失败的详细原因，便于排错
+- `processed_at` 字段记录文档处理完成的时间
+- 文件类型限制：仅支持 `txt`、`md`、`markdown` 格式（参考文档要求）
 - 外键级联：当知识库被删除时，关联文档同时删除（ON DELETE CASCADE）
 
 ### 2.8 plugin 表（插件表）

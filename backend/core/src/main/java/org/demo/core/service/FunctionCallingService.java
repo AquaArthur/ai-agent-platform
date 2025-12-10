@@ -11,14 +11,14 @@ import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.demo.core.mapper.AgentMapper;
-import org.demo.core.mapper.LlmModelMapper;
-import org.demo.core.mapper.LlmProviderMapper;
-import org.demo.core.mapper.PluginMapper;
-import org.demo.core.mapper.PluginOperationMapper;
+import org.demo.core.api.ApiResponse;
+import org.demo.core.mapper.*;
+import org.demo.core.model.dto.RAGQueryData;
+import org.demo.core.model.dto.RAGQueryResultItem;
 import org.demo.core.model.entity.*;
 import org.demo.core.model.vo.PluginInvokeResult;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,6 +52,7 @@ public class FunctionCallingService {
      * key: sessionId, value: 最近使用的设备 UUID
      */
     private final Map<String, String> sessionDeviceUuidCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final AgentKnowledgeBaseMapper agentKnowledgeBaseMapper;
 
     /**
      * 从历史对话中提取设备 UUID 并缓存
@@ -221,9 +222,45 @@ public class FunctionCallingService {
                 paramsBuilder.addSystemMessage(agent.getPrompt());
             }
 
+            // 添加RAG知识库内容（如果有的话）
+            // 根据agentId从agent_knowledge_base表获取已启用的知识库列表
+            List<AgentKnowledgeBase> akbList = agentKnowledgeBaseMapper.selectList(
+                    new LambdaQueryWrapper<AgentKnowledgeBase>()
+                            .eq(AgentKnowledgeBase::getAgentId, agentId)
+                            .eq(AgentKnowledgeBase::getIsEnabled, 1)
+            );
+            log.info("智能体id {} 开始进行RAG检索", agentId);
+            log.info("智能体绑定了 {} 个知识库用于RAG检索", akbList.size());
+            RagClient ragClient = new RagClient(new RestTemplate());
+            log.info("开始对用户问题进行RAG检索: {}", userQuery);
+            String ragMessage = String.format(
+                    "这是来自知识库的信息，可能对回答用户的问题有帮助：\n");
+            for (AgentKnowledgeBase akb : akbList) {
+                ApiResponse<RAGQueryData> RAG_response = ragClient.query(akb.getKnowledgeBaseId(),userQuery,3,0.5);
+
+                if (RAG_response == null || RAG_response.getCode() != 200 || RAG_response.getData() == null) {
+                    // 打印日志 + 返回兜底内容
+                    log.info("RAG检索失败: {}", objectMapper.writeValueAsString(RAG_response));
+                    continue;
+                }
+
+                int res_num = RAG_response.getData().getResult_num();
+                log.info("查询到知识库id {} 中有 {} 条相关内容", akb.getKnowledgeBaseId(), res_num);
+                if (res_num == 0) {
+                    continue; // 没有相关内容，跳过
+                }
+                List<RAGQueryResultItem> results = RAG_response.getData().getResults();
+                for(RAGQueryResultItem result: results){
+                    log.info("RAG检索到的文档内容: {}", result.getContent());
+                    ragMessage.concat(result.getContent()).concat("\n");
+                }
+            }
+            ragMessage.concat("\n\n请根据这些信息回答用户的问题，如果信息中没有相关内容，可以直接说明不知道。");
+
             // 添加用户问题
             paramsBuilder.addUserMessage(userQuery);
-
+            // 添加RAG知识库内容系统消息
+            paramsBuilder.addSystemMessage(ragMessage);
             // 设置温度等参数
             if (llmModel.getTemperature() != null) {
                 paramsBuilder.temperature(llmModel.getTemperature().doubleValue());

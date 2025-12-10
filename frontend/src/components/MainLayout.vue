@@ -68,6 +68,21 @@
 
               <div 
                 class="nav-item"
+                :class="{ active: $route.path === '/knowledge-bases' || $route.path.startsWith('/knowledge-bases/') }"
+                @click="handleNavItemClick('/knowledge-bases', $event)"
+              >
+                <div class="item-icon">
+                  <el-icon size="20"><Document /></el-icon>
+                </div>
+                <div class="item-content" v-if="!sidebarCollapsed">
+                  <span class="item-title">知识库管理</span>
+                  <span class="item-desc">管理知识库和文档</span>
+                </div>
+                <div class="item-indicator"></div>
+              </div>
+
+              <div 
+                class="nav-item"
                 :class="{ active: $route.path === '/chat' }"
                 @click="handleNavItemClick('/chat', $event)"
               >
@@ -166,7 +181,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   House, ArrowRight, Fold, Expand, Menu,
-  ChatDotRound, Connection, ChatDotSquare, HomeFilled
+  ChatDotRound, Connection, ChatDotSquare, HomeFilled, Document
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -186,6 +201,7 @@ const pageConfig = {
   '/home': { title: '系统测试', icon: 'HomeFilled', color: '#409EFF' },
   '/agents': { title: '智能体管理', icon: 'ChatDotRound', color: '#409EFF' },
   '/plugins': { title: '插件管理', icon: 'Connection', color: '#409EFF' },
+  '/knowledge-bases': { title: '知识库管理', icon: 'Document', color: '#E6A23C' },
   '/chat': { title: '对话测试', icon: 'ChatDotSquare', color: '#67C23A' },
 }
 
@@ -233,6 +249,11 @@ const breadcrumbs = computed(() => {
     crumbs.push('插件管理')
   } else if (path.startsWith('/chat')) {
     crumbs.push('对话测试')
+  } else if (path.startsWith('/knowledge-bases')) {
+    crumbs.push('知识库管理')
+    if (path.includes('/knowledge-bases/') && path !== '/knowledge-bases') {
+      crumbs.push('详情')
+    }
   }
   
   return crumbs
