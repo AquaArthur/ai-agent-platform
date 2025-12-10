@@ -101,5 +101,8 @@ export const sendMessage = async (conversation: AgentConversation): Promise<Agen
 
     return { ...newConversation }
   }
-  return http.post('/v1/chat/message', conversation)
+  // AI 对话可能涉及多轮 LLM 调用和插件调用，需要更长的超时时间
+  return http.post('/v1/chat/message', conversation, {
+    timeout: 1200000  // 20 分钟超时
+  })
 }
