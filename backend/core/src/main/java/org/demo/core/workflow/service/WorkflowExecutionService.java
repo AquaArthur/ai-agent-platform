@@ -35,6 +35,10 @@ public class WorkflowExecutionService {
     @Autowired
     private WorkflowExecutor workflowExecutor;
 
+    // 用于异步执行的线程池
+    private final java.util.concurrent.ExecutorService executorService = 
+        java.util.concurrent.Executors.newCachedThreadPool();
+
     /**
      * 同步执行工作流
      *
@@ -70,8 +74,15 @@ public class WorkflowExecutionService {
             execution.setStatus("running");
             workflowExecutionMapper.updateById(execution);
 
-            // 4. 执行工作流
-            WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId);
+            // 4. 执行工作流（带节点执行回调）
+            WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId, 
+                new WorkflowExecutor.NodeExecutionCallback() {
+                    @Override
+                    public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
+                        // 实时更新节点执行状态到数据库
+                        updateNodeExecutions(execution, allNodeRecords);
+                    }
+                });
 
             // 5. 更新执行结果
             updateExecutionResult(execution, result);
@@ -123,25 +134,28 @@ public class WorkflowExecutionService {
         log.info("提交异步执行工作流: workflowId={}, executionId={}", workflowId, executionId);
 
         // 3. 异步执行工作流
-        workflowExecutor.executeAsync(workflow, input, llmModelId, new WorkflowExecutor.ExecutionCallback() {
-            @Override
-            public void onComplete(WorkflowExecutionResult result) {
-                try {
-                    // 更新执行状态为运行中
-                    execution.setStatus("running");
-                    workflowExecutionMapper.updateById(execution);
+        // 注意：异步执行时，我们需要直接调用带回调的 execute 方法
+        executorService.submit(() -> {
+            try {
+                // 更新执行状态为运行中
+                execution.setStatus("running");
+                workflowExecutionMapper.updateById(execution);
 
-                    // 更新执行结果
-                    updateExecutionResult(execution, result);
+                // 执行工作流（带节点执行回调）
+                WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId, 
+                    new WorkflowExecutor.NodeExecutionCallback() {
+                        @Override
+                        public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
+                            // 实时更新节点执行状态到数据库
+                            updateNodeExecutions(execution, allNodeRecords);
+                        }
+                    });
+
+                // 更新执行结果
+                updateExecutionResult(execution, result);
                     
-                    log.info("异步工作流执行完成: executionId={}, status={}", executionId, result.getStatus());
-                } catch (Exception e) {
-                    log.error("更新异步工作流执行结果失败: executionId={}", executionId, e);
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
+                log.info("异步工作流执行完成: executionId={}, status={}", executionId, result.getStatus());
+            } catch (Exception e) {
                 log.error("异步工作流执行失败: executionId={}", executionId, e);
                 
                 // 更新执行状态为失败
@@ -226,17 +240,79 @@ public class WorkflowExecutionService {
                 WorkflowExecution.NodeExecution nodeExecution = new WorkflowExecution.NodeExecution();
                 nodeExecution.setNodeId(record.getNodeId());
                 nodeExecution.setStatus(record.getStatus());
-                nodeExecution.setOutput(record.getOutput());
-                nodeExecution.setErrorMessage(record.getErrorMessage());
-                nodeExecution.setStartedAt(record.getStartTime());
-                nodeExecution.setCompletedAt(record.getEndTime());
-                nodeExecution.setExecutionTime((int) record.getExecutionTimeMs());
+                
+                // 转换输出为 Map 类型
+                if (record.getOutput() != null) {
+                    if (record.getOutput() instanceof Map) {
+                        nodeExecution.setOutput((Map<String, Object>) record.getOutput());
+                    } else {
+                        // 如果不是 Map，包装成 Map
+                        Map<String, Object> outputMap = new java.util.HashMap<>();
+                        outputMap.put("result", record.getOutput());
+                        nodeExecution.setOutput(outputMap);
+                    }
+                }
+                
+                // 设置错误信息（字段名是 error，不是 errorMessage）
+                nodeExecution.setError(record.getErrorMessage());
+                
+                // 转换时间为字符串格式
+                if (record.getStartTime() != null) {
+                    nodeExecution.setStartedAt(record.getStartTime().toString());
+                }
+                if (record.getEndTime() != null) {
+                    nodeExecution.setCompletedAt(record.getEndTime().toString());
+                }
+                
                 nodeExecutions.add(nodeExecution);
             }
         }
         execution.setNodeExecutions(nodeExecutions);
 
         workflowExecutionMapper.updateById(execution);
+    }
+
+    /**
+     * 实时更新节点执行状态
+     */
+    private void updateNodeExecutions(WorkflowExecution execution, List<NodeExecutionRecord> nodeRecords) {
+        // 转换节点执行记录
+        List<WorkflowExecution.NodeExecution> nodeExecutions = new ArrayList<>();
+        for (NodeExecutionRecord record : nodeRecords) {
+            WorkflowExecution.NodeExecution nodeExecution = new WorkflowExecution.NodeExecution();
+            nodeExecution.setNodeId(record.getNodeId());
+            nodeExecution.setStatus(record.getStatus());
+            
+            // 转换输出为 Map 类型
+            if (record.getOutput() != null) {
+                if (record.getOutput() instanceof Map) {
+                    nodeExecution.setOutput((Map<String, Object>) record.getOutput());
+                } else {
+                    // 如果不是 Map，包装成 Map
+                    Map<String, Object> outputMap = new java.util.HashMap<>();
+                    outputMap.put("result", record.getOutput());
+                    nodeExecution.setOutput(outputMap);
+                }
+            }
+            
+            // 设置错误信息（字段名是 error，不是 errorMessage）
+            nodeExecution.setError(record.getErrorMessage());
+            
+            // 转换时间为字符串格式
+            if (record.getStartTime() != null) {
+                nodeExecution.setStartedAt(record.getStartTime().toString());
+            }
+            if (record.getEndTime() != null) {
+                nodeExecution.setCompletedAt(record.getEndTime().toString());
+            }
+            
+            nodeExecutions.add(nodeExecution);
+        }
+        execution.setNodeExecutions(nodeExecutions);
+        
+        // 更新数据库
+        workflowExecutionMapper.updateById(execution);
+        log.debug("已更新节点执行状态: executionId={}, nodeCount={}", execution.getExecutionId(), nodeExecutions.size());
     }
 
     /**

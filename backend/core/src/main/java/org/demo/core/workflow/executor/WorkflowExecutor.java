@@ -102,6 +102,19 @@ public class WorkflowExecutor {
      * @return 执行结果
      */
     public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId) {
+        return execute(workflow, input, llmModelId, null);
+    }
+
+    /**
+     * 同步执行工作流（带节点执行回调）
+     *
+     * @param workflow 工作流定义
+     * @param input 输入参数
+     * @param llmModelId LLM模型ID
+     * @param nodeCallback 节点执行完成回调
+     * @return 执行结果
+     */
+    public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId, NodeExecutionCallback nodeCallback) {
         WorkflowExecutionResult result = new WorkflowExecutionResult();
         result.setWorkflowId(workflow.getId());
         result.setStartTime(LocalDateTime.now());
@@ -125,6 +138,15 @@ public class WorkflowExecutor {
             for (Workflow.WorkflowNode node : executionOrder) {
                 NodeExecutionRecord nodeRecord = executeNode(node, context);
                 nodeRecords.add(nodeRecord);
+
+                // 节点执行完成后回调（用于实时更新数据库）
+                if (nodeCallback != null) {
+                    try {
+                        nodeCallback.onNodeCompleted(nodeRecord, new ArrayList<>(nodeRecords));
+                    } catch (Exception e) {
+                        log.error("节点执行回调失败: nodeId={}", node.getId(), e);
+                    }
+                }
 
                 // 如果节点执行失败且配置为失败停止，则终止工作流
                 if ("failed".equals(nodeRecord.getStatus()) && isStopOnError(workflow)) {
@@ -308,5 +330,17 @@ public class WorkflowExecutor {
     public interface ExecutionCallback {
         void onComplete(WorkflowExecutionResult result);
         void onError(Exception e);
+    }
+
+    /**
+     * 节点执行回调接口
+     */
+    public interface NodeExecutionCallback {
+        /**
+         * 节点执行完成回调
+         * @param nodeRecord 当前节点的执行记录
+         * @param allNodeRecords 所有已执行节点的记录列表
+         */
+        void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords);
     }
 }
