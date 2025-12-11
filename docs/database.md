@@ -137,59 +137,90 @@
 ### 2.5 workflow 表（工作流表）
 
 #### 设计理由
-用于存储工作流的定义、配置及状态，支持工作流的创建、执行和调试功能，对应工作流管理模块的用户故事。
+用于存储工作流的定义、配置及状态，支持工作流的创建、执行和调试功能，对应工作流管理模块的用户故事（US-011, US-012, US-013）。工作流采用DAG（有向无环图）结构，通过可视化编排实现复杂业务流程。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
 |--------|------|------|------|
 | `id` | VARCHAR(64) | PRIMARY KEY | 工作流唯一标识 |
+| `uuid` | VARCHAR(36) | UNIQUE | 工作流UUID（用于外部接口） |
 | `agent_id` | VARCHAR(64) | NULL, FOREIGN KEY | 所属智能体ID（关联agent表，US-001绑定功能） |
 | `name` | VARCHAR(100) | NOT NULL | 工作流名称 |
 | `description` | TEXT | NULL | 工作流描述 |
-| `definition` | JSON | NOT NULL | 工作流定义（存储节点和连线信息，US-011可视化设计） |
-| `graph_data` | JSON | NULL | 画布数据（存储前端Reactflow/X6的节点坐标、连线信息，用于US-011画布回显） |
+| `nodes` | JSON | NOT NULL | 节点列表（存储节点配置信息） |
+| `edges` | JSON | NOT NULL | 边列表（存储节点间连接关系） |
+| `config` | JSON | NULL | 工作流配置（stop_on_error、timeout、retry_on_failure等） |
 | `is_valid` | BOOLEAN | NOT NULL, DEFAULT FALSE | DAG校验是否通过（0-否, 1-是，US-011 AC5） |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'active' | 工作流状态（active/inactive） |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | 工作流是否激活 |
+| `is_public` | BOOLEAN | NOT NULL, DEFAULT FALSE | 工作流是否公开 |
+| `execution_count` | INT | NOT NULL, DEFAULT 0 | 执行次数统计 |
+| `success_count` | INT | NOT NULL, DEFAULT 0 | 成功次数统计 |
 | `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 创建者ID（关联用户表） |
 | `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
 | `update_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
 #### 约束说明
 - 联合唯一索引：`(user_id, name)` 确保同一用户下工作流名称不重复
-- `definition` 字段存储工作流的完整拓扑结构，包含节点类型、参数和连接关系
-- `graph_data` 字段存储前端画布的可视化信息（节点位置、连线样式等），用于编辑器回显
+- 唯一索引：`uuid` 确保工作流UUID全局唯一
+- **节点数据结构**（`nodes`字段）：存储JSON数组，每个节点包含：
+  - `id`：节点唯一ID
+  - `type`：节点类型（start、llm、http、knowledge、intent、string、end）
+  - `label`：节点显示名称
+  - `position`：节点在画布上的位置 `{x, y}`
+  - `config`：节点特定配置（根据type不同而不同）
+- **边数据结构**（`edges`字段）：存储JSON数组，每条边包含：
+  - `id`：边唯一ID
+  - `source`：源节点ID
+  - `target`：目标节点ID
+- **配置结构**（`config`字段）：存储工作流全局配置
+  - `stop_on_error`：节点失败时是否停止执行（默认false）
+  - `timeout`：工作流执行超时时间（秒，默认300）
+  - `retry_on_failure`：是否在失败时重试（默认false）
 - `is_valid` 字段记录最后一次DAG校验结果，确保工作流拓扑合法性
 - 外键关联：`agent_id` 关联 `agent.id`，支持智能体绑定工作流（ON DELETE CASCADE）
 
-### 2.5 workflow_run 表（工作流执行历史表）
+### 2.6 workflow_execution 表（工作流执行历史表）
 
 #### 设计理由
-记录工作流的每一次动态执行实例，包括完整运行和单节点调试，支持状态跟踪和结果回溯，对应工作流执行和调试功能。
+记录工作流的每一次动态执行实例，包括完整运行和单节点调试，支持状态跟踪和结果回溯，对应工作流执行和调试功能（US-012, US-013）。执行记录不可变，用于审计和调试。
 
 #### 字段设计
 
 | 字段名 | 类型 | 约束 | 含义 |
 |--------|------|------|------|
-| `id` | VARCHAR(64) | PRIMARY KEY | 执行记录ID |
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | 执行记录ID |
+| `execution_id` | VARCHAR(36) | UNIQUE NOT NULL | 执行UUID（用于外部查询） |
 | `workflow_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 工作流ID |
 | `user_id` | VARCHAR(64) | NOT NULL, FOREIGN KEY | 执行者ID |
 | `status` | VARCHAR(20) | NOT NULL | 状态（pending/running/completed/failed/terminated） |
-| `inputs` | JSON | NULL | 初始输入 |
-| `outputs` | JSON | NULL | 最终输出 |
-| `error` | TEXT | NULL | 错误信息 |
-| `node_states` | JSON | NULL | 节点执行快照 |
-| `run_type` | VARCHAR(20) | NOT NULL | 类型（full/debug） |
-| `start_time` | DATETIME | NULL | 开始时间 |
-| `end_time` | DATETIME | NULL | 结束时间 |
+| `input` | JSON | NOT NULL | 初始输入参数 |
+| `output` | JSON | NULL | 最终输出结果 |
+| `error_message` | TEXT | NULL | 错误信息 |
+| `node_executions` | JSON | NULL | 节点执行快照（各节点的执行记录） |
+| `run_type` | VARCHAR(20) | NOT NULL | 类型（full-完整执行/debug-调试执行） |
+| `started_at` | DATETIME | NULL | 开始时间 |
+| `completed_at` | DATETIME | NULL | 完成时间 |
+| `execution_time` | INT | NULL | 执行耗时（毫秒） |
 | `create_time` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 创建时间 |
 
 #### 约束说明
-- 枚举限制：`status` 字段值限于 `pending`、`running`、`completed`、`failed`、`terminated`；`run_type` 限于 `full`、`debug`
+- 唯一索引：`execution_id` 确保执行ID全局唯一
+- 枚举限制：
+  - `status` 字段值限于 `pending`（待执行）、`running`（执行中）、`completed`（已完成）、`failed`（失败）、`terminated`（已终止）
+  - `run_type` 限于 `full`（完整执行）、`debug`（调试模式）
+- **节点执行快照结构**（`node_executions`字段）：存储JSON数组，每个节点执行记录包含：
+  - `node_id`：节点ID
+  - `status`：节点执行状态
+  - `started_at`：节点开始时间
+  - `completed_at`：节点完成时间
+  - `input`：节点输入
+  - `output`：节点输出
+  - `error`：节点错误信息（如有）
 - 历史不可变：执行记录一旦生成，原则上只读，不可修改
-- 调试支持：`node_states` 存储各节点的执行快照，是实现单节点调试和完整执行过程追溯的核心
+- 调试支持：`node_executions` 存储各节点的执行快照，是实现单节点调试和完整执行过程追溯的核心
 - 外键关联：`workflow_id` 关联 `workflow.id`，`user_id` 关联 `user.id`（ON DELETE CASCADE）
-- 性能优化：建议在 `(workflow_id, create_time)` 上建立索引，用于快速查询某个工作流的所有执行历史
+- 性能优化：建议在 `(workflow_id, create_time)` 和 `(execution_id)` 上建立索引，用于快速查询
 
 ### 2.6 knowledge_base 表（知识库表）
 

@@ -126,21 +126,53 @@ INSERT INTO `agent_conversation` (`id`, `session_id`, `agent_id`, `user_id`, `qu
 
 
 -- ============================================================
--- 5. 工作流表 (workflow) - 增加一个定时任务工作流
+-- 5. 工作流表 (workflow) - 增加示例工作流
 -- ------------------------------------------------------------
-INSERT INTO `workflow` (`id`, `name`, `description`, `definition`, `graph_data`, `is_valid`, `status`, `user_id`, `create_time`) VALUES
-('wf-001-home-ctrl', '智能家居控制与反馈', '根据用户请求，执行灯光控制或温度查询，并提供知识库支持。', '{"nodes": ["start", "check_intent", "call_plugin", "llm_feedback"], "edges": []}', '{"nodes": [], "edges": []}', TRUE, 'active', 'user-002-home', '2025-11-20 09:00:00'),
-('wf-002-auto-off', '定时关闭卧室灯', '每天晚上11点检查卧室灯状态,如果开启则自动关闭。', '{"nodes": ["cron_trigger", "check_status", "call_led_off"], "edges": []}', '{"nodes": [], "edges": []}', TRUE, 'active', 'user-002-home', '2025-11-21 15:00:00');
+INSERT INTO `workflow` (`id`, `uuid`, `agent_id`, `name`, `description`, `nodes`, `edges`, `config`, `is_valid`, `is_active`, `is_public`, `execution_count`, `success_count`, `user_id`, `create_time`) VALUES
+('wf-001-home-ctrl', 'wf-uuid-001', 'agent-001-smarthome', '智能家居控制与反馈', '根据用户请求，执行灯光控制或温度查询，并提供知识库支持。', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"意图识别","position":{"x":250,"y":100},"config":{"agent_uuid":"agent-001-smarthome","prompt":"识别用户意图：{input.user_message}","temperature":0.7}},{"id":"node_3","type":"http","label":"调用插件","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/control","method":"POST"}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]', 
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"},{"id":"edge_3","source":"node_3","target":"node_4"}]',
+'{"stop_on_error":false,"timeout":300,"retry_on_failure":false}', 
+TRUE, TRUE, FALSE, 4, 3, 'user-002-home', '2025-11-20 09:00:00'),
+
+('wf-002-auto-off', 'wf-uuid-002', NULL, '定时关闭卧室灯', '每天晚上11点检查卧室灯状态,如果开启则自动关闭。', 
+'[{"id":"node_1","type":"start","label":"定时触发","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"检查状态","position":{"x":250,"y":100},"config":{"url":"https://plugin.smarthome.local/status","method":"GET"}},{"id":"node_3","type":"http","label":"关闭灯光","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/off","method":"POST"}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"},{"id":"edge_3","source":"node_3","target":"node_4"}]',
+'{"stop_on_error":true,"timeout":60,"retry_on_failure":false}',
+TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00');
 
 
 -- ============================================================
--- 6. 工作流执行历史表 (workflow_run) - 增加执行记录
+-- 6. 工作流执行历史表 (workflow_execution) - 增加执行记录
 -- ------------------------------------------------------------
-INSERT INTO `workflow_run` (`id`, `workflow_id`, `user_id`, `status`, `inputs`, `outputs`, `run_type`, `start_time`, `end_time`, `create_time`) VALUES
-('run-001', 'wf-001-home-ctrl', 'user-003-tester', 'completed', '{"intent": "turn_on_light", "location": "living_room"}', '{"result": "success", "plugin_used": "led_controller"}', 'full', '2025-11-23 11:00:00', '2025-11-23 11:00:03', '2025-11-23 11:00:00'),
-('run-002', 'wf-001-home-ctrl', 'user-003-tester', 'completed', '{"intent": "get_temperature", "location": "room"}', '{"result": "success", "temperature": 26.5, "plugin_used": "temperature_sensor"}', 'full', '2025-11-23 11:01:30', '2025-11-23 11:01:32', '2025-11-23 11:01:30'),
-('run-003', 'wf-002-auto-off', 'user-002-home', 'completed', '{"time": "23:00"}', '{"result": "success", "status": "light already off"}', 'full', '2025-11-23 23:00:00', '2025-11-23 23:00:01', '2025-11-23 23:00:00'),
-('run-004', 'wf-001-home-ctrl', 'user-003-tester', 'failed', '{"intent": "turn_on_light", "location": "balcony"}', '{"error": "Device not found"}', 'full', '2025-11-24 12:00:00', '2025-11-24 12:00:05', '2025-11-24 12:00:00');
+INSERT INTO `workflow_execution` (`execution_id`, `workflow_id`, `user_id`, `status`, `input`, `output`, `error_message`, `node_executions`, `run_type`, `started_at`, `completed_at`, `execution_time`, `create_time`) VALUES
+('exec-uuid-001', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
+'{"user_message":"打开客厅的灯","intent":"turn_on_light","location":"living_room"}', 
+'{"result":"success","plugin_used":"led_controller","message":"客厅灯已打开"}', 
+NULL,
+'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T11:00:00","completed_at":"2025-11-23T11:00:00","input":{},"output":{"user_message":"打开客厅的灯"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T11:00:00","completed_at":"2025-11-23T11:00:01","input":{"user_message":"打开客厅的灯"},"output":{"intent":"turn_on_light","location":"living_room"}},{"node_id":"node_3","status":"completed","started_at":"2025-11-23T11:00:01","completed_at":"2025-11-23T11:00:03","input":{"intent":"turn_on_light","location":"living_room"},"output":{"result":"success"}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T11:00:03","completed_at":"2025-11-23T11:00:03","input":{"result":"success"},"output":{"result":"success"}}]',
+'full', '2025-11-23 11:00:00', '2025-11-23 11:00:03', 3000, '2025-11-23 11:00:00'),
+
+('exec-uuid-002', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
+'{"user_message":"现在温度是多少","intent":"get_temperature","location":"room"}', 
+'{"result":"success","temperature":26.5,"plugin_used":"temperature_sensor"}', 
+NULL,
+'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T11:01:30","completed_at":"2025-11-23T11:01:30","input":{},"output":{"user_message":"现在温度是多少"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T11:01:30","completed_at":"2025-11-23T11:01:31","input":{"user_message":"现在温度是多少"},"output":{"intent":"get_temperature"}},{"node_id":"node_3","status":"completed","started_at":"2025-11-23T11:01:31","completed_at":"2025-11-23T11:01:32","input":{"intent":"get_temperature"},"output":{"temperature":26.5}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T11:01:32","completed_at":"2025-11-23T11:01:32","input":{"temperature":26.5},"output":{"temperature":26.5}}]',
+'full', '2025-11-23 11:01:30', '2025-11-23 11:01:32', 2000, '2025-11-23 11:01:30'),
+
+('exec-uuid-003', 'wf-002-auto-off', 'user-002-home', 'completed', 
+'{"time":"23:00","trigger":"scheduled"}', 
+'{"result":"success","status":"light already off","message":"卧室灯已关闭"}', 
+NULL,
+'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{},"output":{"time":"23:00"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{"time":"23:00"},"output":{"light_status":"off"}},{"node_id":"node_3","status":"skipped","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{},"output":{}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T23:00:01","completed_at":"2025-11-23T23:00:01","input":{},"output":{"result":"success"}}]',
+'full', '2025-11-23 23:00:00', '2025-11-23 23:00:01', 1000, '2025-11-23 23:00:00'),
+
+('exec-uuid-004', 'wf-001-home-ctrl', 'user-003-tester', 'failed', 
+'{"user_message":"打开阳台的灯","intent":"turn_on_light","location":"balcony"}', 
+NULL, 
+'Device not found: balcony light is not configured',
+'[{"node_id":"node_1","status":"completed","started_at":"2025-11-24T12:00:00","completed_at":"2025-11-24T12:00:00","input":{},"output":{"user_message":"打开阳台的灯"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-24T12:00:00","completed_at":"2025-11-24T12:00:01","input":{"user_message":"打开阳台的灯"},"output":{"intent":"turn_on_light","location":"balcony"}},{"node_id":"node_3","status":"failed","started_at":"2025-11-24T12:00:01","completed_at":"2025-11-24T12:00:05","input":{"intent":"turn_on_light","location":"balcony"},"output":null,"error":"Device not found"},{"node_id":"node_4","status":"skipped","started_at":null,"completed_at":null,"input":null,"output":null}]',
+'full', '2025-11-24 12:00:00', '2025-11-24 12:00:05', 5000, '2025-11-24 12:00:00');
 
 
 -- ============================================================
