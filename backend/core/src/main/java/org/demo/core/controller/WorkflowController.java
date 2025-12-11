@@ -288,6 +288,53 @@ public class WorkflowController {
     }
 
     /**
+     * 获取指定工作流的执行历史列表
+     *
+     * @param uuid     工作流UUID
+     * @param page     页码，默认1
+     * @param pageSize 每页数量，默认10
+     * @param status   状态过滤（可选）
+     * @return 执行历史列表
+     */
+    @Operation(summary = "获取工作流执行历史", description = "查询指定工作流的所有执行历史记录，支持分页和状态过滤")
+    @GetMapping("/{uuid}/executions")
+    public ApiResponse<Map<String, Object>> getWorkflowExecutions(
+            @Parameter(description = "工作流的UUID", required = true) @PathVariable String uuid,
+            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
+            @Parameter(description = "状态过滤（pending/running/completed/failed/terminated）") @RequestParam(required = false) String status) {
+        
+        // 先查询工作流是否存在
+        QueryWrapper<Workflow> workflowQuery = new QueryWrapper<>();
+        workflowQuery.eq("uuid", uuid);
+        Workflow workflow = workflowMapper.selectOne(workflowQuery);
+        
+        if (workflow == null) {
+            return ApiResponse.fail("工作流不存在");
+        }
+        
+        // 查询执行历史
+        Page<WorkflowExecution> pageParam = new Page<>(page, pageSize);
+        QueryWrapper<WorkflowExecution> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("workflow_id", workflow.getId());
+        
+        if (status != null && !status.isEmpty()) {
+            queryWrapper.eq("status", status);
+        }
+        
+        queryWrapper.orderByDesc("create_time");
+        Page<WorkflowExecution> result = workflowExecutionMapper.selectPage(pageParam, queryWrapper);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("total", result.getTotal());
+        response.put("items", result.getRecords());
+        response.put("workflow_uuid", uuid);
+        response.put("workflow_name", workflow.getName());
+        
+        return ApiResponse.ok(response);
+    }
+
+    /**
      * 执行DAG验证
      *
      * @param workflow 工作流

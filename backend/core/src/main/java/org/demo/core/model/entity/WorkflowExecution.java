@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -112,36 +113,43 @@ public class WorkflowExecution {
         /**
          * 节点ID
          */
+        @JsonProperty("node_id")
         private String nodeId;
 
         /**
          * 节点执行状态
          */
+        @JsonProperty("status")
         private String status;
 
         /**
          * 节点开始时间
          */
+        @JsonProperty("started_at")
         private String startedAt;
 
         /**
          * 节点完成时间
          */
+        @JsonProperty("completed_at")
         private String completedAt;
 
         /**
          * 节点输入
          */
+        @JsonProperty("input")
         private Map<String, Object> input;
 
         /**
          * 节点输出
          */
+        @JsonProperty("output")
         private Map<String, Object> output;
 
         /**
          * 节点错误信息（如有）
          */
+        @JsonProperty("error")
         private String error;
     }
 }

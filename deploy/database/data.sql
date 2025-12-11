@@ -15,7 +15,7 @@ USE `ai_agent_platform_db`;
 -- 清空现有测试数据（可选，但推荐在测试环境中执行）
 -- ------------------------------------------------------------
 DELETE FROM `system_log`;
-DELETE FROM `workflow_run`;
+DELETE FROM `workflow_execution`;
 DELETE FROM `agent_conversation`;
 DELETE FROM `agent`;
 DELETE FROM `workflow`;
