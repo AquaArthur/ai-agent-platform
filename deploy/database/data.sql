@@ -130,16 +130,54 @@ INSERT INTO `agent_conversation` (`id`, `session_id`, `agent_id`, `user_id`, `qu
 -- ------------------------------------------------------------
 INSERT INTO `workflow` (`id`, `uuid`, `agent_id`, `name`, `description`, `nodes`, `edges`, `config`, `is_valid`, `is_active`, `is_public`, `execution_count`, `success_count`, `user_id`, `create_time`) VALUES
 ('wf-001-home-ctrl', 'wf-uuid-001', 'agent-001-smarthome', '智能家居控制与反馈', '根据用户请求，执行灯光控制或温度查询，并提供知识库支持。', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"意图识别","position":{"x":250,"y":100},"config":{"agent_uuid":"agent-001-smarthome","prompt":"识别用户意图：{input.user_message}","temperature":0.7}},{"id":"node_3","type":"http","label":"调用插件","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/control","method":"POST"}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"意图识别","position":{"x":250,"y":100},"config":{"agentUuid":"agent-001-smarthome","prompt":"识别用户意图：{input.user_message}","temperature":0.7,"maxTokens":2000}},{"id":"node_3","type":"http","label":"调用插件","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/control","method":"POST","headers":{"Content-Type":"application/json"},"body":{"intent":"{node_2.output}"}}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]', 
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"},{"id":"edge_3","source":"node_3","target":"node_4"}]',
 '{"stop_on_error":false,"timeout":300,"retry_on_failure":false}', 
 TRUE, TRUE, FALSE, 4, 3, 'user-002-home', '2025-11-20 09:00:00'),
 
 ('wf-002-auto-off', 'wf-uuid-002', NULL, '定时关闭卧室灯', '每天晚上11点检查卧室灯状态,如果开启则自动关闭。', 
-'[{"id":"node_1","type":"start","label":"定时触发","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"检查状态","position":{"x":250,"y":100},"config":{"url":"https://plugin.smarthome.local/status","method":"GET"}},{"id":"node_3","type":"http","label":"关闭灯光","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/off","method":"POST"}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]',
+'[{"id":"node_1","type":"start","label":"定时触发","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"检查状态","position":{"x":250,"y":100},"config":{"url":"https://plugin.smarthome.local/status","method":"GET","headers":{}}},{"id":"node_3","type":"http","label":"关闭灯光","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/off","method":"POST","headers":{"Content-Type":"application/json"},"body":{"action":"off"}}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"},{"id":"edge_3","source":"node_3","target":"node_4"}]',
 '{"stop_on_error":true,"timeout":60,"retry_on_failure":false}',
-TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00');
+TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00'),
+
+-- 单节点类型工作流示例
+('wf-003-llm-only', 'wf-uuid-003', 'agent-001-smarthome', 'LLM节点示例', '展示LLM节点的基本用法', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"文本生成","position":{"x":250,"y":100},"config":{"agentUuid":"agent-001-smarthome","prompt":"请用一句话总结：{input.text}","temperature":0.7,"maxTokens":500}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
+'{"stop_on_error":false,"timeout":120,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:00:00'),
+
+('wf-004-http-only', 'wf-uuid-004', NULL, 'HTTP节点示例', '展示HTTP节点的基本用法', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"API调用","position":{"x":250,"y":100},"config":{"url":"https://api.example.com/data","method":"POST","headers":{"Content-Type":"application/json"},"body":{"query":"{input.query}"}}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
+'{"stop_on_error":false,"timeout":60,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:10:00'),
+
+('wf-005-knowledge-only', 'wf-uuid-005', NULL, '知识库节点示例', '展示知识库检索节点的基本用法', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"knowledge","label":"知识检索","position":{"x":250,"y":100},"config":{"knowledgeBaseId":"kb-001-dev","query":"{input.question}","topK":5,"similarityThreshold":0.7}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
+'{"stop_on_error":false,"timeout":60,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:20:00'),
+
+('wf-006-intent-only', 'wf-uuid-006', 'agent-001-smarthome', '意图识别节点示例', '展示意图识别节点的基本用法', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"intent","label":"意图分类","position":{"x":250,"y":100},"config":{"inputText":"{input.user_input}","intentCategories":["查询","操作","咨询"],"recognitionMethod":"llm","agentUuid":"agent-001-smarthome"}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
+'{"stop_on_error":false,"timeout":60,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:30:00'),
+
+('wf-007-string-only', 'wf-uuid-007', NULL, '字符串节点示例', '展示字符串处理节点的基本用法', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"string","label":"字符串拼接","position":{"x":250,"y":100},"config":{"operation":"concat","strings":["{input.firstName}"," ","{input.lastName}"]}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
+'{"stop_on_error":false,"timeout":30,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:40:00'),
+
+-- 复杂字符串处理工作流（测试拓扑排序）
+('wf-008-complex-string', 'wf-uuid-008', NULL, '复杂字符串处理流程', '包含多个字符串处理节点，测试多分支和拓扑排序能力', 
+'[{"id":"start","type":"start","label":"开始","position":{"x":50,"y":300},"config":{}},{"id":"trim_input","type":"string","label":"去除空格","position":{"x":200,"y":300},"config":{"operation":"trim","inputString":"{input.rawText}"}},{"id":"to_lower","type":"string","label":"转小写","position":{"x":350,"y":200},"config":{"operation":"lower","inputString":"{trim_input}"}},{"id":"to_upper","type":"string","label":"转大写","position":{"x":350,"y":400},"config":{"operation":"upper","inputString":"{trim_input}"}},{"id":"extract_prefix","type":"string","label":"提取前缀","position":{"x":500,"y":150},"config":{"operation":"substring","inputString":"{to_lower}","startIndex":0,"endIndex":5}},{"id":"extract_suffix","type":"string","label":"提取后缀","position":{"x":500,"y":250},"config":{"operation":"substring","inputString":"{to_lower}","startIndex":-5}},{"id":"replace_text","type":"string","label":"替换文本","position":{"x":500,"y":350},"config":{"operation":"replace","inputString":"{to_upper}","searchValue":"OLD","replaceValue":"NEW"}},{"id":"concat_parts","type":"string","label":"拼接部分","position":{"x":650,"y":200},"config":{"operation":"concat","strings":["{extract_prefix}","-","{extract_suffix}"]}},{"id":"format_result","type":"string","label":"格式化输出","position":{"x":650,"y":350},"config":{"operation":"format","template":"Result: {text}","values":{"text":"{replace_text}"}}},{"id":"merge_upper_lower","type":"string","label":"合并大小写","position":{"x":800,"y":250},"config":{"operation":"concat","strings":["{concat_parts}"," | ","{format_result}"]}},{"id":"add_timestamp","type":"string","label":"添加时间戳","position":{"x":950,"y":250},"config":{"operation":"concat","strings":["[","{input.timestamp}","] ","{merge_upper_lower}"]}},{"id":"final_trim","type":"string","label":"最终清理","position":{"x":1100,"y":250},"config":{"operation":"trim","inputString":"{add_timestamp}"}},{"id":"end","type":"end","label":"结束","position":{"x":1250,"y":250},"config":{}}]',
+'[{"id":"e1","source":"start","target":"trim_input"},{"id":"e2","source":"trim_input","target":"to_lower"},{"id":"e3","source":"trim_input","target":"to_upper"},{"id":"e4","source":"to_lower","target":"extract_prefix"},{"id":"e5","source":"to_lower","target":"extract_suffix"},{"id":"e6","source":"to_upper","target":"replace_text"},{"id":"e7","source":"extract_prefix","target":"concat_parts"},{"id":"e8","source":"extract_suffix","target":"concat_parts"},{"id":"e9","source":"replace_text","target":"format_result"},{"id":"e10","source":"concat_parts","target":"merge_upper_lower"},{"id":"e11","source":"format_result","target":"merge_upper_lower"},{"id":"e12","source":"merge_upper_lower","target":"add_timestamp"},{"id":"e13","source":"add_timestamp","target":"final_trim"},{"id":"e14","source":"final_trim","target":"end"}]',
+'{"stop_on_error":false,"timeout":120,"retry_on_failure":false}',
+TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 11:00:00');
 
 
 -- ============================================================
@@ -147,32 +185,47 @@ TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00');
 -- ------------------------------------------------------------
 INSERT INTO `workflow_execution` (`execution_id`, `workflow_id`, `user_id`, `status`, `input`, `output`, `error_message`, `node_executions`, `run_type`, `started_at`, `completed_at`, `execution_time`, `create_time`) VALUES
 ('exec-uuid-001', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
-'{"user_message":"打开客厅的灯","intent":"turn_on_light","location":"living_room"}', 
-'{"result":"success","plugin_used":"led_controller","message":"客厅灯已打开"}', 
+'{"user_message":"打开客厅的灯"}', 
+'{"node_1":{"user_message":"打开客厅的灯"},"node_2":"意图识别结果：打开灯","node_3":{"result":"success","message":"客厅灯已打开"},"node_4":{"result":"success","message":"客厅灯已打开"}}', 
 NULL,
-'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T11:00:00","completed_at":"2025-11-23T11:00:00","input":{},"output":{"user_message":"打开客厅的灯"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T11:00:00","completed_at":"2025-11-23T11:00:01","input":{"user_message":"打开客厅的灯"},"output":{"intent":"turn_on_light","location":"living_room"}},{"node_id":"node_3","status":"completed","started_at":"2025-11-23T11:00:01","completed_at":"2025-11-23T11:00:03","input":{"intent":"turn_on_light","location":"living_room"},"output":{"result":"success"}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T11:00:03","completed_at":"2025-11-23T11:00:03","input":{"result":"success"},"output":{"result":"success"}}]',
+'[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-23T11:00:00","endTime":"2025-11-23T11:00:00","output":{"user_message":"打开客厅的灯"}},{"nodeId":"node_2","nodeType":"llm","status":"completed","startTime":"2025-11-23T11:00:00","endTime":"2025-11-23T11:00:01","output":"意图识别结果：打开灯"},{"nodeId":"node_3","nodeType":"http","status":"completed","startTime":"2025-11-23T11:00:01","endTime":"2025-11-23T11:00:03","output":{"result":"success","message":"客厅灯已打开"}},{"nodeId":"node_4","nodeType":"end","status":"completed","startTime":"2025-11-23T11:00:03","endTime":"2025-11-23T11:00:03","output":{"result":"success","message":"客厅灯已打开"}}]',
 'full', '2025-11-23 11:00:00', '2025-11-23 11:00:03', 3000, '2025-11-23 11:00:00'),
 
 ('exec-uuid-002', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
-'{"user_message":"现在温度是多少","intent":"get_temperature","location":"room"}', 
-'{"result":"success","temperature":26.5,"plugin_used":"temperature_sensor"}', 
+'{"user_message":"现在温度是多少"}', 
+'{"node_1":{"user_message":"现在温度是多少"},"node_2":"意图识别结果：查询温度","node_3":{"temperature":26.5,"humidity":55},"node_4":{"temperature":26.5,"humidity":55}}', 
 NULL,
-'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T11:01:30","completed_at":"2025-11-23T11:01:30","input":{},"output":{"user_message":"现在温度是多少"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T11:01:30","completed_at":"2025-11-23T11:01:31","input":{"user_message":"现在温度是多少"},"output":{"intent":"get_temperature"}},{"node_id":"node_3","status":"completed","started_at":"2025-11-23T11:01:31","completed_at":"2025-11-23T11:01:32","input":{"intent":"get_temperature"},"output":{"temperature":26.5}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T11:01:32","completed_at":"2025-11-23T11:01:32","input":{"temperature":26.5},"output":{"temperature":26.5}}]',
+'[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-23T11:01:30","endTime":"2025-11-23T11:01:30","output":{"user_message":"现在温度是多少"}},{"nodeId":"node_2","nodeType":"llm","status":"completed","startTime":"2025-11-23T11:01:30","endTime":"2025-11-23T11:01:31","output":"意图识别结果：查询温度"},{"nodeId":"node_3","nodeType":"http","status":"completed","startTime":"2025-11-23T11:01:31","endTime":"2025-11-23T11:01:32","output":{"temperature":26.5,"humidity":55}},{"nodeId":"node_4","nodeType":"end","status":"completed","startTime":"2025-11-23T11:01:32","endTime":"2025-11-23T11:01:32","output":{"temperature":26.5,"humidity":55}}]',
 'full', '2025-11-23 11:01:30', '2025-11-23 11:01:32', 2000, '2025-11-23 11:01:30'),
 
 ('exec-uuid-003', 'wf-002-auto-off', 'user-002-home', 'completed', 
-'{"time":"23:00","trigger":"scheduled"}', 
-'{"result":"success","status":"light already off","message":"卧室灯已关闭"}', 
+'{"trigger":"scheduled"}', 
+'{"node_1":{"trigger":"scheduled"},"node_2":{"light_status":"off"},"node_3":{"result":"skipped"},"node_4":{"result":"success","message":"卧室灯已关闭"}}', 
 NULL,
-'[{"node_id":"node_1","status":"completed","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{},"output":{"time":"23:00"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{"time":"23:00"},"output":{"light_status":"off"}},{"node_id":"node_3","status":"skipped","started_at":"2025-11-23T23:00:00","completed_at":"2025-11-23T23:00:00","input":{},"output":{}},{"node_id":"node_4","status":"completed","started_at":"2025-11-23T23:00:01","completed_at":"2025-11-23T23:00:01","input":{},"output":{"result":"success"}}]',
+'[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"trigger":"scheduled"}},{"nodeId":"node_2","nodeType":"http","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"light_status":"off"}},{"nodeId":"node_3","nodeType":"http","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"result":"skipped"}},{"nodeId":"node_4","nodeType":"end","status":"completed","startTime":"2025-11-23T23:00:01","endTime":"2025-11-23T23:00:01","output":{"result":"success","message":"卧室灯已关闭"}}]',
 'full', '2025-11-23 23:00:00', '2025-11-23 23:00:01', 1000, '2025-11-23 23:00:00'),
 
 ('exec-uuid-004', 'wf-001-home-ctrl', 'user-003-tester', 'failed', 
-'{"user_message":"打开阳台的灯","intent":"turn_on_light","location":"balcony"}', 
-NULL, 
-'Device not found: balcony light is not configured',
-'[{"node_id":"node_1","status":"completed","started_at":"2025-11-24T12:00:00","completed_at":"2025-11-24T12:00:00","input":{},"output":{"user_message":"打开阳台的灯"}},{"node_id":"node_2","status":"completed","started_at":"2025-11-24T12:00:00","completed_at":"2025-11-24T12:00:01","input":{"user_message":"打开阳台的灯"},"output":{"intent":"turn_on_light","location":"balcony"}},{"node_id":"node_3","status":"failed","started_at":"2025-11-24T12:00:01","completed_at":"2025-11-24T12:00:05","input":{"intent":"turn_on_light","location":"balcony"},"output":null,"error":"Device not found"},{"node_id":"node_4","status":"skipped","started_at":null,"completed_at":null,"input":null,"output":null}]',
-'full', '2025-11-24 12:00:00', '2025-11-24 12:00:05', 5000, '2025-11-24 12:00:00');
+'{"user_message":"打开阳台的灯"}', 
+'{"node_1":{"user_message":"打开阳台的灯"},"node_2":"意图识别结果：打开灯"}', 
+'节点 node_3 执行失败: Device not found: balcony light is not configured',
+'[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-24T12:00:00","endTime":"2025-11-24T12:00:00","output":{"user_message":"打开阳台的灯"}},{"nodeId":"node_2","nodeType":"llm","status":"completed","startTime":"2025-11-24T12:00:00","endTime":"2025-11-24T12:00:01","output":"意图识别结果：打开灯"},{"nodeId":"node_3","nodeType":"http","status":"failed","startTime":"2025-11-24T12:00:01","endTime":"2025-11-24T12:00:05","errorMessage":"Device not found: balcony light is not configured"}]',
+'full', '2025-11-24 12:00:00', '2025-11-24 12:00:05', 5000, '2025-11-24 12:00:00'),
+
+-- 新增工作流执行记录
+('exec-uuid-005', 'wf-007-string-only', 'user-003-tester', 'completed',
+'{"firstName":"张","lastName":"三"}',
+'{"node_1":{"firstName":"张","lastName":"三"},"node_2":"张 三","node_3":"张 三"}',
+NULL,
+'[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":{"firstName":"张","lastName":"三"}},{"nodeId":"node_2","nodeType":"string","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":"张 三"},{"nodeId":"node_3","nodeType":"end","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":"张 三"}]',
+'full', '2025-11-25 14:00:00', '2025-11-25 14:00:00', 50, '2025-11-25 14:00:00'),
+
+('exec-uuid-006', 'wf-008-complex-string', 'user-003-tester', 'completed',
+'{"rawText":"  hello OLD world  ","timestamp":"2025-12-11 10:00:00"}',
+'{"start":{"rawText":"  hello OLD world  ","timestamp":"2025-12-11 10:00:00"},"trim_input":"hello OLD world","to_lower":"hello old world","to_upper":"HELLO OLD WORLD","extract_prefix":"hello","extract_suffix":"world","replace_text":"HELLO NEW WORLD","concat_parts":"hello-world","format_result":"Result: HELLO NEW WORLD","merge_upper_lower":"hello-world | Result: HELLO NEW WORLD","add_timestamp":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD","final_trim":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD","end":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"}',
+NULL,
+'[{"nodeId":"start","nodeType":"start","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":{"rawText":"  hello OLD world  ","timestamp":"2025-12-11 10:00:00"}},{"nodeId":"trim_input","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":"hello OLD world"},{"nodeId":"to_lower","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":"hello old world"},{"nodeId":"to_upper","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":"HELLO OLD WORLD"},{"nodeId":"extract_prefix","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":"hello"},{"nodeId":"extract_suffix","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:00","output":"world"},{"nodeId":"replace_text","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:00","endTime":"2025-12-11T10:00:01","output":"HELLO NEW WORLD"},{"nodeId":"concat_parts","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"hello-world"},{"nodeId":"format_result","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"Result: HELLO NEW WORLD"},{"nodeId":"merge_upper_lower","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"hello-world | Result: HELLO NEW WORLD"},{"nodeId":"add_timestamp","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"},{"nodeId":"final_trim","nodeType":"string","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"},{"nodeId":"end","nodeType":"end","status":"completed","startTime":"2025-12-11T10:00:01","endTime":"2025-12-11T10:00:01","output":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"}]',
+'full', '2025-12-11 10:00:00', '2025-12-11 10:00:01', 1200, '2025-12-11 10:00:00');
 
 
 -- ============================================================

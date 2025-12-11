@@ -271,6 +271,312 @@ case "custom":
 6. **实时更新**: 每个节点执行完成后会立即更新数据库，前端可实时查询节点执行状态
 7. **LLM模型ID**: 必须在启动工作流时传入，用于LLM和Intent节点调用
 
+## 初始工作流示例
+
+### 工作流1: 智能家居控制与反馈 (wf-001-home-ctrl)
+
+**功能描述**: 根据用户请求，执行灯光控制或温度查询，并提供知识库支持。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始节点<br/>node_1<br/>start] --> B[意图识别<br/>node_2<br/>llm]
+    B --> C[调用插件<br/>node_3<br/>http]
+    C --> D[结束节点<br/>node_4<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#87CEEB
+    style C fill:#FFB6C1
+    style D fill:#FFA07A
+```
+
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | llm | 意图识别 | agentUuid: agent-001-smarthome<br/>prompt: "识别用户意图：{input.user_message}"<br/>temperature: 0.7<br/>maxTokens: 2000 |
+| node_3 | http | 调用插件 | url: "https://plugin.smarthome.local/control"<br/>method: POST<br/>headers: {"Content-Type": "application/json"}<br/>body: {"intent": "{node_2.output}"} |
+| node_4 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": false,
+  "timeout": 300,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "user_message": "打开客厅的灯"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"user_message": "打开客厅的灯"},
+  "node_2": "意图识别结果：打开灯",
+  "node_3": {"result": "success", "message": "客厅灯已打开"},
+  "node_4": {"result": "success", "message": "客厅灯已打开"}
+}
+```
+
+---
+
+### 工作流2: 定时关闭卧室灯 (wf-002-auto-off)
+
+**功能描述**: 每天晚上11点检查卧室灯状态，如果开启则自动关闭。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[定时触发<br/>node_1<br/>start] --> B[检查状态<br/>node_2<br/>http]
+    B --> C[关闭灯光<br/>node_3<br/>http]
+    C --> D[结束<br/>node_4<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#FFB6C1
+    style C fill:#FFB6C1
+    style D fill:#FFA07A
+```
+
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 定时触发 | 接收定时任务的触发信息 |
+| node_2 | http | 检查状态 | url: "https://plugin.smarthome.local/status"<br/>method: GET<br/>headers: {} |
+| node_3 | http | 关闭灯光 | url: "https://plugin.smarthome.local/off"<br/>method: POST<br/>headers: {"Content-Type": "application/json"}<br/>body: {"action": "off"} |
+| node_4 | end | 结束 | 输出执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 60,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "trigger": "scheduled"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"trigger": "scheduled"},
+  "node_2": {"light_status": "off"},
+  "node_3": {"result": "skipped"},
+  "node_4": {"result": "success", "message": "卧室灯已关闭"}
+}
+```
+
+---
+
+### 工作流3-7: 单节点类型示例
+
+#### 工作流3: LLM节点示例 (wf-003-llm-only)
+
+**功能描述**: 展示LLM节点的基本用法，实现文本摘要功能。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始<br/>node_1<br/>start] --> B[文本生成<br/>node_2<br/>llm]
+    B --> C[结束<br/>node_3<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#87CEEB
+    style C fill:#FFA07A
+```
+
+---
+
+#### 工作流4: HTTP节点示例 (wf-004-http-only)
+
+**功能描述**: 展示HTTP节点的基本用法，调用外部API。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始<br/>node_1<br/>start] --> B[API调用<br/>node_2<br/>http]
+    B --> C[结束<br/>node_3<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#FFB6C1
+    style C fill:#FFA07A
+```
+
+---
+
+#### 工作流5: 知识库节点示例 (wf-005-knowledge-only)
+
+**功能描述**: 展示知识库检索节点的基本用法。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始<br/>node_1<br/>start] --> B[知识检索<br/>node_2<br/>knowledge]
+    B --> C[结束<br/>node_3<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#DDA0DD
+    style C fill:#FFA07A
+```
+
+---
+
+#### 工作流6: 意图识别节点示例 (wf-006-intent-only)
+
+**功能描述**: 展示意图识别节点的基本用法，将用户输入分类到预定义的意图类别。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始<br/>node_1<br/>start] --> B[意图分类<br/>node_2<br/>intent]
+    B --> C[结束<br/>node_3<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#F0E68C
+    style C fill:#FFA07A
+```
+
+---
+
+#### 工作流7: 字符串节点示例 (wf-007-string-only)
+
+**功能描述**: 展示字符串处理节点的基本用法，拼接姓名。
+
+**工作流拓扑图**:
+
+```mermaid
+graph LR
+    A[开始<br/>node_1<br/>start] --> B[字符串拼接<br/>node_2<br/>string]
+    B --> C[结束<br/>node_3<br/>end]
+    
+    style A fill:#90EE90
+    style B fill:#98FB98
+    style C fill:#FFA07A
+```
+
+---
+
+### 工作流8: 复杂字符串处理流程 (wf-008-complex-string)
+
+**功能描述**: 包含多个字符串处理节点，演示多分支合并和拓扑排序能力。该工作流接收原始文本，经过多个分支的并行处理后合并输出。
+
+**工作流拓扑图**:
+
+```mermaid
+graph TD
+    START[开始<br/>start] --> TRIM[去除空格<br/>trim_input]
+    TRIM --> LOWER[转小写<br/>to_lower]
+    TRIM --> UPPER[转大写<br/>to_upper]
+    
+    LOWER --> PREFIX[提取前缀<br/>extract_prefix]
+    LOWER --> SUFFIX[提取后缀<br/>extract_suffix]
+    UPPER --> REPLACE[替换文本<br/>replace_text]
+    
+    PREFIX --> CONCAT[拼接部分<br/>concat_parts]
+    SUFFIX --> CONCAT
+    REPLACE --> FORMAT[格式化输出<br/>format_result]
+    
+    CONCAT --> MERGE[合并大小写<br/>merge_upper_lower]
+    FORMAT --> MERGE
+    
+    MERGE --> TIME[添加时间戳<br/>add_timestamp]
+    TIME --> FINAL[最终清理<br/>final_trim]
+    FINAL --> END[结束<br/>end]
+    
+    style START fill:#90EE90
+    style TRIM fill:#98FB98
+    style LOWER fill:#98FB98
+    style UPPER fill:#98FB98
+    style PREFIX fill:#98FB98
+    style SUFFIX fill:#98FB98
+    style REPLACE fill:#98FB98
+    style CONCAT fill:#98FB98
+    style FORMAT fill:#98FB98
+    style MERGE fill:#98FB98
+    style TIME fill:#98FB98
+    style FINAL fill:#98FB98
+    style END fill:#FFA07A
+```
+
+**节点配置表**:
+
+| 节点ID | 类型 | 标签 | 操作 | 说明 |
+|--------|------|------|------|------|
+| start | start | 开始 | - | 接收输入参数 |
+| trim_input | string | 去除空格 | trim | 去除原始文本的首尾空格 |
+| to_lower | string | 转小写 | lower | 将文本转换为小写 |
+| to_upper | string | 转大写 | upper | 将文本转换为大写 |
+| extract_prefix | string | 提取前缀 | substring | 提取小写文本的前5个字符 |
+| extract_suffix | string | 提取后缀 | substring | 提取小写文本的后5个字符 |
+| replace_text | string | 替换文本 | replace | 将大写文本中的"OLD"替换为"NEW" |
+| concat_parts | string | 拼接部分 | concat | 拼接前缀和后缀（用"-"连接） |
+| format_result | string | 格式化输出 | format | 格式化替换后的文本 |
+| merge_upper_lower | string | 合并大小写 | concat | 合并拼接结果和格式化结果 |
+| add_timestamp | string | 添加时间戳 | concat | 在结果前添加时间戳 |
+| final_trim | string | 最终清理 | trim | 最终去除空格 |
+| end | end | 结束 | - | 输出最终结果 |
+
+
+**执行示例**:
+
+输入:
+```json
+{
+  "rawText": "  hello OLD world  ",
+  "timestamp": "2025-12-11 10:00:00"
+}
+```
+
+预期输出:
+```json
+{
+  "start": {"rawText": "  hello OLD world  ", "timestamp": "2025-12-11 10:00:00"},
+  "trim_input": "hello OLD world",
+  "to_lower": "hello old world",
+  "to_upper": "HELLO OLD WORLD",
+  "extract_prefix": "hello",
+  "extract_suffix": "world",
+  "replace_text": "HELLO NEW WORLD",
+  "concat_parts": "hello-world",
+  "format_result": "Result: HELLO NEW WORLD",
+  "merge_upper_lower": "hello-world | Result: HELLO NEW WORLD",
+  "add_timestamp": "[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD",
+  "final_trim": "[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"
+}
+```
+
+**测试要点**:
+1. ✅ **多分支并行**: trim_input 节点的输出同时流向 to_lower 和 to_upper 两个分支
+2. ✅ **分支汇聚**: concat_parts 接收来自 extract_prefix 和 extract_suffix 的输入
+3. ✅ **二次汇聚**: merge_upper_lower 合并两个独立分支的结果
+4. ✅ **拓扑排序验证**: 确保节点按依赖关系正确排序，不会出现循环依赖
+5. ✅ **变量引用**: 每个节点都正确引用前置节点的输出
+
+---
+
 ## 后续优化方向
 
 1. 支持条件分支节点
