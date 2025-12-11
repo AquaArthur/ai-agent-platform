@@ -42,3 +42,9 @@ logging:
 rag:
   api:
     base-url: http://localhost:9000
+
+# 插件配置
+plugin:
+  invoke:
+    # 插件调用默认超时时间（毫秒）
+    timeout: 30000

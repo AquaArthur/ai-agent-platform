@@ -21,3 +21,5 @@ build/
 venv/
 __pycache__/
 *.pyc
+
+CodeHubot-main/

@@ -10,7 +10,6 @@ import org.demo.core.api.ApiResponse;
 import org.demo.core.mapper.AgentConversationMapper;
 import org.demo.core.model.entity.AgentConversation;
 import org.demo.core.model.vo.PluginInvokeResult;
-import org.demo.core.service.FunctionCallingService;
 import org.demo.core.service.LlmService;
 import org.demo.core.service.PluginService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +33,6 @@ public class ChatController {
 
     private final AgentConversationMapper agentConversationMapper;
     private final LlmService llmService;
-    private final FunctionCallingService functionCallingService;
     private final PluginService pluginService;
     private final ObjectMapper objectMapper;
 
@@ -143,7 +141,7 @@ public class ChatController {
                         llmModelId,
                         userQueryForLlm);
             } else {
-                // 新方式：使用 Function Calling，让 LLM 自动决定是否调用插件
+                // 新方式：使用统一的 LlmService（自动判断是否启用 Function Calling）
                 // 获取对话历史，用于提取之前使用过的设备 UUID
                 List<Map<String, String>> conversationHistory = new java.util.ArrayList<>();
                 try {
@@ -172,11 +170,11 @@ public class ChatController {
                     log.warn("获取对话历史失败: {}", ex.getMessage());
                 }
 
-                answer = functionCallingService.chatWithFunctions(
+                // 统一使用 llmService.chat()，它会自动判断是否启用 Function Calling
+                answer = llmService.chat(
                         conversation.getAgentId(),
                         llmModelId,
                         conversation.getQuery(),
-                        conversation.getSessionId(),
                         conversationHistory);
             }
 
