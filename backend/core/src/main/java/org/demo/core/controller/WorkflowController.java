@@ -11,6 +11,7 @@ import org.demo.core.mapper.WorkflowMapper;
 import org.demo.core.mapper.WorkflowExecutionMapper;
 import org.demo.core.model.entity.Workflow;
 import org.demo.core.model.entity.WorkflowExecution;
+import org.demo.core.workflow.service.WorkflowExecutionService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,7 @@ public class WorkflowController {
 
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper workflowExecutionMapper;
+    private final WorkflowExecutionService workflowExecutionService;
 
     /**
      * 查询工作流列表（支持分页和搜索）
@@ -243,24 +245,36 @@ public class WorkflowController {
             return ApiResponse.fail("工作流未通过验证，无法执行");
         }
         
-        // 创建执行记录
-        WorkflowExecution execution = new WorkflowExecution();
-        execution.setExecutionId(UUID.randomUUID().toString());
-        execution.setWorkflowId(workflow.getId());
-        execution.setUserId(workflow.getUserId()); // TODO: 使用当前登录用户
-        execution.setStatus("pending");
-        execution.setInput((Map<String, Object>) executionRequest.get("input"));
-        execution.setRunType("full");
-        execution.setStartedAt(LocalDateTime.now());
+        // 获取输入参数和LLM模型ID
+        @SuppressWarnings("unchecked")
+        Map<String, Object> input = (Map<String, Object>) executionRequest.get("input");
+        String llmModelId = (String) executionRequest.get("llm_model_id");
         
-        workflowExecutionMapper.insert(execution);
+        if (input == null) {
+            input = new HashMap<>();
+        }
         
-        // TODO: 异步执行工作流（当前仅创建执行记录）
-        // 实际执行逻辑需要实现工作流执行引擎
+        if (llmModelId == null || llmModelId.isEmpty()) {
+            return ApiResponse.fail("缺少必需参数: llm_model_id");
+        }
+        
+        // 异步执行工作流
+        String executionId;
+        try {
+            executionId = workflowExecutionService.executeWorkflowAsync(
+                workflow.getId(),
+                input,
+                workflow.getUserId(), // TODO: 使用当前登录用户
+                llmModelId
+            );
+        } catch (Exception e) {
+            return ApiResponse.fail("工作流执行失败: " + e.getMessage());
+        }
         
         Map<String, Object> response = new HashMap<>();
-        response.put("execution_id", execution.getExecutionId());
-        response.put("status", execution.getStatus());
+        response.put("execution_id", executionId);
+        response.put("status", "pending");
+        response.put("message", "工作流已提交执行，可通过执行ID查询执行状态");
         
         return ApiResponse.ok(response);
     }
