@@ -254,9 +254,9 @@ public class WorkflowController {
             input = new HashMap<>();
         }
         
-        if (llmModelId == null || llmModelId.isEmpty()) {
-            return ApiResponse.fail("缺少必需参数: llm_model_id");
-        }
+//        if (llmModelId == null || llmModelId.isEmpty()) {
+//            return ApiResponse.fail("缺少必需参数: llm_model_id");
+//        }
         
         // 异步执行工作流
         String executionId;

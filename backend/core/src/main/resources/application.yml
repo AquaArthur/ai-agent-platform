@@ -34,10 +34,10 @@ mybatis-plus:
       id-type: assign_id # 使用雪花算法生成ID
 
 # 开发环境日志级别
-logging:
-  level:
-    root: INFO
-    org.demo.core.mapper: DEBUG # 开启Mapper层日志
+#logging:
+#  level:
+#    root: INFO
+#    org.demo.core.mapper: DEBUG # 开启Mapper层日志
 
 rag:
   api:

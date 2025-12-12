@@ -405,11 +405,46 @@ graph LR
     style C fill:#FFA07A
 ```
 
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | llm | 文本生成 | agentUuid: agent-003-summarizer<br/>prompt: "请为以下文本生成摘要：{input.content}"<br/>temperature: 0.5<br/>maxTokens: 500 |
+| node_3 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 120,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支..."},
+  "node_2": "人工智能是计算机科学分支，旨在创造能模拟人类智能的机器，涉及机器人、语言处理、图像识别等多个研究领域。",
+  "node_3": "人工智能是计算机科学分支，旨在创造能模拟人类智能的机器，涉及机器人、语言处理、图像识别等多个研究领域。"
+}
+```
+
 ---
 
 #### 工作流4: HTTP节点示例 (wf-004-http-only)
 
-**功能描述**: 展示HTTP节点的基本用法，调用外部API。
+**功能描述**: 展示HTTP节点的基本用法，调用外部天气API查询天气信息。
 
 **工作流拓扑图**:
 
@@ -423,11 +458,56 @@ graph LR
     style C fill:#FFA07A
 ```
 
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | http | API调用 | url: "https://api.weather.com/v1/current?city={input.city}"<br/>method: GET<br/>headers: {"Authorization": "Bearer xxx"} |
+| node_3 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 60,
+  "retry_on_failure": true
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "city": "北京"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"city": "北京"},
+  "node_2": {
+    "temperature": 15,
+    "weather": "晴天",
+    "humidity": 45,
+    "wind_speed": 12
+  },
+  "node_3": {
+    "temperature": 15,
+    "weather": "晴天",
+    "humidity": 45,
+    "wind_speed": 12
+  }
+}
+```
+
 ---
 
 #### 工作流5: 知识库节点示例 (wf-005-knowledge-only)
 
-**功能描述**: 展示知识库检索节点的基本用法。
+**功能描述**: 展示知识库检索节点的基本用法，从产品手册知识库中检索相关信息。
 
 **工作流拓扑图**:
 
@@ -441,11 +521,82 @@ graph LR
     style C fill:#FFA07A
 ```
 
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | knowledge | 知识检索 | knowledgeBaseId: kb-005-manual<br/>query: "{input.question}"<br/>topK: 3<br/>similarityThreshold: 0.75 |
+| node_3 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 90,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "question": "如何重置路由器密码？"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"question": "如何重置路由器密码？"},
+  "node_2": {
+    "documents": [
+      {
+        "content": "重置路由器密码步骤：1. 按住重置按钮10秒 2. 等待设备重启 3. 使用默认密码admin登录",
+        "score": 0.92,
+        "metadata": {"source": "路由器手册第15页"}
+      },
+      {
+        "content": "忘记密码时可以通过硬件重置恢复出厂设置，重置后所有配置将清空。",
+        "score": 0.85,
+        "metadata": {"source": "常见问题FAQ"}
+      },
+      {
+        "content": "建议定期更换路由器密码，使用8位以上的强密码组合。",
+        "score": 0.78,
+        "metadata": {"source": "安全指南"}
+      }
+    ]
+  },
+  "node_3": {
+    "documents": [
+      {
+        "content": "重置路由器密码步骤：1. 按住重置按钮10秒 2. 等待设备重启 3. 使用默认密码admin登录",
+        "score": 0.92,
+        "metadata": {"source": "路由器手册第15页"}
+      },
+      {
+        "content": "忘记密码时可以通过硬件重置恢复出厂设置，重置后所有配置将清空。",
+        "score": 0.85,
+        "metadata": {"source": "常见问题FAQ"}
+      },
+      {
+        "content": "建议定期更换路由器密码，使用8位以上的强密码组合。",
+        "score": 0.78,
+        "metadata": {"source": "安全指南"}
+      }
+    ]
+  }
+}
+```
+
 ---
 
 #### 工作流6: 意图识别节点示例 (wf-006-intent-only)
 
-**功能描述**: 展示意图识别节点的基本用法，将用户输入分类到预定义的意图类别。
+**功能描述**: 展示意图识别节点的基本用法，将用户输入分类到预定义的意图类别（查询、投诉、建议）。
 
 **工作流拓扑图**:
 
@@ -459,11 +610,54 @@ graph LR
     style C fill:#FFA07A
 ```
 
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | intent | 意图分类 | inputText: "{input.user_input}"<br/>intentCategories: ["查询", "投诉", "建议"]<br/>recognitionMethod: llm<br/>agentUuid: agent-006-intent |
+| node_3 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 60,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "user_input": "我想了解一下产品的售后服务政策"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"user_input": "我想了解一下产品的售后服务政策"},
+  "node_2": {
+    "intent": "查询",
+    "confidence": 0.95,
+    "reasoning": "用户使用'了解'、'售后服务政策'等词汇，明确表达了查询信息的意图"
+  },
+  "node_3": {
+    "intent": "查询",
+    "confidence": 0.95,
+    "reasoning": "用户使用'了解'、'售后服务政策'等词汇，明确表达了查询信息的意图"
+  }
+}
+```
+
 ---
 
 #### 工作流7: 字符串节点示例 (wf-007-string-only)
 
-**功能描述**: 展示字符串处理节点的基本用法，拼接姓名。
+**功能描述**: 展示字符串处理节点的基本用法，拼接用户的完整姓名。
 
 **工作流拓扑图**:
 
@@ -475,6 +669,42 @@ graph LR
     style A fill:#90EE90
     style B fill:#98FB98
     style C fill:#FFA07A
+```
+
+**节点配置**:
+
+| 节点ID | 类型 | 标签 | 配置说明 |
+|--------|------|------|----------|
+| node_1 | start | 开始 | 接收工作流输入参数 |
+| node_2 | string | 字符串拼接 | operation: concat<br/>inputs: ["{input.first_name}", " ", "{input.last_name}"]<br/>separator: "" |
+| node_3 | end | 结束 | 输出工作流执行结果 |
+
+**工作流配置**:
+```json
+{
+  "stop_on_error": true,
+  "timeout": 30,
+  "retry_on_failure": false
+}
+```
+
+**执行示例**:
+
+输入:
+```json
+{
+  "first_name": "张",
+  "last_name": "三"
+}
+```
+
+输出:
+```json
+{
+  "node_1": {"first_name": "张", "last_name": "三"},
+  "node_2": "张 三",
+  "node_3": "张 三"
+}
 ```
 
 ---

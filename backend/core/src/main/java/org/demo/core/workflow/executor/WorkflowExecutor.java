@@ -224,47 +224,66 @@ public class WorkflowExecutor {
 
     /**
      * 构建节点执行顺序
-     * 从开始节点开始，按边的连接关系确定执行顺序
+     * 使用拓扑排序处理 DAG（有向无环图），支持多分支和汇聚
      */
     private List<Workflow.WorkflowNode> buildExecutionOrder(Workflow workflow) {
         List<Workflow.WorkflowNode> nodes = workflow.getNodes();
         List<Workflow.WorkflowEdge> edges = workflow.getEdges();
 
-        // 找到开始节点
-        Workflow.WorkflowNode startNode = nodes.stream()
-            .filter(node -> "start".equals(node.getType()))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("工作流必须有开始节点"));
-
-        // 构建邻接表
-        Map<String, String> nextNodeMap = new HashMap<>();
-        for (Workflow.WorkflowEdge edge : edges) {
-            nextNodeMap.put(edge.getSource(), edge.getTarget());
-        }
-
         // 构建节点映射
         Map<String, Workflow.WorkflowNode> nodeMap = nodes.stream()
             .collect(Collectors.toMap(Workflow.WorkflowNode::getId, node -> node));
 
-        // 按顺序遍历节点
-        List<Workflow.WorkflowNode> executionOrder = new ArrayList<>();
-        String currentNodeId = startNode.getId();
+        // 构建邻接表（每个节点的后继节点列表）
+        Map<String, List<String>> adjacencyList = new HashMap<>();
+        for (Workflow.WorkflowNode node : nodes) {
+            adjacencyList.put(node.getId(), new ArrayList<>());
+        }
+        for (Workflow.WorkflowEdge edge : edges) {
+            adjacencyList.get(edge.getSource()).add(edge.getTarget());
+        }
 
-        while (currentNodeId != null) {
+        // 计算每个节点的入度（有多少条边指向该节点）
+        Map<String, Integer> inDegree = new HashMap<>();
+        for (Workflow.WorkflowNode node : nodes) {
+            inDegree.put(node.getId(), 0);
+        }
+        for (Workflow.WorkflowEdge edge : edges) {
+            inDegree.put(edge.getTarget(), inDegree.get(edge.getTarget()) + 1);
+        }
+
+        // 拓扑排序：使用队列处理入度为 0 的节点
+        Queue<String> queue = new LinkedList<>();
+        List<Workflow.WorkflowNode> executionOrder = new ArrayList<>();
+
+        // 找到所有入度为 0 的节点（通常只有 start 节点）
+        for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
+            if (entry.getValue() == 0) {
+                queue.offer(entry.getKey());
+            }
+        }
+
+        // 执行拓扑排序
+        while (!queue.isEmpty()) {
+            String currentNodeId = queue.poll();
             Workflow.WorkflowNode currentNode = nodeMap.get(currentNodeId);
-            if (currentNode == null) {
-                break;
-            }
-            
             executionOrder.add(currentNode);
-            
-            // 如果是结束节点，停止遍历
-            if ("end".equals(currentNode.getType())) {
-                break;
+
+            // 处理当前节点的所有后继节点
+            for (String nextNodeId : adjacencyList.get(currentNodeId)) {
+                // 将后继节点的入度减 1
+                inDegree.put(nextNodeId, inDegree.get(nextNodeId) - 1);
+                
+                // 如果入度变为 0，加入队列
+                if (inDegree.get(nextNodeId) == 0) {
+                    queue.offer(nextNodeId);
+                }
             }
-            
-            // 获取下一个节点
-            currentNodeId = nextNodeMap.get(currentNodeId);
+        }
+
+        // 验证是否存在环（如果排序后的节点数少于总节点数，说明有环）
+        if (executionOrder.size() != nodes.size()) {
+            throw new IllegalArgumentException("工作流存在循环依赖，无法执行");
         }
 
         return executionOrder;

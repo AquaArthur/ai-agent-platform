@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -109,46 +111,54 @@ public class WorkflowExecution {
      * 节点执行记录静态内部类
      */
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class NodeExecution {
         /**
          * 节点ID
          */
+        @JsonAlias({"node_id", "nodeId"})
         @JsonProperty("node_id")
         private String nodeId;
 
         /**
          * 节点执行状态
          */
+        @JsonAlias({"status"})
         @JsonProperty("status")
         private String status;
 
         /**
          * 节点开始时间
          */
+        @JsonAlias({"started_at", "startedAt", "startTime"})
         @JsonProperty("started_at")
         private String startedAt;
 
         /**
          * 节点完成时间
          */
+        @JsonAlias({"completed_at", "completedAt", "endTime"})
         @JsonProperty("completed_at")
         private String completedAt;
 
         /**
          * 节点输入
          */
+        @JsonAlias({"input"})
         @JsonProperty("input")
         private Map<String, Object> input;
 
         /**
          * 节点输出
          */
+        @JsonAlias({"output"})
         @JsonProperty("output")
         private Map<String, Object> output;
 
         /**
          * 节点错误信息（如有）
          */
+        @JsonAlias({"error"})
         @JsonProperty("error")
         private String error;
     }
