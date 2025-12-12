@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.mapper.WorkflowMapper;
 import org.demo.core.mapper.WorkflowExecutionMapper;
@@ -26,6 +27,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/v1/workflows")
 @RequiredArgsConstructor
+@Slf4j
 public class WorkflowController {
 
     private final WorkflowMapper workflowMapper;
@@ -249,6 +251,8 @@ public class WorkflowController {
         @SuppressWarnings("unchecked")
         Map<String, Object> input = (Map<String, Object>) executionRequest.get("input");
         String llmModelId = (String) executionRequest.get("llm_model_id");
+        
+        log.info("收到工作流执行请求: workflowId={}, input={}, llmModelId={}", workflow.getId(), input, llmModelId);
         
         if (input == null) {
             input = new HashMap<>();

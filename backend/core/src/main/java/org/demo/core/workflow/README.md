@@ -311,14 +311,27 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-001-home-ctrl/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "user_message": "打开客厅的灯"
+  },
+  "llm_model_id": "model-xxx"
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "user_message": "打开客厅的灯"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"user_message": "打开客厅的灯"},
@@ -368,14 +381,26 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-002-auto-off/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "trigger": "scheduled"
+  }
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "trigger": "scheduled"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"trigger": "scheduled"},
@@ -424,14 +449,27 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-003-llm-only/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。"
+  },
+  "llm_model_id": "model-xxx"
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支..."},
@@ -477,14 +515,26 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-004-http-only/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "city": "北京"
+  }
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "city": "北京"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"city": "北京"},
@@ -540,14 +590,26 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-005-knowledge-only/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "question": "如何重置路由器密码？"
+  }
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "question": "如何重置路由器密码？"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"question": "如何重置路由器密码？"},
@@ -629,14 +691,27 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-006-intent-only/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "user_input": "我想了解一下产品的售后服务政策"
+  },
+  "llm_model_id": "model-xxx"
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "user_input": "我想了解一下产品的售后服务政策"
 }
 ```
 
-输出:
+**工作流输出** (output):
 ```json
 {
   "node_1": {"user_input": "我想了解一下产品的售后服务政策"},
@@ -690,7 +765,20 @@ graph LR
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-007-string-only/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "first_name": "张",
+    "last_name": "三"
+  }
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "first_name": "张",
@@ -698,12 +786,16 @@ graph LR
 }
 ```
 
-输出:
+**⚠️ 重要提示**：
+- 必须在 API 请求的 `input` 字段中传入参数
+- 如果 input 为空 `{}`，变量 `{input.first_name}` 和 `{input.last_name}` 无法替换，输出将为空格
+
+**工作流输出** (output):
 ```json
 {
-  "node_1": {"first_name": "张", "last_name": "三"},
-  "node_2": "张 三",
-  "node_3": "张 三"
+  "node_1": {"input": {"first_name": "张", "last_name": "三"}, "status": "started"},
+  "node_2": {"output": "张 三", "operation": "concat"},
+  "node_3": {"status": "completed", "message": "工作流执行完成"}
 }
 ```
 
@@ -772,7 +864,20 @@ graph TD
 
 **执行示例**:
 
-输入:
+**API 请求**:
+```bash
+POST /api/v1/workflows/wf-008-complex-string/execute
+Content-Type: application/json
+
+{
+  "input": {
+    "rawText": "  hello OLD world  ",
+    "timestamp": "2025-12-11 10:00:00"
+  }
+}
+```
+
+**工作流输入** (input):
 ```json
 {
   "rawText": "  hello OLD world  ",
@@ -780,7 +885,7 @@ graph TD
 }
 ```
 
-预期输出:
+**工作流输出** (output):
 ```json
 {
   "start": {"rawText": "  hello OLD world  ", "timestamp": "2025-12-11 10:00:00"},
