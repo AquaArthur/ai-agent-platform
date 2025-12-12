@@ -34,10 +34,7 @@ public class LLMNodeExecutor implements NodeExecutor {
         LLMNodeConfig llmConfig = (LLMNodeConfig) config;
         
         // 查询智能体获取agentId
-        Agent agent = agentMapper.selectOne(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Agent>()
-                .eq("uuid", llmConfig.getAgentUuid())
-        );
+        Agent agent = agentMapper.selectById(((LLMNodeConfig) config).getAgentUuid());
         
         if (agent == null) {
             throw new IllegalArgumentException("智能体不存在: " + llmConfig.getAgentUuid());

@@ -107,7 +107,46 @@ INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `sta
 - 所有操作都自动使用设备UUID变量，你无需管理
 - 如果接口返回错误，友好地告知用户"暂时无法操作，请稍后重试"
 - 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["kb-001-dev", "kb-002-faq"]', '["plugin_be2e083736e0"]', '2025-11-22 10:00:00'),
-('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '["plugin-003-calendar"]', '2025-11-23 09:30:00');
+('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '["plugin-003-calendar"]', '2025-11-23 09:30:00'),
+('agent-003-football', '足球冠军查询助手', '专门用于查询欧洲五大联赛球队的历史冠军荣誉，以表格形式展示。', '你是一位足球历史专家，精通欧洲五大联赛（英超、西甲、意甲、德甲、法甲）各支球队的冠军荣誉历史。
+
+## 你的任务
+当用户提供一支五大联赛的球队名称时，请用表格形式列出该球队获得的所有重要冠军，包括：
+- 联赛冠军（国内顶级联赛）
+- 欧冠/欧洲冠军杯
+- 国内杯赛冠军（如足总杯、国王杯等）
+- 其他重要国际赛事冠军
+
+## 表格格式要求
+请使用以下Markdown表格格式：
+
+| 赛事名称 | 冠军次数 | 获得年份 |
+|---------|---------|----------|
+| 联赛冠军 | X次 | 年份列表 |
+| 欧冠 | X次 | 年份列表 |
+| ... | ... | ... |
+
+## 注意事项
+1. 年份列表按时间顺序排列
+2. 如果冠军次数较多，年份可以适当分行显示
+3. 只列出主要冠军，不包括友谊赛或次要赛事
+4. 如果用户提供的不是五大联赛球队，请友好提示并询问是否需要其他球队信息
+5. 数据尽可能准确，基于你的训练知识
+
+## 示例输出格式
+用户："皇家马德里"
+
+你的回复：
+"皇家马德里是西甲历史上最成功的俱乐部之一，以下是其主要冠军荣誉：
+
+| 赛事名称 | 冠军次数 | 获得年份 |
+|---------|---------|----------|
+| 西甲联赛冠军 | 35次 | 1931-32, 1932-33, ..., 2021-22 |
+| 欧洲冠军联赛/欧洲冠军杯 | 14次 | 1955-56, 1956-57, ..., 2021-22 |
+| 国王杯 | 19次 | 1905, 1906, ..., 2014 |
+| ... | ... | ... |
+
+皇家马德里是欧冠历史上最成功的球队！⚽"', '{"model": "model-001-qwen-turbo", "temperature": 0.3}', 'published', 'user-002-home', 'wf-003-llm-only', '[]', '[]', '2025-12-12 10:00:00');
 
 -- 关联 Agent 和 Workflow
 UPDATE `workflow` SET `agent_id` = 'agent-001-smarthome' WHERE `id` = 'wf-001-home-ctrl';
@@ -142,14 +181,14 @@ TRUE, TRUE, FALSE, 4, 3, 'user-002-home', '2025-11-20 09:00:00'),
 TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00'),
 
 -- 单节点类型工作流示例
-('wf-003-llm-only', 'wf-uuid-003', 'agent-001-smarthome', 'LLM节点示例', '展示LLM节点的基本用法', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"文本生成","position":{"x":250,"y":100},"config":{"agentUuid":"agent-001-smarthome","prompt":"请用一句话总结：{input.text}","temperature":0.7,"maxTokens":500}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+('wf-003-llm-only', 'wf-uuid-003', 'agent-003-football', 'LLM节点示例-足球冠军查询', '展示LLM节点的基本用法，查询五大联赛球队冠军荣誉', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"文本生成","position":{"x":250,"y":100},"config":{"agentUuid":"agent-003-football","prompt":"请为以下球队生成冠军荣誉表格：{input.team_name}","temperature":0.3,"maxTokens":1000}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
 '{"stop_on_error":false,"timeout":120,"retry_on_failure":false}',
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:00:00'),
 
 ('wf-004-http-only', 'wf-uuid-004', NULL, 'HTTP节点示例', '展示HTTP节点的基本用法', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"API调用","position":{"x":250,"y":100},"config":{"url":"https://api.example.com/data","method":"POST","headers":{"Content-Type":"application/json"},"body":{"query":"{input.query}"}}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"http","label":"API调用","position":{"x":250,"y":100},"config":{"url":"https://ifconfig.io/all.json","method":"GET","headers":{"Content-Type":"application/json"}}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
 '{"stop_on_error":false,"timeout":60,"retry_on_failure":false}',
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:10:00'),

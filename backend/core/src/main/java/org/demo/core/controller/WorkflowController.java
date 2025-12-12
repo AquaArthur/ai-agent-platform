@@ -233,7 +233,7 @@ public class WorkflowController {
     @PostMapping("/{uuid}/execute")
     public ApiResponse<Map<String, Object>> executeWorkflow(
             @Parameter(description = "工作流的UUID", required = true) @PathVariable String uuid,
-            @Parameter(description = "执行请求参数", required = true) @RequestBody Map<String, Object> executionRequest) {
+            @Parameter(description = "执行请求参数，这个对象包括 input 和 llm_model_id", required = true) @RequestBody Map<String, Object> executionRequest) {
         
         QueryWrapper<Workflow> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("uuid", uuid);

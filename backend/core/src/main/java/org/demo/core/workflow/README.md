@@ -414,9 +414,9 @@ Content-Type: application/json
 
 ### 工作流3-7: 单节点类型示例
 
-#### 工作流3: LLM节点示例 (wf-003-llm-only)
+#### 工作流3: LLM节点示例-足球冠军查询 (wf-003-llm-only)
 
-**功能描述**: 展示LLM节点的基本用法，实现文本摘要功能。
+**功能描述**: 展示LLM节点的基本用法，查询欧洲五大联赛球队的历史冠军荣誉。使用专门的足球冠军查询助手Agent（无插件、无知识库），以表格形式列出球队的冠军成就。
 
 **工作流拓扑图**:
 
@@ -435,8 +435,13 @@ graph LR
 | 节点ID | 类型 | 标签 | 配置说明 |
 |--------|------|------|----------|
 | node_1 | start | 开始 | 接收工作流输入参数 |
-| node_2 | llm | 文本生成 | agentUuid: agent-003-summarizer<br/>prompt: "请为以下文本生成摘要：{input.content}"<br/>temperature: 0.5<br/>maxTokens: 500 |
+| node_2 | llm | 文本生成 | agentUuid: agent-003-football<br/>prompt: "请为以下球队生成冠军荣誉表格：{input.team_name}"<br/>temperature: 0.3<br/>maxTokens: 1000 |
 | node_3 | end | 结束 | 输出工作流执行结果 |
+
+**绑定的Agent**: agent-003-football（足球冠军查询助手）
+- ✅ 无插件（tools_config: []）
+- ✅ 无知识库（kb_ids: []）
+- ✅ 专注于以表格形式展示球队冠军荣誉
 
 **工作流配置**:
 ```json
@@ -451,12 +456,12 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/{uuid}/execute
+POST /api/v1/workflows/wf-uuid-003/execute
 Content-Type: application/json
 
 {
   "input": {
-    "content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。"
+    "team_name": "巴塞罗那"
   },
   "llm_model_id": "model-xxx"
 }
@@ -465,24 +470,31 @@ Content-Type: application/json
 **工作流输入** (input):
 ```json
 {
-  "content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。"
+  "team_name": "巴塞罗那"
 }
 ```
 
 **工作流输出** (output):
 ```json
 {
-  "node_1": {"content": "人工智能（Artificial Intelligence，AI）是计算机科学的一个分支..."},
-  "node_2": "人工智能是计算机科学分支，旨在创造能模拟人类智能的机器，涉及机器人、语言处理、图像识别等多个研究领域。",
-  "node_3": "人工智能是计算机科学分支，旨在创造能模拟人类智能的机器，涉及机器人、语言处理、图像识别等多个研究领域。"
+  "node_1": {"team_name": "巴塞罗那"},
+  "node_2": "巴塞罗那是西甲历史上最成功的俱乐部之一，以下是其主要冠军荣誉：\n\n| 赛事名称 | 冠军次数 | 获得年份 |\n|---------|---------|----------|\n| 西甲联赛冠军 | 27次 | 1928-29, 1944-45, ..., 2018-19 |\n| 欧洲冠军联赛 | 5次 | 1991-92, 2005-06, 2008-09, 2010-11, 2014-15 |\n| 国王杯 | 31次 | 1910, 1912, ..., 2021 |\n| 欧洲超级杯 | 5次 | 1992, 1997, 2009, 2011, 2015 |\n| 世俱杯 | 3次 | 2009, 2011, 2015 |\n\n巴塞罗那是世界足坛最成功的俱乐部之一！⚽",
+  "node_3": "巴塞罗那是西甲历史上最成功的俱乐部之一，以下是其主要冠军荣誉：\n\n| 赛事名称 | 冠军次数 | 获得年份 |\n|---------|---------|----------|\n| 西甲联赛冠军 | 27次 | 1928-29, 1944-45, ..., 2018-19 |\n| 欧洲冠军联赛 | 5次 | 1991-92, 2005-06, 2008-09, 2010-11, 2014-15 |\n| 国王杯 | 31次 | 1910, 1912, ..., 2021 |\n| 欧洲超级杯 | 5次 | 1992, 1997, 2009, 2011, 2015 |\n| 世俱杯 | 3次 | 2009, 2011, 2015 |\n\n巴塞罗那是世界足坛最成功的俱乐部之一！⚽"
 }
 ```
+
+**测试其他球队示例**:
+- 皇家马德里（Real Madrid）
+- 曼联（Manchester United）
+- 拜仁慕尼黑（Bayern Munich）
+- 尤文图斯（Juventus）
+- 巴黎圣日耳曼（Paris Saint-Germain）
 
 ---
 
 #### 工作流4: HTTP节点示例 (wf-004-http-only)
 
-**功能描述**: 展示HTTP节点的基本用法，调用外部天气API查询天气信息。
+**功能描述**: 展示HTTP节点的基本用法，调用外部 API 查询本机 IP 地址。
 
 **工作流拓扑图**:
 
@@ -501,7 +513,7 @@ graph LR
 | 节点ID | 类型 | 标签 | 配置说明 |
 |--------|------|------|----------|
 | node_1 | start | 开始 | 接收工作流输入参数 |
-| node_2 | http | API调用 | url: "https://api.weather.com/v1/current?city={input.city}"<br/>method: GET<br/>headers: {"Authorization": "Bearer xxx"} |
+| node_2 | http | API调用 | url: "https://ifconfig.io/all.json" <br/>method: GET<br/>headers: {"Content-Type": "application/json"} |
 | node_3 | end | 结束 | 输出工作流执行结果 |
 
 **工作流配置**:
@@ -520,36 +532,27 @@ graph LR
 POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
-{
-  "input": {
-    "city": "北京"
-  }
-}
+{}
 ```
 
 **工作流输入** (input):
-```json
-{
-  "city": "北京"
-}
+
+```
+{}
 ```
 
 **工作流输出** (output):
 ```json
 {
-  "node_1": {"city": "北京"},
+  "node_1": {},
   "node_2": {
-    "temperature": 15,
-    "weather": "晴天",
-    "humidity": 45,
-    "wind_speed": 12
+    "output": "{\"ip\":\"xx.xx.xxx.xx\",\"ua\":\"Java/17\"}",
+        "headers": {
+          "Date": "Fri, 10 Dec 2025 07:33:57 GMT"
+        },
+        "statusCode": 200
   },
-  "node_3": {
-    "temperature": 15,
-    "weather": "晴天",
-    "humidity": 45,
-    "wind_speed": 12
-  }
+  "node_3": {}
 }
 ```
 
