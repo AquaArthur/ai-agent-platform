@@ -74,24 +74,6 @@ public class WorkflowExecutor {
         }
     }
 
-    /**
-     * 异步执行工作流
-     *
-     * @param workflow 工作流定义
-     * @param input 输入参数
-     * @param llmModelId LLM模型ID
-     * @param callback 执行完成回调
-     */
-    public void executeAsync(Workflow workflow, Map<String, Object> input, String llmModelId, ExecutionCallback callback) {
-        executorService.submit(() -> {
-            try {
-                WorkflowExecutionResult result = execute(workflow, input, llmModelId);
-                callback.onComplete(result);
-            } catch (Exception e) {
-                callback.onError(e);
-            }
-        });
-    }
 
     /**
      * 同步执行工作流
@@ -343,13 +325,6 @@ public class WorkflowExecutor {
         return true;
     }
 
-    /**
-     * 执行回调接口
-     */
-    public interface ExecutionCallback {
-        void onComplete(WorkflowExecutionResult result);
-        void onError(Exception e);
-    }
 
     /**
      * 节点执行回调接口

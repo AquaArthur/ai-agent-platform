@@ -36,103 +36,16 @@ public class WorkflowExecutionService {
     private WorkflowExecutor workflowExecutor;
 
     // 用于异步执行的线程池
-    private final java.util.concurrent.ExecutorService executorService = 
-        java.util.concurrent.Executors.newCachedThreadPool();
+    private final java.util.concurrent.ExecutorService executorService =
+            java.util.concurrent.Executors.newCachedThreadPool();
 
-    /**
-     * 同步执行工作流
-     *
-     * @param workflowId 工作流ID
-     * @param input 输入参数
-     * @param userId 执行用户ID
-     * @param llmModelId LLM模型ID
-     * @return 执行记录ID
-     */
-    public String executeWorkflow(String workflowId, Map<String, Object> input, String userId, String llmModelId) {
-        // 1. 查询工作流定义
-        Workflow workflow = workflowMapper.selectById(workflowId);
-        if (workflow == null) {
-            throw new IllegalArgumentException("工作流不存在: " + workflowId);
-        }
-
-        // 2. 创建执行记录
-        String executionId = UUID.randomUUID().toString();
-        WorkflowExecution execution = new WorkflowExecution();
-        execution.setExecutionId(executionId);
-        execution.setWorkflowId(workflowId);
-        execution.setUserId(userId);
-        execution.setStatus("pending");
-        execution.setInput(input);
-        execution.setStartedAt(LocalDateTime.now());
-        execution.setRunType("full");
-        workflowExecutionMapper.insert(execution);
-
-        log.info("开始执行工作流: workflowId={}, executionId={}", workflowId, executionId);
-
-        try {
-            // 3. 更新状态为运行中
-            execution.setStatus("running");
-            workflowExecutionMapper.updateById(execution);
-
-            // 4. 执行工作流（带节点执行回调）
-            WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId, 
-                new WorkflowExecutor.NodeExecutionCallback() {
-                    @Override
-                    public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
-                        // 实时更新节点执行状态到数据库
-                        // 重新查询最新的execution对象
-                        WorkflowExecution latestExecution = workflowExecutionMapper.selectOne(
-                            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                                .eq("execution_id", executionId)
-                        );
-                        if (latestExecution != null) {
-                            updateNodeExecutions(latestExecution, allNodeRecords);
-                        }
-                    }
-                });
-
-            // 5. 重新查询最新的execution对象，确保最终更新使用最新数据
-            WorkflowExecution finalExecution = workflowExecutionMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                    .eq("execution_id", executionId)
-            );
-            
-            if (finalExecution != null) {
-                // 更新执行结果
-                updateExecutionResult(finalExecution, result);
-                log.info("工作流执行完成: executionId={}, status={}", executionId, result.getStatus());
-            } else {
-                log.error("最终更新时无法找到执行记录: executionId={}", executionId);
-            }
-
-        } catch (Exception e) {
-            log.error("工作流执行失败: executionId={}", executionId, e);
-            
-            // 重新查询execution对象进行失败更新
-            WorkflowExecution failedExecution = workflowExecutionMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                    .eq("execution_id", executionId)
-            );
-            
-            if (failedExecution != null) {
-                // 更新执行状态为失败
-                failedExecution.setStatus("failed");
-                failedExecution.setErrorMessage(e.getMessage());
-                failedExecution.setCompletedAt(LocalDateTime.now());
-                failedExecution.setExecutionTime(calculateExecutionTime(failedExecution.getStartedAt(), failedExecution.getCompletedAt()));
-                workflowExecutionMapper.updateById(failedExecution);
-            }
-        }
-
-        return executionId;
-    }
 
     /**
      * 异步执行工作流
      *
      * @param workflowId 工作流ID
-     * @param input 输入参数
-     * @param userId 执行用户ID
+     * @param input      输入参数
+     * @param userId     执行用户ID
      * @param llmModelId LLM模型ID
      * @return 执行记录ID
      */
@@ -164,42 +77,42 @@ public class WorkflowExecutionService {
             try {
                 // 从数据库重新获取execution对象，确保有正确的id
                 currentExecution = workflowExecutionMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                        .eq("execution_id", executionId)
+                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
+                                .eq("execution_id", executionId)
                 );
-                
+
                 if (currentExecution == null) {
                     log.error("无法找到执行记录: executionId={}", executionId);
                     return;
                 }
-                
+
                 // 更新执行状态为运行中
                 currentExecution.setStatus("running");
                 workflowExecutionMapper.updateById(currentExecution);
 
                 // 执行工作流（带节点执行回调）
-                WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId, 
-                    new WorkflowExecutor.NodeExecutionCallback() {
-                        @Override
-                        public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
-                            // 实时更新节点执行状态到数据库
-                            // 重新查询最新的execution对象
-                            WorkflowExecution latestExecution = workflowExecutionMapper.selectOne(
-                                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                                    .eq("execution_id", executionId)
-                            );
-                            if (latestExecution != null) {
-                                updateNodeExecutions(latestExecution, allNodeRecords);
+                WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId,
+                        new WorkflowExecutor.NodeExecutionCallback() {
+                            @Override
+                            public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
+                                // 实时更新节点执行状态到数据库
+                                // 重新查询最新的execution对象
+                                WorkflowExecution latestExecution = workflowExecutionMapper.selectOne(
+                                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
+                                                .eq("execution_id", executionId)
+                                );
+                                if (latestExecution != null) {
+                                    updateNodeExecutions(latestExecution, allNodeRecords);
+                                }
                             }
-                        }
-                    });
+                        });
 
                 // 重新查询最新的execution对象，确保最终更新使用最新数据
                 WorkflowExecution finalExecution = workflowExecutionMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                        .eq("execution_id", executionId)
+                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
+                                .eq("execution_id", executionId)
                 );
-                
+
                 if (finalExecution != null) {
                     // 更新执行结果
                     updateExecutionResult(finalExecution, result);
@@ -209,15 +122,15 @@ public class WorkflowExecutionService {
                 }
             } catch (Exception e) {
                 log.error("异步工作流执行失败: executionId={}", executionId, e);
-                
+
                 // 重新查询execution对象进行失败更新
                 if (currentExecution == null) {
                     currentExecution = workflowExecutionMapper.selectOne(
-                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                            .eq("execution_id", executionId)
+                            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
+                                    .eq("execution_id", executionId)
                     );
                 }
-                
+
                 if (currentExecution != null) {
                     // 更新执行状态为失败
                     currentExecution.setStatus("failed");
@@ -230,59 +143,6 @@ public class WorkflowExecutionService {
         });
 
         return executionId;
-    }
-
-    /**
-     * 查询执行记录
-     *
-     * @param executionId 执行ID
-     * @return 执行记录
-     */
-    public WorkflowExecution getExecution(String executionId) {
-        return workflowExecutionMapper.selectOne(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                .eq("execution_id", executionId)
-        );
-    }
-
-    /**
-     * 查询工作流的执行历史
-     *
-     * @param workflowId 工作流ID
-     * @param limit 返回记录数
-     * @return 执行记录列表
-     */
-    public List<WorkflowExecution> getExecutionHistory(String workflowId, Integer limit) {
-        return workflowExecutionMapper.selectList(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkflowExecution>()
-                .eq("workflow_id", workflowId)
-                .orderByDesc("started_at")
-                .last("LIMIT " + (limit != null ? limit : 10))
-        );
-    }
-
-    /**
-     * 终止工作流执行
-     * 注意：当前实现不支持真正的终止，只是更新状态
-     *
-     * @param executionId 执行ID
-     */
-    public void terminateExecution(String executionId) {
-        WorkflowExecution execution = getExecution(executionId);
-        if (execution == null) {
-            throw new IllegalArgumentException("执行记录不存在: " + executionId);
-        }
-
-        if ("completed".equals(execution.getStatus()) || "failed".equals(execution.getStatus())) {
-            throw new IllegalStateException("工作流已完成，无法终止");
-        }
-
-        execution.setStatus("terminated");
-        execution.setCompletedAt(LocalDateTime.now());
-        execution.setExecutionTime(calculateExecutionTime(execution.getStartedAt(), execution.getCompletedAt()));
-        workflowExecutionMapper.updateById(execution);
-
-        log.info("工作流执行已终止: executionId={}", executionId);
     }
 
     /**
@@ -302,7 +162,7 @@ public class WorkflowExecutionService {
                 WorkflowExecution.NodeExecution nodeExecution = new WorkflowExecution.NodeExecution();
                 nodeExecution.setNodeId(record.getNodeId());
                 nodeExecution.setStatus(record.getStatus());
-                
+
                 // 转换输出为 Map 类型
                 if (record.getOutput() != null) {
                     if (record.getOutput() instanceof Map) {
@@ -314,10 +174,10 @@ public class WorkflowExecutionService {
                         nodeExecution.setOutput(outputMap);
                     }
                 }
-                
+
                 // 设置错误信息（字段名是 error，不是 errorMessage）
                 nodeExecution.setError(record.getErrorMessage());
-                
+
                 // 转换时间为字符串格式
                 if (record.getStartTime() != null) {
                     nodeExecution.setStartedAt(record.getStartTime().toString());
@@ -325,7 +185,7 @@ public class WorkflowExecutionService {
                 if (record.getEndTime() != null) {
                     nodeExecution.setCompletedAt(record.getEndTime().toString());
                 }
-                
+
                 nodeExecutions.add(nodeExecution);
             }
         }
@@ -344,7 +204,7 @@ public class WorkflowExecutionService {
             WorkflowExecution.NodeExecution nodeExecution = new WorkflowExecution.NodeExecution();
             nodeExecution.setNodeId(record.getNodeId());
             nodeExecution.setStatus(record.getStatus());
-            
+
             // 转换输出为 Map 类型
             if (record.getOutput() != null) {
                 if (record.getOutput() instanceof Map) {
@@ -356,10 +216,10 @@ public class WorkflowExecutionService {
                     nodeExecution.setOutput(outputMap);
                 }
             }
-            
+
             // 设置错误信息（字段名是 error，不是 errorMessage）
             nodeExecution.setError(record.getErrorMessage());
-            
+
             // 转换时间为字符串格式
             if (record.getStartTime() != null) {
                 nodeExecution.setStartedAt(record.getStartTime().toString());
@@ -367,11 +227,11 @@ public class WorkflowExecutionService {
             if (record.getEndTime() != null) {
                 nodeExecution.setCompletedAt(record.getEndTime().toString());
             }
-            
+
             nodeExecutions.add(nodeExecution);
         }
         execution.setNodeExecutions(nodeExecutions);
-        
+
         // 更新数据库
         workflowExecutionMapper.updateById(execution);
         log.debug("已更新节点执行状态: executionId={}, nodeCount={}", execution.getExecutionId(), nodeExecutions.size());
