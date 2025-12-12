@@ -313,7 +313,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-001-home-ctrl/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -383,7 +383,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-002-auto-off/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -451,7 +451,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-003-llm-only/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -517,7 +517,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-004-http-only/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -592,7 +592,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-005-knowledge-only/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -693,7 +693,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-006-intent-only/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -767,7 +767,7 @@ graph LR
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-007-string-only/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {
@@ -866,7 +866,7 @@ graph TD
 
 **API 请求**:
 ```bash
-POST /api/v1/workflows/wf-008-complex-string/execute
+POST /api/v1/workflows/{uuid}/execute
 Content-Type: application/json
 
 {

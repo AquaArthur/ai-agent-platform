@@ -109,6 +109,7 @@ public class StringNodeExecutor implements NodeExecutor {
 
     /**
      * 截取字符串
+     * 支持负数索引：-1 表示最后一个字符，-5 表示倒数第5个字符
      */
     private String handleSubstring(String inputString, Map<String, Object> parameters) {
         if (parameters == null) {
@@ -118,40 +119,83 @@ public class StringNodeExecutor implements NodeExecutor {
         Integer start = (Integer) parameters.get("start");
         Integer end = (Integer) parameters.get("end");
         
+        int length = inputString.length();
+        
+        // 处理 start 参数（支持负数索引）
         if (start == null) {
             start = 0;
-        }
-        if (end == null) {
-            end = inputString.length();
+        } else if (start < 0) {
+            // 负数索引：从末尾开始计数
+            start = Math.max(0, length + start);
+        } else {
+            // 正数索引：确保不超过字符串长度
+            start = Math.min(start, length);
         }
         
-        // 确保索引在合法范围内
-        start = Math.max(0, Math.min(start, inputString.length()));
-        end = Math.max(start, Math.min(end, inputString.length()));
+        // 处理 end 参数（支持负数索引）
+        if (end == null) {
+            end = length;
+        } else if (end < 0) {
+            // 负数索引：从末尾开始计数
+            end = Math.max(0, length + end);
+        } else {
+            // 正数索引：确保不超过字符串长度
+            end = Math.min(end, length);
+        }
+        
+        // 确保 start <= end
+        if (start > end) {
+            return "";
+        }
         
         return inputString.substring(start, end);
     }
 
     /**
      * 格式化字符串
+     * 将 inputString 中的占位符（双大括号格式 {{key}}）替换为 values 中的值
+     * 使用双大括号避免与工作流变量替换（单大括号 {node_id}）冲突
      */
     private String handleFormat(String inputString, Map<String, Object> parameters) {
         if (parameters == null) {
+            log.warn("format操作的parameters为null");
             return inputString;
         }
         
         @SuppressWarnings("unchecked")
-        Map<String, String> values = (Map<String, String>) parameters.get("values");
+        Map<String, Object> values = (Map<String, Object>) parameters.get("values");
         
         if (values == null) {
+            log.warn("format操作的values为null，inputString={}", inputString);
             return inputString;
         }
         
+        log.info("format操作 - inputString={}, values={}", inputString, values);
+        
         String result = inputString;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
+            Object value = entry.getValue();
+            String strValue;
+            
+            // 如果值是 Map 且包含 output 字段，提取 output 的值（与 VariableResolver 一致）
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                if (mapValue.containsKey("output")) {
+                    strValue = String.valueOf(mapValue.get("output"));
+                } else {
+                    strValue = String.valueOf(value);
+                }
+            } else {
+                strValue = value != null ? String.valueOf(value) : "";
+            }
+            
+            log.info("替换占位符 {{{{{}}}}}} 为 [{}]", entry.getKey(), strValue);
+            // 使用双大括号语法 {{key}}
+            result = result.replace("{{" + entry.getKey() + "}}", strValue);
         }
         
+        log.info("format操作结果: {}", result);
         return result;
     }
 

@@ -11,11 +11,16 @@ import java.util.regex.Pattern;
 /**
  * 变量替换工具类
  * 支持 {node_id}、{node_id.field}、{input.param} 格式的变量替换
+ * 注意：双大括号 {{placeholder}} 不会被替换，用于 format 操作等场景
  */
 @Slf4j
 public class VariableResolver {
 
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+    // 匹配单大括号变量，但不匹配双大括号
+    // (?<!\{) - 前面不是 {
+    // \{([^{}]+)\} - 匹配 {xxx}，内容不能包含大括号
+    // (?!\}) - 后面不是 }
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("(?<!\\{)\\{([^{}]+)\\}(?!\\})");
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -101,7 +106,7 @@ public class VariableResolver {
             Object variableValue = getVariableValue(variablePath, context);
             
             // 将变量值转换为字符串
-            String replacement = variableValue != null ? String.valueOf(variableValue) : "";
+            String replacement = convertToString(variableValue);
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         }
         
@@ -267,5 +272,29 @@ public class VariableResolver {
         }
         
         return variables;
+    }
+
+    /**
+     * 将变量值转换为字符串
+     * 如果值是 Map 且包含 "output" 字段，优先使用 output 的值
+     * 这样可以避免 String 节点输出被转换为 {output=xxx, operation=xxx} 的形式
+     */
+    @SuppressWarnings("unchecked")
+    private static String convertToString(Object value) {
+        if (value == null) {
+            return "";
+        }
+        
+        // 如果是 Map 且包含 output 字段，优先使用 output 的值
+        if (value instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) value;
+            if (map.containsKey("output")) {
+                Object outputValue = map.get("output");
+                // 递归处理，以防 output 也是一个 Map
+                return convertToString(outputValue);
+            }
+        }
+        
+        return String.valueOf(value);
     }
 }
