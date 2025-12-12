@@ -171,6 +171,18 @@ public class WorkflowExecutionService {
                 nodeExecution.setNodeId(record.getNodeId());
                 nodeExecution.setStatus(record.getStatus());
 
+                // 转换输入为 Map 类型
+                if (record.getInput() != null) {
+                    if (record.getInput() instanceof Map) {
+                        nodeExecution.setInput((Map<String, Object>) record.getInput());
+                    } else {
+                        // 如果不是 Map，包装成 Map
+                        Map<String, Object> inputMap = new java.util.HashMap<>();
+                        inputMap.put("config", record.getInput());
+                        nodeExecution.setInput(inputMap);
+                    }
+                }
+
                 // 转换输出为 Map 类型
                 if (record.getOutput() != null) {
                     if (record.getOutput() instanceof Map) {

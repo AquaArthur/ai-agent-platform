@@ -183,16 +183,19 @@ public class WorkflowExecutor {
             Object resolvedConfig = VariableResolver.resolveVariables(config, context);
             BaseNodeConfig finalConfig = (BaseNodeConfig) resolvedConfig;
 
-            // 3. 获取节点执行器
+            // 3. 保存节点输入（用于记录）
+            record.setInput(finalConfig);
+
+            // 4. 获取节点执行器
             NodeExecutor executor = executorMap.get(node.getType());
             if (executor == null) {
                 throw new IllegalArgumentException("不支持的节点类型: " + node.getType());
             }
 
-            // 4. 执行节点
+            // 5. 执行节点
             Object output = executor.execute(node, finalConfig, context);
 
-            // 5. 保存节点输出
+            // 6. 保存节点输出
             context.saveNodeOutput(node.getId(), output);
 
             record.setStatus("completed");

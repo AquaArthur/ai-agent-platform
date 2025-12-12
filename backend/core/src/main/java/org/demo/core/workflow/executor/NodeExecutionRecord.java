@@ -26,6 +26,11 @@ public class NodeExecutionRecord {
     private String status;
 
     /**
+     * 节点输入（解析变量后的配置）
+     */
+    private Object input;
+
+    /**
      * 节点输出
      */
     private Object output;
