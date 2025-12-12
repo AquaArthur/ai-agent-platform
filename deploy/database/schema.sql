@@ -102,45 +102,58 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_conversation` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow` (
     `id` VARCHAR(64) NOT NULL COMMENT '工作流唯一标识',
+    `uuid` VARCHAR(36) DEFAULT NULL COMMENT '工作流UUID（用于外部接口）',
     `agent_id` VARCHAR(64) DEFAULT NULL COMMENT '所属智能体ID',
     `name` VARCHAR(100) NOT NULL COMMENT '工作流名称',
     `description` TEXT DEFAULT NULL COMMENT '工作流描述',
-    `definition` JSON NOT NULL COMMENT '工作流定义（存储节点和连线信息）',
-    `graph_data` JSON DEFAULT NULL COMMENT '画布数据（存储前端Reactflow/X6的节点坐标、连线信息）',
+    `nodes` JSON NOT NULL COMMENT '节点列表（存储节点配置信息）',
+    `edges` JSON NOT NULL COMMENT '边列表（存储节点间连接关系）',
+    `config` JSON DEFAULT NULL COMMENT '工作流配置（stop_on_error、timeout、retry_on_failure等）',
     `is_valid` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'DAG校验是否通过（0-否, 1-是）',
-    `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '工作流状态（active/inactive）',
+    `is_active` BOOLEAN NOT NULL DEFAULT TRUE COMMENT '工作流是否激活',
+    `is_public` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '工作流是否公开',
+    `execution_count` INT NOT NULL DEFAULT 0 COMMENT '执行次数统计',
+    `success_count` INT NOT NULL DEFAULT 0 COMMENT '成功次数统计',
     `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_uuid` (`uuid`),
     UNIQUE KEY `uk_user_name` (`user_id`, `name`),
     KEY `idx_agent` (`agent_id`),
+    KEY `idx_user_id` (`user_id`),
     CONSTRAINT `fk_workflow_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_workflow_agent` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作流表';
 
 -- ============================================================
--- 5. 工作流执行历史表 (workflow_run)
+-- 5. 工作流执行历史表 (workflow_execution)
 -- 功能: 记录工作流的每一次动态执行实例
 -- 关联用户故事: US-012, US-013
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_run` (
-    `id` VARCHAR(64) NOT NULL COMMENT '执行记录ID',
+CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_execution` (
+    `id` INT NOT NULL AUTO_INCREMENT COMMENT '执行记录ID',
+    `execution_id` VARCHAR(36) NOT NULL COMMENT '执行UUID（用于外部查询）',
     `workflow_id` VARCHAR(64) NOT NULL COMMENT '工作流ID',
     `user_id` VARCHAR(64) NOT NULL COMMENT '执行者ID',
     `status` VARCHAR(20) NOT NULL COMMENT '状态（pending/running/completed/failed/terminated）',
-    `inputs` JSON DEFAULT NULL COMMENT '初始输入',
-    `outputs` JSON DEFAULT NULL COMMENT '最终输出',
-    `error` TEXT DEFAULT NULL COMMENT '错误信息',
-    `node_states` JSON DEFAULT NULL COMMENT '节点执行快照',
-    `run_type` VARCHAR(20) NOT NULL COMMENT '类型（full/debug）',
-    `start_time` DATETIME DEFAULT NULL COMMENT '开始时间',
-    `end_time` DATETIME DEFAULT NULL COMMENT '结束时间',
+    `input` JSON NOT NULL COMMENT '初始输入参数',
+    `output` JSON DEFAULT NULL COMMENT '最终输出结果',
+    `error_message` TEXT DEFAULT NULL COMMENT '错误信息',
+    `node_executions` JSON DEFAULT NULL COMMENT '节点执行快照（各节点的执行记录）',
+    `run_type` VARCHAR(20) NOT NULL COMMENT '类型（full-完整执行/debug-调试执行）',
+    `started_at` DATETIME DEFAULT NULL COMMENT '开始时间',
+    `completed_at` DATETIME DEFAULT NULL COMMENT '完成时间',
+    `execution_time` INT DEFAULT NULL COMMENT '执行耗时（毫秒）',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_execution_id` (`execution_id`),
+    KEY `idx_workflow_id` (`workflow_id`),
+    KEY `idx_execution_id` (`execution_id`),
+    KEY `idx_status` (`status`),
     KEY `idx_workflow_time` (`workflow_id`, `create_time`),
-    CONSTRAINT `fk_run_workflow` FOREIGN KEY (`workflow_id`) REFERENCES `workflow` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_run_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_execution_workflow` FOREIGN KEY (`workflow_id`) REFERENCES `workflow` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_execution_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作流执行历史表';
 
 -- ============================================================
