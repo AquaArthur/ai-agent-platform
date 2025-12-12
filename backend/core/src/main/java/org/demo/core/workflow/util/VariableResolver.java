@@ -21,7 +21,7 @@ public class VariableResolver {
     /**
      * 替换配置中的所有变量
      *
-     * @param config 节点配置（可以是Map、List、String等）
+     * @param config 节点配置（可以是Map、List、String、JavaBean等）
      * @param context 执行上下文
      * @return 替换后的配置
      */
@@ -36,8 +36,52 @@ public class VariableResolver {
             return resolveMap((Map<?, ?>) config, context);
         } else if (config instanceof List) {
             return resolveList((List<?>) config, context);
-        } else {
+        } else if (isPrimitiveOrWrapper(config)) {
+            // 基本类型和包装类型直接返回
             return config;
+        } else {
+            // 处理 JavaBean 对象（如 BaseNodeConfig）
+            return resolveJavaBean(config, context);
+        }
+    }
+
+    /**
+     * 判断对象是否为基本类型或包装类型
+     */
+    private static boolean isPrimitiveOrWrapper(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        Class<?> clazz = obj.getClass();
+        return clazz.isPrimitive() || 
+               clazz == Boolean.class || 
+               clazz == Byte.class || 
+               clazz == Character.class || 
+               clazz == Short.class || 
+               clazz == Integer.class || 
+               clazz == Long.class || 
+               clazz == Float.class || 
+               clazz == Double.class;
+    }
+
+    /**
+     * 处理 JavaBean 对象
+     * 将对象转为 Map，替换变量后再转回对象
+     */
+    @SuppressWarnings("unchecked")
+    private static Object resolveJavaBean(Object bean, ExecutionContext context) {
+        try {
+            // 1. 将 JavaBean 转为 Map
+            Map<String, Object> beanMap = objectMapper.convertValue(bean, Map.class);
+            
+            // 2. 递归替换 Map 中的变量
+            Map<String, Object> resolvedMap = resolveMap(beanMap, context);
+            
+            // 3. 将 Map 转回原对象类型
+            return objectMapper.convertValue(resolvedMap, bean.getClass());
+        } catch (Exception e) {
+            log.error("JavaBean 变量替换失败: {}", bean.getClass().getName(), e);
+            return bean;
         }
     }
 

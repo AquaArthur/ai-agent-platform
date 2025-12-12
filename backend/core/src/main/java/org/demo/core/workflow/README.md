@@ -676,7 +676,7 @@ graph LR
 | 节点ID | 类型 | 标签 | 配置说明 |
 |--------|------|------|----------|
 | node_1 | start | 开始 | 接收工作流输入参数 |
-| node_2 | string | 字符串拼接 | operation: concat<br/>inputs: ["{input.first_name}", " ", "{input.last_name}"]<br/>separator: "" |
+| node_2 | string | 字符串拼接 | operation: concat<br/>inputString: ""<br/>parameters: {strings: ["{input.first_name}", " ", "{input.last_name}"]} |
 | node_3 | end | 结束 | 输出工作流执行结果 |
 
 **工作流配置**:

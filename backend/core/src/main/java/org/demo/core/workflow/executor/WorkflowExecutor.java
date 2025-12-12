@@ -138,13 +138,18 @@ public class WorkflowExecutor {
                 }
             }
 
+            log.info("节点执行循环结束: workflowId={}, 总节点数={}", workflow.getId(), nodeRecords.size());
+
             // 5. 设置执行结果
+            log.info("所有节点执行完成，设置执行结果: workflowId={}, 节点数={}", workflow.getId(), nodeRecords.size());
             result.setNodeExecutions(nodeRecords);
             result.setOutput(context.getNodeOutputs());
             
             if (!"failed".equals(result.getStatus())) {
                 result.setStatus("completed");
             }
+            
+            log.info("工作流执行完成: workflowId={}, status={}", workflow.getId(), result.getStatus());
 
         } catch (Exception e) {
             log.error("工作流 {} 执行失败", workflow.getId(), e);
@@ -152,6 +157,7 @@ public class WorkflowExecutor {
             result.setErrorMessage(e.getMessage());
         } finally {
             result.setEndTime(LocalDateTime.now());
+            log.info("工作流执行结束: workflowId={}, status={}", workflow.getId(), result.getStatus());
         }
 
         return result;

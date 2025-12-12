@@ -167,7 +167,7 @@ TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:20:00'),
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:30:00'),
 
 ('wf-007-string-only', 'wf-uuid-007', NULL, '字符串节点示例', '展示字符串处理节点的基本用法', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"string","label":"字符串拼接","position":{"x":250,"y":100},"config":{"operation":"concat","strings":["{input.firstName}"," ","{input.lastName}"]}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"string","label":"字符串拼接","position":{"x":250,"y":100},"config":{"operation":"concat","inputString":"","parameters":{"strings":["{input.first_name}"," ","{input.last_name}"]}}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
 '{"stop_on_error":false,"timeout":30,"retry_on_failure":false}',
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:40:00'),

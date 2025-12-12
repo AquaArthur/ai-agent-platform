@@ -21,10 +21,11 @@ public class EndNodeExecutor implements NodeExecutor {
     public Object execute(Workflow.WorkflowNode node, BaseNodeConfig config, ExecutionContext context) {
         log.info("执行结束节点: {}", node.getId());
         
-        // 结束节点返回所有节点的输出作为最终结果
+        // 结束节点只返回完成标记
+        // 注意：不要返回 context.getNodeOutputs()，会导致循环引用
         Map<String, Object> result = new HashMap<>();
         result.put("status", "completed");
-        result.put("nodeOutputs", context.getNodeOutputs());
+        result.put("message", "工作流执行完成");
         
         return result;
     }
