@@ -149,11 +149,11 @@ public class WorkflowExecution {
         private Map<String, Object> input;
 
         /**
-         * 节点输出
+         * 节点输出（可以是 Map 或其他类型）
          */
         @JsonAlias({"output"})
         @JsonProperty("output")
-        private Map<String, Object> output;
+        private Object output;
 
         /**
          * 节点错误信息（如有）
