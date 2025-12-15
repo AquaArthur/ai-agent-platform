@@ -4,14 +4,23 @@ AI 智能体平台前端应用，基于 Vue 3 + TypeScript + Vite 构建的现�
 
 ## 📋 项目简介
 
-这是一个功能完整的 AI 智能体管理平台前端项目，提供智能体管理、插件管理、对话测试等核心功能。项目采用现代化的前端技术栈，支持 Mock 数据模式和真实 API 模式切换，便于开发和测试。
+这是一个功能完整的 AI 智能体管理平台前端项目，提供智能体管理、插件管理、知识库管理、工作流编排、对话测试等核心功能。项目采用现代化的前端技术栈，内置可视化工作流编辑器，支持拖拽式节点编排，支持 Mock 数据模式和真实 API 模式切换，便于开发和测试。
 
 ## ✨ 主要功能
 
-- **智能体管理** - 创建、编辑、删除和查看智能体配置
-- **插件管理** - 管理 AI 智能体可用的插件工具
-- **知识库管理** - 创建和管理知识库，上传文档，配置向量化参数
-- **对话测试** - 与智能体进行实时对话，测试智能体功能
+- **智能体管理** - 创建、编辑、删除和查看智能体配置，支持关联工作流和知识库
+- **插件管理** - 管理 AI 智能体可用的插件工具，支持 OpenAPI 规范导入和配置
+- **知识库管理** - 创建和管理知识库，上传文档，配置向量化参数，支持文档预览和删除
+- **工作流管理** - 可视化工作流编辑器，支持拖拽式节点编排、工作流验证和执行
+  - 可视化编辑器：基于 Vue Flow 的拖拽式工作流设计器
+  - 节点类型：支持开始、结束、LLM调用、HTTP请求、知识库检索、意图识别、字符串处理等节点
+  - 工作流验证：自动验证工作流的完整性和正确性
+  - 工作流执行：支持实时执行工作流并查看执行结果
+  - 执行历史：查看工作流的执行记录和状态
+  - 撤销/重做：支持操作历史记录管理
+  - 自动布局：一键自动排列节点
+- **对话测试** - 与智能体进行实时对话，测试智能体功能，支持会话历史管理
+- **LLM 模型管理** - 管理 LLM 模型和提供商配置，支持多模型切换
 - **系统测试** - 系统功能测试页面
 
 ## 🛠️ 技术栈
@@ -26,6 +35,11 @@ AI 智能体平台前端应用，基于 Vue 3 + TypeScript + Vite 构建的现�
 - **样式**: Tailwind CSS 4.1+
 - **图标**: Element Plus Icons
 - **代码编辑器**: Monaco Editor 0.55+
+- **工作流可视化**: Vue Flow 1.48+ (基于 React Flow)
+  - `@vue-flow/core` - 核心工作流组件
+  - `@vue-flow/background` - 背景网格
+  - `@vue-flow/controls` - 画布控制按钮
+  - `@vue-flow/minimap` - 小地图导航
 
 ## 📁 项目结构
 
@@ -39,6 +53,7 @@ frontend/
 │   │   ├── plugin.ts      # 插件相关 API
 │   │   ├── llm.ts         # LLM 模型相关 API
 │   │   ├── knowledgeBase.ts # 知识库相关 API
+│   │   ├── workflow.ts    # 工作流相关 API
 │   │   └── index.ts       # API 统一导出
 │   ├── assets/            # 资源文件
 │   ├── components/        # 公共组件
@@ -52,14 +67,19 @@ frontend/
 │   ├── stores/            # Pinia 状态管理
 │   │   ├── index.ts
 │   │   ├── useAgentStore.ts    # 智能体状态管理
-│   │   └── usePluginStore.ts   # 插件状态管理
+│   │   ├── usePluginStore.ts   # 插件状态管理
+│   │   └── useUserStore.ts     # 用户状态管理
 │   ├── styles/            # 全局样式
 │   │   ├── index.css
-│   │   └── tailwind.css
+│   │   ├── tailwind.css
+│   │   ├── common.css
+│   │   └── node-common.css     # 工作流节点通用样式
 │   ├── types/             # TypeScript 类型定义
 │   │   └── entity.ts      # 实体类型定义
 │   ├── utils/             # 工具函数
-│   │   └── http.ts        # HTTP 请求封装
+│   │   ├── http.ts        # HTTP 请求封装
+│   │   ├── formatters.ts  # 格式化工具函数
+│   │   └── store.ts       # Store 工具函数
 │   ├── views/             # 页面视图
 │   │   ├── agent/         # 智能体相关页面
 │   │   │   ├── AgentList.vue
@@ -77,6 +97,21 @@ frontend/
 │   │   ├── knowledgeBase/ # 知识库相关页面
 │   │   │   ├── KnowledgeBaseList.vue
 │   │   │   └── KnowledgeBaseDetail.vue
+│   │   ├── workflow/      # 工作流相关页面
+│   │   │   ├── WorkflowList.vue
+│   │   │   ├── WorkflowEditor.vue
+│   │   │   ├── nodes/     # 工作流节点组件
+│   │   │   │   ├── StartNode.vue
+│   │   │   │   ├── EndNode.vue
+│   │   │   │   ├── LLMNode.vue
+│   │   │   │   ├── HttpNode.vue
+│   │   │   │   ├── KnowledgeNode.vue
+│   │   │   │   ├── IntentNode.vue
+│   │   │   │   └── StringNode.vue
+│   │   │   └── components/
+│   │   │       ├── NodeConfigDialog.vue
+│   │   │       ├── ExecutionPanel.vue
+│   │   │       └── ExecutionStatus.vue
 │   │   └── HomeView.vue   # 首页
 │   ├── App.vue            # 根组件
 │   └── main.ts            # 入口文件
@@ -157,8 +192,6 @@ server: {
 
 ### Mock 模式
 
-项目内置了完整的 Mock 数据支持，默认启用 Mock 模式。Mock 数据定义在 `src/mock/data.ts` 中。
-
 - **启用 Mock**: 设置 `VITE_USE_MOCK=true` 或不设置（默认启用）
 - **禁用 Mock**: 设置 `VITE_USE_MOCK=false`，将使用真实后端 API
 
@@ -179,6 +212,29 @@ docker run -d -p 80:80 ai-agent-platform-frontend
 ### Docker Compose
 
 如果使用 Docker Compose，确保后端服务名为 `backend`，端口为 `8080`。Nginx 配置会自动代理 `/api/` 请求到后端服务。
+
+**Dockerfile 说明**：
+- 使用多阶段构建，第一阶段使用 Node.js 构建前端应用
+- 第二阶段使用 Nginx Alpine 镜像作为生产环境
+- 构建产物复制到 Nginx 静态文件目录
+- Nginx 配置支持 SPA 路由和 API 代理
+
+## 🗺️ 路由说明
+
+应用主要路由如下：
+
+| 路径 | 名称 | 说明 |
+|------|------|------|
+| `/` | - | 重定向到 `/agents` |
+| `/home` | home | 系统测试页面 |
+| `/agents` | agent-list | 智能体列表页 |
+| `/agents/:id` | agent-editor | 智能体编辑器（创建/编辑） |
+| `/plugins` | plugin-list | 插件管理列表页 |
+| `/chat` | chat | 对话测试页面 |
+| `/knowledge-bases` | knowledge-base-list | 知识库列表页 |
+| `/knowledge-bases/:uuid` | knowledge-base-detail | 知识库详情页 |
+| `/workflows` | workflow-list | 工作流列表页 |
+| `/workflow-editor/:uuid?` | workflow-editor | 工作流编辑器（新建/编辑） |
 
 ## 📡 API 接口
 
@@ -225,6 +281,19 @@ docker run -d -p 80:80 ai-agent-platform-frontend
 - `DELETE /api/v1/llm/models/:id` - 删除 LLM 模型
 - `GET /api/v1/llm/providers` - 获取 LLM 提供商列表
 
+### 工作流 API
+
+- `GET /api/v1/workflows` - 获取工作流列表（支持分页、搜索、筛选）
+- `GET /api/v1/workflows/:uuid` - 获取工作流详情
+- `POST /api/v1/workflows` - 创建工作流
+- `PUT /api/v1/workflows/:uuid` - 更新工作流
+- `DELETE /api/v1/workflows/:uuid` - 删除工作流
+- `POST /api/v1/workflows/:uuid/validate` - 验证工作流
+- `POST /api/v1/workflows/:uuid/execute` - 执行工作流
+- `GET /api/v1/workflows/:uuid/executions` - 获取工作流的执行历史
+- `GET /api/v1/workflows/executions` - 获取所有执行历史（支持筛选）
+- `GET /api/v1/workflows/executions/:executionId` - 获取执行记录详情
+
 ### 响应格式
 
 后端统一响应格式：
@@ -237,6 +306,32 @@ docker run -d -p 80:80 ai-agent-platform-frontend
   timestamp: number    // 时间戳
 }
 ```
+
+## 🔄 工作流节点类型
+
+工作流编辑器支持以下节点类型：
+
+| 节点类型 | 标识 | 说明 | 颜色 |
+|---------|------|------|------|
+| 开始 | `start` | 工作流的起始节点，每个工作流必须有一个开始节点 | 绿色 (#67c23a) |
+| 结束 | `end` | 工作流的终止节点，每个工作流必须有一个结束节点 | 红色 (#f56c6c) |
+| LLM调用 | `llm` | 调用大语言模型进行文本生成或处理 | 蓝色 (#409eff) |
+| HTTP请求 | `http` | 发送 HTTP 请求调用外部 API | 橙色 (#e6a23c) |
+| 知识库检索 | `knowledge` | 从知识库中检索相关信息 | 灰色 (#909399) |
+| 意图识别 | `intent` | 识别用户意图，进行意图分类 | 紫色 (#9c27b0) |
+| 字符串处理 | `string` | 对字符串进行各种处理和转换 | 青色 (#00bcd4) |
+
+### 工作流编辑器功能
+
+- **拖拽添加节点**：从工具栏拖拽节点到画布
+- **连接节点**：通过拖拽连接点建立节点之间的连接关系
+- **节点配置**：双击节点打开配置对话框，设置节点参数
+- **撤销/重做**：支持操作历史记录（快捷键：Ctrl+Z / Ctrl+Y）
+- **自动布局**：一键自动排列所有节点
+- **居中显示**：快速将画布居中显示所有节点
+- **小地图**：提供画布导航小地图
+- **工作流验证**：验证工作流的完整性和正确性
+- **工作流执行**：实时执行工作流并查看执行结果和节点执行状态
 
 ## 🎨 开发规范
 
@@ -295,14 +390,32 @@ server: {
 ### v0.0.0
 
 - 初始版本
-- 实现智能体管理功能
-- 实现插件管理功能
-- 实现知识库管理功能（创建、编辑、删除知识库，上传和管理文档）
-- 实现对话测试功能
-- 支持 LLM 模型管理
+
+### v1.0.0
+
+- 实现智能体管理功能（创建、编辑、删除、查看智能体配置）
+- 实现插件管理功能（OpenAPI 规范导入和配置）
+- 实现对话测试功能（实时对话、会话历史）
+- 支持 LLM 模型管理（多模型和提供商配置）
 - 支持 Mock 数据模式
-- 支持 Docker 部署
+- 支持 Docker 部署（多阶段构建，Nginx 服务）
+
+### v2.0.0
+
+- 实现知识库管理功能（创建、编辑、删除知识库，上传和管理文档）
 - 集成 Monaco Editor 代码编辑器
+
+### v3.0.0
+
+- 实现工作流管理功能
+  - 可视化工作流编辑器（基于 Vue Flow）
+  - 支持 7 种节点类型（开始、结束、LLM、HTTP、知识库、意图、字符串）
+  - 拖拽式节点编排
+  - 工作流验证和执行
+  - 执行历史记录查看
+  - 撤销/重做功能
+  - 自动布局和居中显示
+- 集成 Vue Flow 工作流可视化组件
 
 ## 📄 许可证
 
