@@ -1,0 +1,149 @@
+/**
+ * 工作流节点组件公共样式
+ * 用于消除节点组件中重复的样式定义
+ */
+
+/* 节点基础样式 */
+.workflow-node-base {
+  position: relative;
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 10px;
+  text-align: center;
+  min-width: 140px;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* 节点悬停光效 */
+.workflow-node-base::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.6s ease;
+  opacity: 0;
+}
+
+.workflow-node-base:hover::before {
+  opacity: 1;
+  animation: nodeShine 1.5s ease-in-out;
+}
+
+@keyframes nodeShine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+/* 节点悬停效果 */
+.workflow-node-base:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 32px var(--node-hover-shadow-color, rgba(0, 0, 0, 0.45)),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 节点选中状态 */
+.workflow-node-base.selected {
+  border-color: #ffffff;
+  box-shadow: 
+    0 0 0 4px var(--node-selected-shadow-color, rgba(0, 0, 0, 0.3)),
+    0 8px 24px var(--node-selected-shadow-color-strong, rgba(0, 0, 0, 0.4)),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  animation: nodePulse 2s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 4px var(--node-pulse-shadow-color-1, rgba(0, 0, 0, 0.3)),
+      0 8px 24px var(--node-pulse-shadow-color-2, rgba(0, 0, 0, 0.4)),
+      0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  }
+  50% {
+    box-shadow: 
+      0 0 0 6px var(--node-pulse-shadow-color-3, rgba(0, 0, 0, 0.2)),
+      0 8px 24px var(--node-pulse-shadow-color-4, rgba(0, 0, 0, 0.5)),
+      0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  }
+}
+
+/* 节点图标 */
+.node-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.node-icon svg {
+  width: 16px;
+  height: 16px;
+  color: #ffffff;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+}
+
+.workflow-node-base:hover .node-icon svg {
+  transform: scale(1.1);
+}
+
+/* 节点标签 */
+.node-label {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+/* 节点配置徽章 */
+.node-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: bold;
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.4),
+    0 0 0 2px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+

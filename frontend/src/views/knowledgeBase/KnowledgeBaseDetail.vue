@@ -166,7 +166,7 @@
             </div>
 
             <!-- 检索结果 -->
-            <div v-if="searchResults.length > 0" class="search-results">
+            <div v-if="searchResults.length > 0" class="search-results-list">
               <el-divider>
                 <el-tag type="success" class="results-tag">
                   找到 {{ searchResults.length }} 个相关结果
@@ -335,6 +335,7 @@ import {
   type Document as DocumentVO,
   queryKnowledgeBase
 } from '@/api/knowledgeBase'
+import { formatDateTime, formatSize, getScopeTagType, getScopeLabel, getAccessLevelTagType, getAccessLevelLabel, getDocumentStatusType, getDocumentStatusLabel } from '@/utils/formatters'
 
 const route = useRoute()
 const router = useRouter()
@@ -552,81 +553,9 @@ const confirmDeleteDoc = (doc: DocumentVO) => {
     })
 }
 
-const getScopeTagType = (scopeType: string) => {
-  const typeMap: Record<string, string> = {
-    system: 'danger',
-    school: 'warning',
-    course: 'success',
-    agent: 'info',
-    personal: ''
-  }
-  return typeMap[scopeType] || ''
-}
-
-const getScopeLabel = (scopeType: string) => {
-  const labelMap: Record<string, string> = {
-    system: '系统',
-    school: '学校',
-    course: '课程',
-    agent: '智能体',
-    personal: '个人'
-  }
-  return labelMap[scopeType] || scopeType
-}
-
-const getAccessLevelTagType = (accessLevel: string) => {
-  const typeMap: Record<string, string> = {
-    public: 'success',
-    protected: 'warning',
-    private: 'info'
-  }
-  return typeMap[accessLevel] || ''
-}
-
-const getAccessLevelLabel = (accessLevel: string) => {
-  const labelMap: Record<string, string> = {
-    public: '公开',
-    protected: '受保护',
-    private: '私有'
-  }
-  return labelMap[accessLevel] || accessLevel
-}
-
-const getStatusType = (status: string) => {
-  const typeMap: Record<string, string> = {
-    uploading: 'info',
-    processing: 'warning',
-    processed: 'success',
-    failed: 'danger'
-  }
-  return typeMap[status] || 'info'
-}
-
-const getStatusLabel = (status: string) => {
-  const labelMap: Record<string, string> = {
-    uploading: '上传中',
-    processing: '处理中',
-    processed: '已完成',
-    failed: '失败'
-  }
-  return labelMap[status] || status
-}
-
-const formatSize = (bytes: number) => {
-  if (!bytes) return '0B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB'] as const
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  const index = Math.max(0, Math.min(i, sizes.length - 1))
-  const sizeLabel = sizes[index] || 'B'
-  return Math.round((bytes / Math.pow(k, index)) * 100) / 100 + sizeLabel
-}
-
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN')
-}
+// 使用公共工具函数
+const getStatusType = getDocumentStatusType
+const getStatusLabel = getDocumentStatusLabel
 
 const goBack = () => {
   router.back()
@@ -787,29 +716,7 @@ onUnmounted(() => {
 }
 
 /* 卡片标题 */
-.card-header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-icon {
-  font-size: 18px;
-  color: var(--el-color-primary);
-}
-
-.header-text {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--el-text-color-primary);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+/* 使用公共样式类 */
 .search-card-header {
   display: flex;
   justify-content: space-between;
@@ -818,12 +725,6 @@ onUnmounted(() => {
 
 .test-tag {
   margin-left: auto;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .upload-button {
@@ -855,20 +756,6 @@ onUnmounted(() => {
   margin-top: 20px;
 }
 
-/* 知识库信息描述 */
-.kb-descriptions {
-  margin-top: 10px;
-}
-
-.kb-name-value {
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.text-regular {
-  color: var(--el-text-color-regular);
-}
-
 /* 检索控制区域 */
 .search-controls {
   margin-top: 15px;
@@ -893,8 +780,8 @@ onUnmounted(() => {
   margin-right: 4px;
 }
 
-/* 检索结果 */
-.search-results {
+/* 检索结果列表 */
+.search-results-list {
   margin-top: 20px;
 }
 
@@ -970,16 +857,5 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
-.upload-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.pagination-container {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
 </style>
 

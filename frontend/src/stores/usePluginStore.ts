@@ -11,6 +11,7 @@ import {
   getPluginOperations,
   invokePluginOperation
 } from '@/api'
+import { withLoading as withLoadingUtil } from '@/utils/store'
 
 /**
  * 插件 Store
@@ -22,102 +23,82 @@ export const usePluginStore = defineStore('plugin', () => {
   const loading = ref(false)
   const currentPlugin = ref<Plugin | null>(null)
 
-  // 获取插件列表
-  const fetchPluginList = async () => {
-    loading.value = true
-    try {
+  // 异步操作包装器
+  const withLoading = <T>(operation: () => Promise<T>, errorMessage: string) =>
+    withLoadingUtil(loading, operation, errorMessage)
+
+  /**
+   * 获取插件列表
+   */
+  const fetchPluginList = async (): Promise<Plugin[]> => {
+    return withLoading(async () => {
       pluginList.value = await getPluginList()
       return pluginList.value
-    } catch (error) {
-      console.error('获取插件列表失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '获取插件列表失败:')
   }
 
-  // 根据ID获取插件详情
-  const fetchPluginById = async (id: string) => {
-    loading.value = true
-    try {
+  /**
+   * 根据ID获取插件详情
+   */
+  const fetchPluginById = async (id: string): Promise<Plugin> => {
+    return withLoading(async () => {
       currentPlugin.value = await getPluginById(id)
       return currentPlugin.value
-    } catch (error) {
-      console.error('获取插件详情失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '获取插件详情失败:')
   }
 
-  // 创建插件
-  const addPlugin = async (plugin: Plugin) => {
-    loading.value = true
-    try {
+  /**
+   * 创建插件
+   */
+  const addPlugin = async (plugin: Plugin): Promise<Plugin> => {
+    return withLoading(async () => {
       const created = await createPlugin(plugin)
-      // 刷新列表
       await fetchPluginList()
       return created
-    } catch (error) {
-      console.error('创建插件失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '创建插件失败:')
   }
 
-  // 更新插件
-  const editPlugin = async (id: string, plugin: Plugin) => {
-    loading.value = true
-    try {
+  /**
+   * 更新插件
+   */
+  const editPlugin = async (id: string, plugin: Plugin): Promise<Plugin> => {
+    return withLoading(async () => {
       const updated = await updatePlugin(id, plugin)
-      // 刷新列表
       await fetchPluginList()
       return updated
-    } catch (error) {
-      console.error('更新插件失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '更新插件失败:')
   }
 
-  // 删除插件
-  const removePlugin = async (id: string) => {
-    loading.value = true
-    try {
+  /**
+   * 删除插件
+   */
+  const removePlugin = async (id: string): Promise<void> => {
+    return withLoading(async () => {
       await deletePlugin(id)
-      // 刷新列表
       await fetchPluginList()
-    } catch (error) {
-      console.error('删除插件失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '删除插件失败:')
   }
 
-  // 重置当前插件
-  const resetCurrentPlugin = () => {
+  /**
+   * 重置当前插件
+   */
+  const resetCurrentPlugin = (): void => {
     currentPlugin.value = null
   }
 
-  // 更新插件状态（启用/禁用）
-  const togglePluginStatus = async (id: string, isEnabled: boolean) => {
-    loading.value = true
-    try {
+  /**
+   * 更新插件状态（启用/禁用）
+   */
+  const togglePluginStatus = async (id: string, isEnabled: boolean): Promise<void> => {
+    return withLoading(async () => {
       await updatePluginStatus(id, isEnabled)
-      // 刷新列表
       await fetchPluginList()
-    } catch (error) {
-      console.error('更新插件状态失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '更新插件状态失败:')
   }
 
-  // 获取插件操作列表
+  /**
+   * 获取插件操作列表
+   */
   const fetchPluginOperations = async (pluginId: string) => {
     try {
       return await getPluginOperations(pluginId)
@@ -127,7 +108,9 @@ export const usePluginStore = defineStore('plugin', () => {
     }
   }
 
-  // 调用插件操作
+  /**
+   * 调用插件操作
+   */
   const invokeOperation = async (
     pluginId: string,
     operationId: string,

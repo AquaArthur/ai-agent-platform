@@ -218,11 +218,12 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading, Connection } from '@element-plus/icons-vue'
 import { createSession, getMessageHistory, sendMessage } from '@/api/chat'
-import { getPluginDetail, getPluginOperations } from '@/api/plugin'
-import { getAgentDetail } from '@/api/agent'
+import { getPluginById, getPluginOperations } from '@/api/plugin'
+import { getAgentById } from '@/api/agent'
 import type { AgentConversation, Plugin } from '@/types/entity'
 import ChatMessage from '@/views/chat/components/ChatMessage.vue'
 import ChatInput from '@/views/chat/components/ChatInput.vue'
+import { formatTime } from '@/utils/formatters'
 
 interface PluginOperation {
   operationId: string
@@ -349,7 +350,7 @@ const loadBoundPlugins = async () => {
 
   try {
     // 获取智能体详情
-    const agent = await getAgentDetail(props.agentId)
+    const agent = await getAgentById(props.agentId)
     const toolsConfig = agent.toolsConfig || []
     
     if (toolsConfig.length === 0) {
@@ -361,7 +362,7 @@ const loadBoundPlugins = async () => {
     const plugins: Plugin[] = []
     for (const pluginId of toolsConfig) {
       try {
-        const plugin = await getPluginDetail(pluginId)
+        const plugin = await getPluginById(pluginId)
         if (plugin && plugin.isEnabled) {
           plugins.push(plugin)
         }
@@ -585,9 +586,6 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-.chat-card {
   flex: 1;
   display: flex;
   flex-direction: column;

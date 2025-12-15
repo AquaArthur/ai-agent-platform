@@ -1,65 +1,78 @@
-import { createRouter, createWebHistory } from 'vue-router'
-// @ts-ignore
-import MainLayout from '@/components/MainLayout.vue'
-const Home = () => import('@/views/HomeView.vue')
-const PluginList = () => import('@/views/plugin/PluginList.vue')
-const AgentList = () => import('@/views/agent/AgentList.vue')
-const AgentEditor = () => import('@/views/agent/AgentEditor.vue')
-const ChatView = () => import('@/views/chat/ChatView.vue')
-const KnowledgeBaseList = () => import('@/views/knowledgeBase/KnowledgeBaseList.vue')
-const KnowledgeBaseDetail = () => import('@/views/knowledgeBase/KnowledgeBaseDetail.vue')
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-export default createRouter({
+/**
+ * 路由配置
+ */
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: () => import('@/components/MainLayout.vue'),
+    redirect: '/agents',
+    children: [
+      {
+        path: '/home',
+        name: 'home',
+        component: () => import('@/views/HomeView.vue'),
+        meta: { title: '系统测试' }
+      },
+      {
+        path: '/plugins',
+        name: 'plugin-list',
+        component: () => import('@/views/plugin/PluginList.vue'),
+        meta: { title: '插件管理' }
+      },
+      {
+        path: '/agents',
+        name: 'agent-list',
+        component: () => import('@/views/agent/AgentList.vue'),
+        meta: { title: '智能体管理' }
+      },
+      {
+        path: '/agents/:id',
+        name: 'agent-editor',
+        component: () => import('@/views/agent/AgentEditor.vue'),
+        meta: { title: '智能体编辑器' }
+      },
+      {
+        path: '/chat',
+        name: 'chat',
+        component: () => import('@/views/chat/ChatView.vue'),
+        meta: { title: '对话测试' }
+      },
+      {
+        path: '/knowledge-bases',
+        name: 'knowledge-base-list',
+        component: () => import('@/views/knowledgeBase/KnowledgeBaseList.vue'),
+        meta: { title: '知识库管理' }
+      },
+      {
+        path: '/knowledge-bases/:uuid',
+        name: 'knowledge-base-detail',
+        component: () => import('@/views/knowledgeBase/KnowledgeBaseDetail.vue'),
+        meta: { title: '知识库详情' }
+      },
+      {
+        path: '/workflows',
+        name: 'workflow-list',
+        component: () => import('@/views/workflow/WorkflowList.vue'),
+        meta: { title: '工作流管理' }
+      },
+      {
+        path: '/workflow-editor/:uuid?',
+        name: 'workflow-editor',
+        component: () => import('@/views/workflow/WorkflowEditor.vue'),
+        meta: { title: '工作流编辑器' }
+      }
+    ]
+  }
+]
+
+/**
+ * Vue Router 实例
+ */
+const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    {
-      path: '/',
-      component: MainLayout,
-      redirect: '/agents',
-      children: [
-        {
-          path: '/',
-          name: 'home',
-          component: Home,
-          meta: { title: '系统测试' }
-        },
-        {
-          path: '/plugins',
-          name: 'plugin-list',
-          component: PluginList,
-          meta: { title: '插件管理' }
-        },
-        {
-          path: '/agents',
-          name: 'agent-list',
-          component: AgentList,
-          meta: { title: '智能体管理' }
-        },
-        {
-          path: '/agents/:id',
-          name: 'agent-editor',
-          component: AgentEditor,
-          meta: { title: '智能体编辑器' }
-        },
-        {
-          path: '/chat',
-          name: 'chat',
-          component: ChatView,
-          meta: { title: '对话测试' }
-        },
-        {
-          path: '/knowledge-bases',
-          name: 'knowledge-base-list',
-          component: KnowledgeBaseList,
-          meta: { title: '知识库管理' }
-        },
-        {
-          path: '/knowledge-bases/:uuid',
-          name: 'knowledge-base-detail',
-          component: KnowledgeBaseDetail,
-          meta: { title: '知识库详情' }
-        },
-      ]
-    },
-  ],
+  routes
 })
+
+export default router

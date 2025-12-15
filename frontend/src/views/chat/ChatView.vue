@@ -126,44 +126,20 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 使用公共布局样式 */
 .chat-view-container {
   padding: 20px;
   height: calc(100vh - 40px);
   overflow: hidden;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: calc(100vh - 40px);
 }
 
 .chat-layout {
   height: 100%;
 }
 
-.chat-layout :deep(.el-col) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-layout :deep(.el-card) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-.chat-layout :deep(.el-card__body) {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+/* 使用公共样式类 */
 
 .card-title {
   font-size: 16px;

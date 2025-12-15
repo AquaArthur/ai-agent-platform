@@ -58,8 +58,8 @@
             <div class="plugin-info">
               <h3 class="plugin-name">{{ plugin.name }}</h3>
               <div class="plugin-badges">
-                <el-tag :type="plugin.isEnabled || plugin.status === 'enabled' ? 'success' : 'info'" size="small">
-                  {{ plugin.isEnabled || plugin.status === 'enabled' ? '已启用' : '已禁用' }}
+                <el-tag :type="isPluginEnabled(plugin) ? 'success' : 'info'" size="small">
+                  {{ isPluginEnabled(plugin) ? '已启用' : '已禁用' }}
                 </el-tag>
                 <el-tag v-if="!plugin.userId" type="warning" size="small">系统插件</el-tag>
               </div>
@@ -88,12 +88,12 @@
         
         <div class="card-footer">
           <el-button 
-            :type="plugin.isEnabled || plugin.status === 'enabled' ? 'warning' : 'success'" 
+            :type="isPluginEnabled(plugin) ? 'warning' : 'success'" 
             size="small" 
             @click="handleToggleStatus(plugin)"
           >
             <el-icon><Switch /></el-icon>
-            {{ plugin.isEnabled || plugin.status === 'enabled' ? '禁用' : '启用' }}
+            {{ isPluginEnabled(plugin) ? '禁用' : '启用' }}
           </el-button>
           <el-button type="info" size="small" @click="handleTest(plugin)">
             <el-icon><VideoPlay /></el-icon>
@@ -145,8 +145,8 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="插件名称">{{ testPlugin.name }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="testPlugin.isEnabled || testPlugin.status === 'enabled' ? 'success' : 'info'">
-              {{ testPlugin.isEnabled || testPlugin.status === 'enabled' ? '已启用' : '已禁用' }}
+            <el-tag :type="isPluginEnabled(testPlugin) ? 'success' : 'info'">
+              {{ isPluginEnabled(testPlugin) ? '已启用' : '已禁用' }}
             </el-tag>
           </el-descriptions-item>
         </el-descriptions>
@@ -218,6 +218,7 @@ import { Plus, Search, Edit, Delete, Connection, Document, Link, Clock, Switch, 
 import { usePluginStore } from '@/stores/usePluginStore'
 import type { Plugin } from '@/types/entity'
 import PluginDialog from './PluginDialog.vue'
+import { formatDateTime } from '@/utils/formatters'
 
 const pluginStore = usePluginStore()
 
@@ -265,9 +266,9 @@ const filteredPluginList = computed(() => {
   if (filterStatus.value) {
     list = list.filter((plugin) => {
       if (filterStatus.value === 'enabled') {
-        return plugin.isEnabled || plugin.status === 'enabled'
+        return isPluginEnabled(plugin)
       } else {
-        return !plugin.isEnabled && plugin.status !== 'enabled'
+        return !isPluginEnabled(plugin)
       }
     })
   }
@@ -285,17 +286,9 @@ const paginatedPluginList = computed(() => {
   return filteredPluginList.value.slice(start, end)
 })
 
-// 格式化日期时间
-const formatDateTime = (dateTime?: string) => {
-  if (!dateTime) return '-'
-  const date = new Date(dateTime)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+// 辅助函数：判断插件是否启用
+const isPluginEnabled = (plugin: Plugin): boolean => {
+  return plugin.isEnabled || plugin.status === 'enabled'
 }
 
 // 搜索处理
@@ -362,7 +355,7 @@ const handleDialogSuccess = () => {
 
 // 切换插件状态
 const handleToggleStatus = async (plugin: Plugin) => {
-  const newStatus = !(plugin.isEnabled || plugin.status === 'enabled')
+  const newStatus = !isPluginEnabled(plugin)
   try {
     await pluginStore.togglePluginStatus(plugin.id!, newStatus)
     ElMessage.success(newStatus ? '插件已启用' : '插件已禁用')
@@ -454,25 +447,7 @@ onMounted(async () => {
   padding: 20px;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.filter-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+/* 使用公共样式类 */
 
 /* 卡片网格布局 */
 .plugins-grid {
@@ -496,8 +471,8 @@ onMounted(async () => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* 卡片头部 */
-.card-header {
+/* 卡片头部 - 使用公共样式 */
+.plugin-card .card-header {
   padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -541,8 +516,8 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-/* 卡片主体 */
-.card-body {
+/* 卡片主体 - 使用公共样式 */
+.plugin-card .card-body {
   padding: 20px;
   background: #ffffff;
 }
@@ -580,8 +555,8 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-/* 卡片底部 */
-.card-footer {
+/* 卡片底部 - 使用公共样式 */
+.plugin-card .card-footer {
   padding: 12px 20px;
   background: #f5f7fa;
   display: flex;
@@ -589,7 +564,7 @@ onMounted(async () => {
   border-top: 1px solid var(--border-light);
 }
 
-.card-footer .el-button {
+.plugin-card .card-footer .el-button {
   flex: 1;
   padding: 8px 4px;
   font-size: 12px;
@@ -630,30 +605,5 @@ onMounted(async () => {
   font-size: 13px;
   overflow-x: auto;
   max-height: 200px;
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .plugins-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .plugins-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .filter-section {
-    padding: 12px;
-  }
-  
-  .filter-section .el-row .el-col {
-    margin-bottom: 12px;
-  }
-  
-  .filter-section .el-col[style*="text-align: right"] {
-    text-align: left !important;
-  }
 }
 </style>

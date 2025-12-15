@@ -123,6 +123,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Edit, Delete, ChatDotRound, ChatDotSquare, Connection, Clock } from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/useAgentStore'
 import type { Agent } from '@/types/entity'
+import { formatDateTime } from '@/utils/formatters'
 
 const router = useRouter()
 const agentStore = useAgentStore()
@@ -172,18 +173,7 @@ const paginatedAgentList = computed(() => {
   return filteredAgentList.value.slice(start, end)
 })
 
-// 格式化日期时间
-const formatDateTime = (dateTime?: string) => {
-  if (!dateTime) return '-'
-  const date = new Date(dateTime)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+// 使用公共工具函数格式化日期时间
 
 // 搜索处理
 const handleSearch = () => {
@@ -256,28 +246,12 @@ onMounted(async () => {
 
 <style scoped>
 .agent-list-container {
-  padding: 20px;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background: #f8fafc;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.filter-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+/* 使用公共样式类 */
 
 /* 卡片网格布局 */
 .agents-grid {
@@ -301,8 +275,8 @@ onMounted(async () => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* 卡片头部 */
-.card-header {
+/* 卡片头部 - 使用公共样式 */
+.agent-card .card-header {
   padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -346,8 +320,8 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-/* 卡片主体 */
-.card-body {
+/* 卡片主体 - 使用公共样式 */
+.agent-card .card-body {
   padding: 20px;
   background: #ffffff;
 }
@@ -384,41 +358,12 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-/* 卡片底部 */
-.card-footer {
+/* 卡片底部 - 使用公共样式 */
+.agent-card .card-footer {
   padding: 12px 20px;
   background: #f5f7fa;
   display: flex;
   gap: 8px;
   border-top: 1px solid var(--border-light);
-}
-
-.card-footer .el-button {
-  flex: 1;
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .agents-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .agents-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .filter-section {
-    padding: 12px;
-  }
-  
-  .filter-section .el-row .el-col {
-    margin-bottom: 12px;
-  }
-  
-  .filter-section .el-col[style*="text-align: right"] {
-    text-align: left !important;
-  }
 }
 </style>
