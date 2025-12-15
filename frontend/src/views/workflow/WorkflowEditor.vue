@@ -258,9 +258,9 @@ const nodeTypesConfig = [
   { type: 'end', label: '结束', color: '#f56c6c' }
 ];
 
-// 可拖拽的节点类型（排除开始和结束节点）
+// 可拖拽的节点类型（包含所有节点类型）
 const draggableNodeTypes = computed(() => {
-  return nodeTypesConfig.filter(t => t.type !== 'start' && t.type !== 'end');
+  return nodeTypesConfig;
 });
 
 // 节点颜色配置（与参考代码一致，使用纯色作为背景，保持对象格式用于节点组件）
