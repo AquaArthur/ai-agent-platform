@@ -289,7 +289,6 @@ const {
   getEdges,
   setNodes,
   setEdges,
-  vueFlowRef,
   dimensions,
   fitView
 } = useVueFlow();
@@ -905,7 +904,6 @@ const autoLayout = (showMessage = true) => {
     return;
   }
 
-  const nodeMap = new Map(nodes.value.map(n => [n.id, n]));
   const edgeMap = new Map<string, string[]>(); // source -> targets
   const reverseEdgeMap = new Map<string, string[]>(); // target -> sources
 
