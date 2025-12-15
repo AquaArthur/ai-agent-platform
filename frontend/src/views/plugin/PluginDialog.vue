@@ -443,9 +443,5 @@ const handleClose = () => {
   line-height: 1.5;
 }
 
-.form-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-}
+/* 使用公共样式类 */
 </style>

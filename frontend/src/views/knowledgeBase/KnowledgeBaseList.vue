@@ -87,7 +87,7 @@
             </div>
             <div class="stat-item">
               <el-icon><Clock /></el-icon>
-              <span>{{ formatTime(kb.createTime) }}</span>
+              <span>{{ formatDate(kb.createTime) }}</span>
             </div>
           </div>
         </div>
@@ -200,7 +200,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Collection, Document, School, Grid, User, Clock, View, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Document, School, Grid, User, Clock, View, Edit, Delete } from '@element-plus/icons-vue'
 import {
   getKnowledgeBaseList,
   createKnowledgeBase,
@@ -210,6 +210,7 @@ import {
   type KnowledgeBaseCreateDTO,
   type KnowledgeBasePatchDTO
 } from '@/api/knowledgeBase'
+import { formatDate, getScopeTagType, getScopeLabel, getAccessLevelTagType, getAccessLevelLabel } from '@/utils/formatters'
 
 const router = useRouter()
 
@@ -370,65 +371,7 @@ const resetForm = () => {
   formRef.value?.clearValidate()
 }
 
-const getScopeTagType = (scopeType: string) => {
-  const typeMap: Record<string, string> = {
-    system: 'danger',
-    school: 'warning',
-    course: 'success',
-    agent: 'info',
-    personal: ''
-  }
-  return typeMap[scopeType] || ''
-}
-
-const getScopeLabel = (scopeType: string) => {
-  const labelMap: Record<string, string> = {
-    system: '系统',
-    school: '学校',
-    course: '课程',
-    agent: '智能体',
-    personal: '个人'
-  }
-  return labelMap[scopeType] || scopeType
-}
-
-const getAccessLevelTagType = (accessLevel: string) => {
-  const typeMap: Record<string, string> = {
-    public: 'success',
-    protected: 'warning',
-    private: 'info'
-  }
-  return typeMap[accessLevel] || ''
-}
-
-const getAccessLevelLabel = (accessLevel: string) => {
-  const labelMap: Record<string, string> = {
-    public: '公开',
-    protected: '受保护',
-    private: '私有'
-  }
-  return labelMap[accessLevel] || accessLevel
-}
-
-const formatSize = (bytes: number) => {
-  if (!bytes) return '0B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + sizes[i]
-}
-
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN')
-}
-
-const formatTime = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN')
-}
+// 使用公共工具函数
 
 const getScopeIcon = (scopeType: string) => {
   const iconMap: Record<string, any> = {
@@ -448,28 +391,12 @@ onMounted(() => {
 
 <style scoped>
 .knowledge-base-management {
-  padding: 20px;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background: #f8fafc;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.filter-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+/* 使用公共样式类 */
 
 /* 卡片网格布局 */
 .kb-grid {
@@ -493,8 +420,8 @@ onMounted(() => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* 卡片头部 */
-.card-header {
+/* 卡片头部 - 使用公共样式 */
+.kb-card .card-header {
   padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -538,8 +465,8 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-/* 卡片主体 */
-.card-body {
+/* 卡片主体 - 使用公共样式 */
+.kb-card .card-body {
   padding: 20px;
   background: #ffffff;
 }
@@ -577,8 +504,8 @@ onMounted(() => {
   font-size: 16px;
 }
 
-/* 卡片底部 */
-.card-footer {
+/* 卡片底部 - 使用公共样式 */
+.kb-card .card-footer {
   padding: 12px 20px;
   background: #f5f7fa;
   display: flex;
@@ -586,27 +513,12 @@ onMounted(() => {
   border-top: 1px solid var(--border-light);
 }
 
-.card-footer .el-button {
-  flex: 1;
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .kb-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .kb-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
+/* 知识库卡片网格 */
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
 }
 </style>
 

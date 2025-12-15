@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const BASE_API = import.meta.env.VITE_BASE_API || '/api'
 
-// 是否启用 Mock（默认 true，可通过环境变量控制）
+// 是否启用 Mock（仅用于 getHello 前后端连通性测试，默认 true，可通过环境变量控制）
 const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
 
 const http = axios.create({

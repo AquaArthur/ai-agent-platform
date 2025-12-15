@@ -99,7 +99,7 @@ export interface RagQueryResult {
  * 创建知识库
  */
 export const createKnowledgeBase = async (data: KnowledgeBaseCreateDTO): Promise<KnowledgeBase> => {
-  return http.post('/v1/knowledge-bases', data)
+  return http.post<KnowledgeBase>('/v1/knowledge-bases', data)
 }
 
 /**
@@ -112,14 +112,14 @@ export const getKnowledgeBaseList = async (params?: {
   scopeType?: string
   accessLevel?: string
 }): Promise<PageResult<KnowledgeBase>> => {
-  return http.get('/v1/knowledge-bases', { params })
+  return http.get<PageResult<KnowledgeBase>>('/v1/knowledge-bases', { params })
 }
 
 /**
  * 获取知识库详情
  */
 export const getKnowledgeBase = async (uuid: string): Promise<KnowledgeBase> => {
-  return http.get(`/v1/knowledge-bases/${uuid}`)
+  return http.get<KnowledgeBase>(`/v1/knowledge-bases/${uuid}`)
 }
 
 /**
@@ -129,14 +129,14 @@ export const updateKnowledgeBase = async (
   uuid: string,
   data: KnowledgeBasePatchDTO
 ): Promise<KnowledgeBase> => {
-  return http.patch(`/v1/knowledge-bases/${uuid}`, data)
+  return http.patch<KnowledgeBase>(`/v1/knowledge-bases/${uuid}`, data)
 }
 
 /**
  * 删除知识库
  */
 export const deleteKnowledgeBase = async (uuid: string): Promise<void> => {
-  return http.delete(`/v1/knowledge-bases/${uuid}`)
+  return http.delete<void>(`/v1/knowledge-bases/${uuid}`)
 }
 
 /**
@@ -150,7 +150,7 @@ export const getDocumentList = async (
     status?: string
   }
 ): Promise<PageResult<Document>> => {
-  return http.get(`/v1/knowledge-bases/${kbUuid}/documents`, { params })
+  return http.get<PageResult<Document>>(`/v1/knowledge-bases/${kbUuid}/documents`, { params })
 }
 
 /**
@@ -164,7 +164,7 @@ export const uploadDocument = async (
   const formData = new FormData()
   formData.append('file', file)
 
-  return http.post(`/v1/knowledge-bases/${kbUuid}/documents`, formData, {
+  return http.post<Document>(`/v1/knowledge-bases/${kbUuid}/documents`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     },
@@ -176,14 +176,14 @@ export const uploadDocument = async (
  * 获取文档详情
  */
 export const getDocument = async (uuid: string): Promise<Document> => {
-  return http.get(`/v1/documents/${uuid}`)
+  return http.get<Document>(`/v1/documents/${uuid}`)
 }
 
 /**
  * 删除文档
  */
 export const deleteDocument = async (uuid: string): Promise<void> => {
-  return http.delete(`/v1/documents/${uuid}`)
+  return http.delete<void>(`/v1/documents/${uuid}`)
 }
 
 /**
@@ -191,14 +191,15 @@ export const deleteDocument = async (uuid: string): Promise<void> => {
  */
 export const queryKnowledgeBase = async (
   kbUuid: string,
-  kb_id: string,
+  kbId: string,
   query: string,
-  top_k: number = 5,
-  similarity_threshold: number = 0.5): Promise<RagQueryResult> => {
-  return http.post(`/v1/knowledge-bases/${kbUuid}/query`, {
-    knowledge_base_id: kb_id,
-    query: query,
-    top_k: top_k,
-    similarity_threshold: similarity_threshold
+  topK: number = 5,
+  similarityThreshold: number = 0.5
+): Promise<RagQueryResult> => {
+  return http.post<RagQueryResult>(`/v1/knowledge-bases/${kbUuid}/query`, {
+    knowledge_base_id: kbId,
+    query,
+    top_k: topK,
+    similarity_threshold: similarityThreshold
   })
 }

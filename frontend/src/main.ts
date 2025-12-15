@@ -7,6 +7,10 @@ import router from './router'
 import './styles/tailwind.css'
 // 引入全局样式
 import './styles/index.css'
+// 引入公共样式
+import './styles/common.css'
+// 引入节点组件公共样式
+import './styles/node-common.css'
 
 /* 新增：引入 Element Plus 组件库（JS 逻辑） */
 import ElementPlus from 'element-plus'

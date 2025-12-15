@@ -10,17 +10,17 @@
       
       <!-- 侧边栏 -->
       <el-aside 
-        :width="sidebarCollapsed ? '64px' : '240px'" 
+        :width="sidebarCollapsed ? '80px' : '280px'" 
         :class="['new-sidebar', { 
           'collapsed': sidebarCollapsed,
           'mobile-open': isMobileMenuOpen 
         }]"
       >
-        <!-- Logo区域 -->
+        <!-- 新的Logo区域 -->
         <div class="new-logo-section">
           <div class="logo-container">
             <div class="logo-icon">
-              <el-icon size="28"><ChatDotRound /></el-icon>
+              <el-icon size="28"><Monitor /></el-icon>
             </div>
             <div class="logo-text" v-if="!sidebarCollapsed">
               <h2>AI Agent</h2>
@@ -32,87 +32,28 @@
 
         <!-- 导航菜单 -->
         <div class="new-navigation">
-          <!-- AI 智能体管理区域 -->
-          <div class="nav-section">
-            <div class="section-label" v-if="!sidebarCollapsed">AI 智能体</div>
+          <div 
+            v-for="section in navigationSections" 
+            :key="section.label"
+            class="nav-section"
+          >
+            <div class="section-label" v-if="!sidebarCollapsed">{{ section.label }}</div>
             <div class="nav-items">
               <div 
+                v-for="item in section.items"
+                :key="item.route"
                 class="nav-item"
-                :class="{ active: $route.path === '/agents' || $route.path.startsWith('/agents/') }"
-                @click="handleNavItemClick('/agents', $event)"
+                :class="{ active: isNavItemActive(item) }"
+                @click="handleNavItemClick(item, $event)"
               >
                 <div class="item-icon">
-                  <el-icon size="20"><ChatDotRound /></el-icon>
+                  <el-icon size="20">
+                    <component :is="item.icon" />
+                  </el-icon>
                 </div>
                 <div class="item-content" v-if="!sidebarCollapsed">
-                  <span class="item-title">智能体管理</span>
-                  <span class="item-desc">创建和管理AI智能体</span>
-                </div>
-                <div class="item-indicator"></div>
-              </div>
-
-              <div 
-                class="nav-item"
-                :class="{ active: $route.path === '/plugins' }"
-                @click="handleNavItemClick('/plugins', $event)"
-              >
-                <div class="item-icon">
-                  <el-icon size="20"><Connection /></el-icon>
-                </div>
-                <div class="item-content" v-if="!sidebarCollapsed">
-                  <span class="item-title">插件管理</span>
-                  <span class="item-desc">管理OpenAPI插件</span>
-                </div>
-                <div class="item-indicator"></div>
-              </div>
-
-              <div 
-                class="nav-item"
-                :class="{ active: $route.path === '/knowledge-bases' || $route.path.startsWith('/knowledge-bases/') }"
-                @click="handleNavItemClick('/knowledge-bases', $event)"
-              >
-                <div class="item-icon">
-                  <el-icon size="20"><Document /></el-icon>
-                </div>
-                <div class="item-content" v-if="!sidebarCollapsed">
-                  <span class="item-title">知识库管理</span>
-                  <span class="item-desc">管理知识库和文档</span>
-                </div>
-                <div class="item-indicator"></div>
-              </div>
-
-              <div 
-                class="nav-item"
-                :class="{ active: $route.path === '/chat' }"
-                @click="handleNavItemClick('/chat', $event)"
-              >
-                <div class="item-icon">
-                  <el-icon size="20"><ChatDotSquare /></el-icon>
-                </div>
-                <div class="item-content" v-if="!sidebarCollapsed">
-                  <span class="item-title">对话测试</span>
-                  <span class="item-desc">测试智能体对话</span>
-                </div>
-                <div class="item-indicator"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 系统区域 -->
-          <div class="nav-section">
-            <div class="section-label" v-if="!sidebarCollapsed">系统</div>
-            <div class="nav-items">
-              <div 
-                class="nav-item"
-                :class="{ active: $route.path === '/' || $route.path === '/home' }"
-                @click="handleNavItemClick('/', $event)"
-              >
-                <div class="item-icon">
-                  <el-icon size="20"><HomeFilled /></el-icon>
-                </div>
-                <div class="item-content" v-if="!sidebarCollapsed">
-                  <span class="item-title">系统测试</span>
-                  <span class="item-desc">前后端连通性测试</span>
+                  <span class="item-title">{{ item.title }}</span>
+                  <span class="item-desc">{{ item.desc }}</span>
                 </div>
                 <div class="item-indicator"></div>
               </div>
@@ -126,6 +67,20 @@
         <!-- 顶部导航 -->
         <el-header class="header">
           <div class="header-left">
+            <div class="page-title">
+              <el-icon size="24" :color="pageIcon.color">
+                <component :is="pageIcon.icon" />
+              </el-icon>
+              <h2>{{ pageTitle }}</h2>
+            </div>
+            <div class="breadcrumb" v-if="!isMobile">
+              <span v-for="(item, index) in breadcrumbs" :key="index">
+                {{ item }}
+                <el-icon v-if="index < breadcrumbs.length - 1"><ArrowRight /></el-icon>
+              </span>
+            </div>
+          </div>
+          <div class="header-right">
             <!-- 移动端菜单按钮 -->
             <button 
               class="mobile-menu-btn"
@@ -144,24 +99,9 @@
               v-if="!isMobile"
             >
               <el-icon size="20">
-                <component :is="sidebarCollapsed ? 'Expand' : 'Fold'" />
+                <component :is="sidebarCollapsed ? Expand : Fold" />
               </el-icon>
             </el-button>
-            <div class="page-title">
-              <el-icon size="24" :color="pageIcon.color">
-                <component :is="pageIcon.icon" />
-              </el-icon>
-              <h2>{{ pageTitle }}</h2>
-            </div>
-            <div class="breadcrumb" v-if="!isMobile">
-              <span v-for="(item, index) in breadcrumbs" :key="index">
-                {{ item }}
-                <el-icon v-if="index < breadcrumbs.length - 1"><ArrowRight /></el-icon>
-              </span>
-            </div>
-          </div>
-          <div class="header-right">
-            <!-- 可以添加用户信息等 -->
           </div>
         </el-header>
         
@@ -176,16 +116,50 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  House, ArrowRight, Fold, Expand, Menu,
-  ChatDotRound, Connection, ChatDotSquare, HomeFilled, Document
+  ArrowRight,
+  Fold,
+  Expand,
+  Menu,
+  ChatDotRound,
+  Connection,
+  ChatDotSquare,
+  HomeFilled,
+  Document,
+  Share,
+  Monitor
 } from '@element-plus/icons-vue'
+import type { Component } from 'vue'
+
+interface NavigationItem {
+  route: string
+  title: string
+  desc: string
+  icon: Component
+  matchPaths: string[]
+}
+
+interface NavigationSection {
+  label: string
+  items: NavigationItem[]
+}
+
+interface PageConfig {
+  title: string
+  icon: string
+  color: string
+}
 
 const route = useRoute()
 const router = useRouter()
+
+// 常量定义
+const MOBILE_BREAKPOINT = 768
+const RIPPLE_DURATION = 600
+const CLICK_ANIMATION_DURATION = 150
 
 // 响应式数据
 const sidebarCollapsed = ref(false)
@@ -193,96 +167,282 @@ const isMobileMenuOpen = ref(false)
 const windowWidth = ref(window.innerWidth)
 
 // 计算属性
-const isMobile = computed(() => windowWidth.value <= 768)
+const isMobile = computed(() => windowWidth.value <= MOBILE_BREAKPOINT)
+
+// 导航配置
+const navigationSections: NavigationSection[] = [
+  {
+    label: 'AI 智能体',
+    items: [
+      {
+        route: '/agents',
+        title: '智能体管理',
+        desc: '创建和管理AI智能体',
+        icon: ChatDotRound,
+        matchPaths: ['/agents']
+      },
+      {
+        route: '/knowledge-bases',
+        title: '知识库管理',
+        desc: '管理知识库和文档',
+        icon: Document,
+        matchPaths: ['/knowledge-bases']
+      },
+      {
+        route: '/plugins',
+        title: '插件管理',
+        desc: '创建和编辑插件',
+        icon: Connection,
+        matchPaths: ['/plugins']
+      },
+      {
+        route: '/workflows',
+        title: '工作流管理',
+        desc: '可视化工作流编排',
+        icon: Share,
+        matchPaths: ['/workflows', '/workflow-editor']
+      },
+      {
+        route: '/chat',
+        title: '对话测试',
+        desc: '测试智能体对话',
+        icon: ChatDotSquare,
+        matchPaths: ['/chat']
+      }
+    ]
+  },
+  {
+    label: '系统',
+    items: [
+      {
+        route: '/home',
+        title: '系统测试',
+        desc: '前后端连通性测试',
+        icon: HomeFilled,
+        matchPaths: ['/home', '/']
+      }
+    ]
+  }
+]
 
 // 页面标题和图标映射
-const pageConfig = {
+const pageConfig: Record<string, PageConfig> = {
   '/': { title: '系统测试', icon: 'HomeFilled', color: '#409EFF' },
   '/home': { title: '系统测试', icon: 'HomeFilled', color: '#409EFF' },
   '/agents': { title: '智能体管理', icon: 'ChatDotRound', color: '#409EFF' },
   '/plugins': { title: '插件管理', icon: 'Connection', color: '#409EFF' },
   '/knowledge-bases': { title: '知识库管理', icon: 'Document', color: '#E6A23C' },
-  '/chat': { title: '对话测试', icon: 'ChatDotSquare', color: '#67C23A' },
+  '/workflows': { title: '工作流管理', icon: 'Share', color: '#409EFF' },
+  '/workflow-editor': { title: '工作流编辑器', icon: 'Share', color: '#409EFF' },
+  '/chat': { title: '对话测试', icon: 'ChatDotSquare', color: '#67C23A' }
+}
+
+// 判断导航项是否激活
+const isNavItemActive = (item: NavigationItem): boolean => {
+  const currentPath = route.path
+  return item.matchPaths.some((path) => {
+    if (path === '/') {
+      return currentPath === '/'
+    }
+    return currentPath === path || currentPath.startsWith(`${path}/`)
+  })
+}
+
+// 根据路径获取页面配置
+const getPageConfigByPath = (path: string): PageConfig => {
+  for (const [key, config] of Object.entries(pageConfig)) {
+    if (key === '/' && path === '/') {
+      return config
+    }
+    if (key !== '/' && path.startsWith(key)) {
+      return config
+    }
+  }
+  return { title: '未知页面', icon: 'Monitor', color: '#409EFF' }
 }
 
 // 计算页面标题
 const pageTitle = computed(() => {
-  const path = route.path
-  for (const [key, config] of Object.entries(pageConfig)) {
-    if (key === '/' && path === '/') {
-      return config.title
-    }
-    if (key !== '/' && path.startsWith(key)) {
-      return config.title
-    }
-  }
-  return '未知页面'
+  return getPageConfigByPath(route.path).title
 })
 
 // 计算页面图标
 const pageIcon = computed(() => {
-  const path = route.path
-  for (const [key, config] of Object.entries(pageConfig)) {
-    if (key === '/' && path === '/') {
-      return { icon: config.icon, color: config.color }
-    }
-    if (key !== '/' && path.startsWith(key)) {
-      return { icon: config.icon, color: config.color }
-    }
-  }
-  return { icon: 'House', color: '#409EFF' }
+  const config = getPageConfigByPath(route.path)
+  return { icon: config.icon, color: config.color }
 })
 
 // 计算面包屑
 const breadcrumbs = computed(() => {
   const path = route.path
-  const crumbs = ['首页']
-  
-  if (path === '/' || path === '/home') {
-    crumbs.push('系统测试')
-  } else if (path.startsWith('/agents')) {
-    crumbs.push('智能体管理')
-    if (path.includes('/agents/')) {
-      crumbs.push('编辑')
-    }
-  } else if (path.startsWith('/plugins')) {
-    crumbs.push('插件管理')
-  } else if (path.startsWith('/chat')) {
-    crumbs.push('对话测试')
-  } else if (path.startsWith('/knowledge-bases')) {
-    crumbs.push('知识库管理')
-    if (path.includes('/knowledge-bases/') && path !== '/knowledge-bases') {
-      crumbs.push('详情')
+  const crumbs: string[] = ['首页']
+
+  if (path === '/home') {
+    crumbs.push(getPageConfigByPath('/home').title)
+    return crumbs
+  }
+
+  const pathSegments = path.split('/').filter((segment) => segment !== '')
+  let currentPath = ''
+
+  for (let i = 0; i < pathSegments.length; i++) {
+    const segment = pathSegments[i]
+    currentPath += `/${segment}`
+
+    const config = pageConfig[currentPath]
+    if (config) {
+      crumbs.push(config.title)
+    } else if (currentPath.startsWith('/agents/') && i === 1) {
+      const agentsConfig = pageConfig['/agents']
+      if (agentsConfig) {
+        crumbs.push(agentsConfig.title)
+        crumbs.push('编辑')
+      }
+    } else if (currentPath.startsWith('/knowledge-bases/') && i === 1) {
+      const kbConfig = pageConfig['/knowledge-bases']
+      if (kbConfig) {
+        crumbs.push(kbConfig.title)
+        crumbs.push('详情')
+      }
     }
   }
-  
   return crumbs
 })
 
+// 动画延迟常量
+const ANIMATION_DELAY = {
+  SIDEBAR: 150,
+  MOBILE_MENU_ITEM: 50,
+  INIT_NAV_ITEM: 100,
+  INIT_LOGO: 200
+} as const
+
+// 侧边栏动画
+const animateSidebarToggle = (): void => {
+  nextTick(() => {
+    const sidebar = document.querySelector<HTMLElement>('.new-sidebar')
+    if (sidebar) {
+      sidebar.style.transform = 'scale(0.98)'
+      setTimeout(() => {
+        sidebar.style.transform = 'scale(1)'
+      }, ANIMATION_DELAY.SIDEBAR)
+    }
+  })
+}
+
+// 移动端菜单动画
+const animateMobileMenu = (): void => {
+  nextTick(() => {
+    const navItems = document.querySelectorAll<HTMLElement>('.nav-item')
+    navItems.forEach((item, index) => {
+      item.style.opacity = '0'
+      item.style.transform = 'translateX(-20px)'
+      setTimeout(() => {
+        item.style.transition = 'all 0.3s ease'
+        item.style.opacity = '1'
+        item.style.transform = 'translateX(0)'
+      }, index * ANIMATION_DELAY.MOBILE_MENU_ITEM)
+    })
+  })
+}
+
+// 初始化动画
+const initAnimations = (): void => {
+  nextTick(() => {
+    const navItems = document.querySelectorAll<HTMLElement>('.nav-item')
+    navItems.forEach((item, index) => {
+      item.style.opacity = '0'
+      item.style.transform = 'translateY(20px)'
+      setTimeout(() => {
+        item.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        item.style.opacity = '1'
+        item.style.transform = 'translateY(0)'
+      }, index * ANIMATION_DELAY.INIT_NAV_ITEM)
+    })
+
+    const logo = document.querySelector<HTMLElement>('.logo-container')
+    if (logo) {
+      logo.style.opacity = '0'
+      logo.style.transform = 'scale(0.8)'
+      setTimeout(() => {
+        logo.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+        logo.style.opacity = '1'
+        logo.style.transform = 'scale(1)'
+      }, ANIMATION_DELAY.INIT_LOGO)
+    }
+  })
+}
+
+// 导航项点击涟漪效果
+const createRippleEffect = (element: HTMLElement, event: MouseEvent): void => {
+  const ripple = document.createElement('div')
+  const rect = element.getBoundingClientRect()
+  const size = Math.max(rect.width, rect.height)
+  const x = event.clientX - rect.left - size / 2
+  const y = event.clientY - rect.top - size / 2
+
+  ripple.style.cssText = `
+    position: absolute;
+    width: ${size}px;
+    height: ${size}px;
+    left: ${x}px;
+    top: ${y}px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s ease-out;
+    pointer-events: none;
+    z-index: 1;
+  `
+
+  element.style.position = 'relative'
+  element.appendChild(ripple)
+
+  setTimeout(() => {
+    ripple.remove()
+  }, RIPPLE_DURATION)
+}
+
+
 // 切换侧边栏
-const toggleSidebar = () => {
+const toggleSidebar = (): void => {
   sidebarCollapsed.value = !sidebarCollapsed.value
+  animateSidebarToggle()
 }
 
 // 移动端菜单控制
-const toggleMobileMenu = () => {
+const toggleMobileMenu = (): void => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
+  if (isMobileMenuOpen.value) {
+    animateMobileMenu()
+  }
 }
 
-const closeMobileMenu = () => {
+const closeMobileMenu = (): void => {
   isMobileMenuOpen.value = false
 }
 
 // 处理导航项点击
-const handleNavItemClick = (routePath, event) => {
-  router.push(routePath)
+const handleNavItemClick = (item: NavigationItem, event: MouseEvent): void => {
+  const element = event.currentTarget as HTMLElement
+
+  createRippleEffect(element, event)
+
+  element.style.transform = 'scale(0.95)'
+  setTimeout(() => {
+    element.style.transform = 'scale(1)'
+  }, CLICK_ANIMATION_DURATION)
+
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  router.push(item.route)
+
   if (isMobile.value) {
     closeMobileMenu()
   }
 }
 
 // 窗口大小监听
-const handleResize = () => {
+const handleResize = (): void => {
   windowWidth.value = window.innerWidth
   if (isMobile.value) {
     sidebarCollapsed.value = true
@@ -291,25 +451,33 @@ const handleResize = () => {
 }
 
 // 监听移动端状态变化
-watch(isMobile, (newVal) => {
-  if (newVal) {
-    sidebarCollapsed.value = true
-  } else {
-    isMobileMenuOpen.value = false
+watch(
+  isMobile,
+  (newVal) => {
+    if (newVal) {
+      sidebarCollapsed.value = true
+    } else {
+      isMobileMenuOpen.value = false
+    }
   }
-})
+)
 
 // 监听路由变化
-watch(route, () => {
-  if (isMobile.value) {
-    closeMobileMenu()
-  }
-}, { immediate: true })
+watch(
+  route,
+  () => {
+    if (isMobile.value) {
+      closeMobileMenu()
+    }
+  },
+  { immediate: true }
+)
 
 // 生命周期钩子
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
+  initAnimations()
 })
 
 onUnmounted(() => {
@@ -320,19 +488,13 @@ onUnmounted(() => {
 <style scoped>
 /* 全新现代化设计样式 */
 .main-layout {
-  height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  overflow: hidden;
-}
-
-.main-layout .el-container {
-  height: 100%;
 }
 
 /* 全新侧边栏设计 - 现代玻璃态风格 */
 .new-sidebar {
-  height: 100vh;
   background: linear-gradient(180deg, 
     rgba(15, 23, 42, 0.95) 0%, 
     rgba(30, 41, 59, 0.95) 50%, 
@@ -364,30 +526,29 @@ onUnmounted(() => {
 }
 
 .new-sidebar.collapsed {
-  width: 64px !important;
+  width: 80px !important;
 }
 
-/* Logo区域设计 */
+/* 新Logo区域设计 */
 .new-logo-section {
-  padding: 20px 16px;
+  padding: 24px 20px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   position: relative;
-  flex-shrink: 0;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   position: relative;
   z-index: 2;
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  border-radius: 12px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -415,6 +576,18 @@ onUnmounted(() => {
   100% { transform: rotate(360deg); }
 }
 
+/* 涟漪动画 */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
 .logo-icon .el-icon {
   color: #ffffff;
   position: relative;
@@ -424,8 +597,8 @@ onUnmounted(() => {
 .logo-text h2 {
   margin: 0;
   color: #ffffff;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   letter-spacing: -0.5px;
   background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
   -webkit-background-clip: text;
@@ -451,30 +624,22 @@ onUnmounted(() => {
 /* 导航菜单设计 */
 .new-navigation {
   flex: 1;
-  padding: 16px 0;
+  padding: 24px 0;
   overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  min-height: 0;
-}
-
-.new-navigation::-webkit-scrollbar {
-  display: none;
 }
 
 .nav-section {
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .section-label {
   color: #64748b;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin: 0 12px 10px 12px;
-  padding-bottom: 8px;
+  letter-spacing: 1.2px;
+  margin: 0 16px 8px 16px;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(100, 116, 139, 0.2);
   position: relative;
 }
@@ -492,7 +657,7 @@ onUnmounted(() => {
 .nav-items {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   padding: 0 12px;
 }
 
@@ -500,16 +665,16 @@ onUnmounted(() => {
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   background: rgba(51, 65, 85, 0.3);
   border: 1px solid rgba(148, 163, 184, 0.1);
   backdrop-filter: blur(10px);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .nav-item::before {
@@ -527,10 +692,10 @@ onUnmounted(() => {
 }
 
 .item-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: rgba(59, 130, 246, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,6 +709,7 @@ onUnmounted(() => {
 .item-icon .el-icon {
   color: #60a5fa;
   transition: all 0.3s ease;
+  font-size: 18px;
 }
 
 .item-content {
@@ -553,12 +719,14 @@ onUnmounted(() => {
   gap: 2px;
   position: relative;
   z-index: 2;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .item-title {
   color: #e2e8f0;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 500;
   transition: color 0.3s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -576,13 +744,14 @@ onUnmounted(() => {
 }
 
 .item-indicator {
-  width: 4px;
-  height: 24px;
+  width: 3px;
+  height: 20px;
   background: transparent;
   border-radius: 2px;
   transition: all 0.3s ease;
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 /* 悬停效果 */
@@ -591,9 +760,9 @@ onUnmounted(() => {
     rgba(59, 130, 246, 0.2) 0%, 
     rgba(147, 51, 234, 0.2) 100%);
   border-color: rgba(59, 130, 246, 0.3);
-  transform: translateX(8px) scale(1.02);
+  transform: translateX(6px);
   box-shadow: 
-    0 12px 40px rgba(59, 130, 246, 0.2),
+    0 4px 12px rgba(59, 130, 246, 0.2),
     0 0 0 1px rgba(59, 130, 246, 0.1);
 }
 
@@ -603,13 +772,12 @@ onUnmounted(() => {
 
 .nav-item:hover .item-icon {
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  transform: scale(1.1);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .nav-item:hover .item-icon .el-icon {
   color: #ffffff;
-  transform: scale(1.1);
 }
 
 .nav-item:hover .item-title {
@@ -630,9 +798,9 @@ onUnmounted(() => {
     rgba(59, 130, 246, 0.25) 0%, 
     rgba(147, 51, 234, 0.25) 100%);
   border-color: rgba(59, 130, 246, 0.4);
-  transform: translateX(6px);
+  transform: translateX(4px);
   box-shadow: 
-    0 16px 48px rgba(59, 130, 246, 0.25),
+    0 4px 16px rgba(59, 130, 246, 0.25),
     0 0 0 1px rgba(59, 130, 246, 0.2);
 }
 
@@ -672,7 +840,7 @@ onUnmounted(() => {
 
 .new-sidebar.collapsed .nav-item {
   justify-content: center;
-  padding: 16px;
+  padding: 10px;
 }
 
 .new-sidebar.collapsed .item-icon {
@@ -689,9 +857,9 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 16px 0 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   height: 64px;
 }
@@ -699,7 +867,8 @@ onUnmounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
 }
 
 .sidebar-toggle {
@@ -733,22 +902,18 @@ onUnmounted(() => {
   font-size: 0.9rem;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 /* 主内容区域 */
 .main-content {
-  background: transparent;
-  padding: 24px;
+  background: #f8fafc;
+  padding: 0;
   overflow-y: auto;
+  min-height: calc(100vh - 64px);
 }
 
 .content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  min-height: 100%;
 }
 
 /* 移动端遮罩层 */
@@ -799,11 +964,11 @@ onUnmounted(() => {
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .new-sidebar {
-    width: 220px;
+    width: 240px;
   }
   
   .new-sidebar.collapsed {
-    width: 64px;
+    width: 80px;
   }
   
   .nav-item {
@@ -814,16 +979,12 @@ onUnmounted(() => {
     width: 40px;
     height: 40px;
   }
-  
-  .main-content {
-    padding: 20px;
-  }
 }
 
 @media (max-width: 768px) {
   .new-sidebar {
     position: fixed;
-    left: -240px;
+    left: -280px;
     top: 0;
     height: 100vh;
     width: 280px !important;
@@ -836,11 +997,11 @@ onUnmounted(() => {
   }
   
   .new-sidebar.collapsed {
-    width: 240px !important;
+    width: 280px !important;
   }
   
   .header {
-    padding: 0 16px;
+    padding: 0 12px 0 0;
     height: 56px;
   }
   
@@ -855,38 +1016,17 @@ onUnmounted(() => {
   .breadcrumb {
     display: none;
   }
-  
-  .main-content {
-    padding: 16px;
-  }
 }
 
 @media (max-width: 480px) {
   .header {
-    padding: 0 12px;
+    padding: 0 8px 0 0;
     height: 52px;
   }
   
   .page-title h2 {
     font-size: 1rem;
   }
-  
-  .main-content {
-    padding: 12px;
-  }
-}
-
-/* 过渡动画 */
-.new-sidebar {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.main-content {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.mobile-overlay {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 滚动条样式 */
@@ -907,4 +1047,5 @@ onUnmounted(() => {
   background: rgba(148, 163, 184, 0.5);
 }
 </style>
+
 

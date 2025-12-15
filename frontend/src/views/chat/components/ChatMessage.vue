@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { AgentConversation } from '@/types/entity'
+import { formatTime } from '@/utils/formatters'
 
 interface Props {
   message: AgentConversation
@@ -38,16 +39,6 @@ const messageClass = computed(() => ({
   'message-user': props.isUser,
   'message-assistant': !props.isUser
 }))
-
-// 格式化时间
-const formatTime = (dateTime?: string) => {
-  if (!dateTime) return ''
-  const date = new Date(dateTime)
-  return date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 </script>
 
 <style scoped>

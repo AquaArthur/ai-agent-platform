@@ -8,6 +8,7 @@ import {
   updateAgent,
   deleteAgent
 } from '@/api'
+import { withLoading as withLoadingUtil } from '@/utils/store'
 
 /**
  * 智能体 Store
@@ -19,83 +20,66 @@ export const useAgentStore = defineStore('agent', () => {
   const loading = ref(false)
   const currentAgent = ref<Agent | null>(null)
 
-  // 获取智能体列表
-  const fetchAgentList = async () => {
-    loading.value = true
-    try {
+  // 异步操作包装器
+  const withLoading = <T>(operation: () => Promise<T>, errorMessage: string) =>
+    withLoadingUtil(loading, operation, errorMessage)
+
+  /**
+   * 获取智能体列表
+   */
+  const fetchAgentList = async (): Promise<Agent[]> => {
+    return withLoading(async () => {
       agentList.value = await getAgentList()
       return agentList.value
-    } catch (error) {
-      console.error('获取智能体列表失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '获取智能体列表失败:')
   }
 
-  // 根据ID获取智能体详情
-  const fetchAgentById = async (id: string) => {
-    loading.value = true
-    try {
+  /**
+   * 根据ID获取智能体详情
+   */
+  const fetchAgentById = async (id: string): Promise<Agent> => {
+    return withLoading(async () => {
       currentAgent.value = await getAgentById(id)
       return currentAgent.value
-    } catch (error) {
-      console.error('获取智能体详情失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '获取智能体详情失败:')
   }
 
-  // 创建智能体
-  const addAgent = async (agent: Agent) => {
-    loading.value = true
-    try {
+  /**
+   * 创建智能体
+   */
+  const addAgent = async (agent: Agent): Promise<Agent> => {
+    return withLoading(async () => {
       const created = await createAgent(agent)
-      // 刷新列表
       await fetchAgentList()
       return created
-    } catch (error) {
-      console.error('创建智能体失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '创建智能体失败:')
   }
 
-  // 更新智能体
-  const editAgent = async (id: string, agent: Agent) => {
-    loading.value = true
-    try {
+  /**
+   * 更新智能体
+   */
+  const editAgent = async (id: string, agent: Agent): Promise<Agent> => {
+    return withLoading(async () => {
       const updated = await updateAgent(id, agent)
-      // 刷新列表
       await fetchAgentList()
       return updated
-    } catch (error) {
-      console.error('更新智能体失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '更新智能体失败:')
   }
 
-  // 删除智能体
-  const removeAgent = async (id: string) => {
-    loading.value = true
-    try {
+  /**
+   * 删除智能体
+   */
+  const removeAgent = async (id: string): Promise<void> => {
+    return withLoading(async () => {
       await deleteAgent(id)
-      // 刷新列表
       await fetchAgentList()
-    } catch (error) {
-      console.error('删除智能体失败:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
+    }, '删除智能体失败:')
   }
 
-  // 重置当前智能体
-  const resetCurrentAgent = () => {
+  /**
+   * 重置当前智能体
+   */
+  const resetCurrentAgent = (): void => {
     currentAgent.value = null
   }
 

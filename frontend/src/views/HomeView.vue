@@ -65,17 +65,11 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-.card-header {
+/* 使用公共样式类 */
+.test-card .card-header {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .test-content {

@@ -26,6 +26,33 @@ const emit = defineEmits<Emits>()
 const editorContainer = ref<HTMLDivElement>()
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 
+const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
+  theme: 'vs',
+  minimap: { enabled: false },
+  scrollBeyondLastLine: false,
+  fontSize: 14,
+  lineNumbers: 'on',
+  roundedSelection: false,
+  cursorStyle: 'line',
+  automaticLayout: true,
+  wordWrap: 'on',
+  tabSize: 2,
+  insertSpaces: true,
+  formatOnPaste: true,
+  formatOnType: true,
+  folding: true,
+  lineDecorationsWidth: 10,
+  lineNumbersMinChars: 3,
+  renderLineHighlight: 'all',
+  selectOnLineNumbers: true,
+  matchBrackets: 'always',
+  renderWhitespace: 'selection',
+  quickSuggestions: true,
+  suggestOnTriggerCharacters: true,
+  acceptSuggestionOnEnter: 'on',
+  tabCompletion: 'on'
+}
+
 onMounted(async () => {
   await nextTick()
   if (!editorContainer.value) return
@@ -33,30 +60,7 @@ onMounted(async () => {
   editor = monaco.editor.create(editorContainer.value, {
     value: props.modelValue || '',
     language: props.language,
-    theme: 'vs',
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    fontSize: 14,
-    lineNumbers: 'on',
-    roundedSelection: false,
-    cursorStyle: 'line',
-    automaticLayout: true,
-    wordWrap: 'on',
-    tabSize: 2,
-    insertSpaces: true,
-    formatOnPaste: true,
-    formatOnType: true,
-    folding: true,
-    lineDecorationsWidth: 10,
-    lineNumbersMinChars: 3,
-    renderLineHighlight: 'all',
-    selectOnLineNumbers: true,
-    matchBrackets: 'always',
-    renderWhitespace: 'selection',
-    quickSuggestions: true,
-    suggestOnTriggerCharacters: true,
-    acceptSuggestionOnEnter: 'on',
-    tabCompletion: 'on'
+    ...editorOptions
   })
 
   editor.onDidChangeModelContent(() => {
@@ -65,17 +69,31 @@ onMounted(async () => {
   })
 })
 
-watch(() => props.modelValue, (newValue) => {
-  if (editor && editor.getValue() !== newValue) {
-    editor.setValue(newValue || '')
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (editor && editor.getValue() !== newValue) {
+      editor.setValue(newValue || '')
+    }
   }
-})
+)
 
-watch(() => props.language, (newLanguage) => {
-  if (editor?.getModel()) {
-    monaco.editor.setModelLanguage(editor.getModel()!, newLanguage)
+watch(
+  () => props.language,
+  (newLanguage) => {
+    const model = editor?.getModel()
+    if (model) {
+      monaco.editor.setModelLanguage(model, newLanguage)
+    }
   }
-})
+)
+
+watch(
+  () => props.height,
+  () => {
+    editor?.layout()
+  }
+)
 
 onUnmounted(() => {
   editor?.dispose()

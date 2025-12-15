@@ -1,10 +1,6 @@
 <template>
   <div id="app">
-    <router-view v-slot="{ Component, route }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" :key="route.path" />
-      </transition>
-    </router-view>
+    <router-view />
   </div>
 </template>
 
@@ -30,14 +26,5 @@ html, body, #app {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-/* 路由过渡动画 */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
 }
 </style>
