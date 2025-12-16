@@ -133,22 +133,46 @@
         <!-- 关联配置 -->
         <el-divider content-position="left">关联配置</el-divider>
 
-        <el-form-item label="知识库ID">
-          <el-input
-            v-model="formData.knowledgeBaseId"
-            placeholder="请输入知识库ID（可选）"
+        <el-form-item label="绑定知识库">
+          <el-select
+            v-model="selectedKnowledgeBaseIds"
+            multiple
+            placeholder="请选择知识库（可选）"
             clearable
-          />
-        </el-form-item>
-
-        <el-form-item label="知识库ID列表">
-          <el-input
-            v-model="kbIdsString"
-            type="textarea"
-            :rows="2"
-            placeholder="请输入知识库ID列表，多个ID用逗号分隔（可选）"
-            @blur="handleKbIdsChange"
-          />
+            filterable
+            style="width: 100%"
+            :loading="loadingKnowledgeBases"
+            @visible-change="loadKnowledgeBasesIfNeeded"
+            @change="handleKnowledgeBasesChange"
+          >
+            <el-option
+              v-for="kb in availableKnowledgeBases"
+              :key="kb.uuid"
+              :label="kb.name"
+              :value="kb.id || kb.uuid"
+            >
+              <div class="kb-option">
+                <div class="kb-option-name">
+                  {{ kb.name }}
+                  <el-tag v-if="kb.scopeType" size="small" :type="getScopeTagType(kb.scopeType)">
+                    {{ getScopeLabel(kb.scopeType) }}
+                  </el-tag>
+                  <el-tag v-if="kb.accessLevel" size="small" :type="getAccessLevelTagType(kb.accessLevel)">
+                    {{ getAccessLevelLabel(kb.accessLevel) }}
+                  </el-tag>
+                </div>
+                <div v-if="kb.description" class="kb-option-desc">{{ kb.description }}</div>
+                <div class="kb-option-info">
+                  <span class="info-text">文档数: {{ kb.documentCount || 0 }}</span>
+                  <span class="info-text">块数: {{ kb.chunkCount || 0 }}</span>
+                </div>
+              </div>
+            </el-option>
+          </el-select>
+          <div class="form-tip">为智能体选择可用的知识库</div>
+          <div v-if="selectedKnowledgeBaseIds.length > 0" class="selected-kbs">
+            <div class="selected-count">已选择 {{ selectedKnowledgeBaseIds.length }} 个知识库</div>
+          </div>
         </el-form-item>
 
         <el-form-item label="绑定插件">
@@ -204,6 +228,8 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/useAgentStore'
 import { getLlmModelList } from '@/api/llm'
 import { getPluginList } from '@/api'
+import { getKnowledgeBaseList, type KnowledgeBase } from '@/api/knowledgeBase'
+import { getScopeTagType, getScopeLabel, getAccessLevelTagType, getAccessLevelLabel } from '@/utils/formatters'
 import type { Agent, LlmModel, Plugin } from '@/types/entity'
 import MonacoEditor from '@/components/MonacoEditor.vue'
 
@@ -236,8 +262,8 @@ const modelConfigForm = ref({
   temperature: 0.7
 })
 
-// 知识库ID字符串（用于输入）
-const kbIdsString = ref('')
+// 选中的知识库ID列表（用于多选下拉框）
+const selectedKnowledgeBaseIds = ref<string[]>([])
 // 选中的插件ID列表（用于多选下拉框）
 const selectedPluginIds = ref<string[]>([])
 
@@ -250,6 +276,11 @@ const modelsLoaded = ref(false)
 const availablePlugins = ref<Plugin[]>([])
 const loadingPlugins = ref(false)
 const pluginsLoaded = ref(false)
+
+// 知识库列表
+const availableKnowledgeBases = ref<KnowledgeBase[]>([])
+const loadingKnowledgeBases = ref(false)
+const knowledgeBasesLoaded = ref(false)
 
 // 表单验证规则
 const formRules: FormRules = {
@@ -274,14 +305,13 @@ const promptValue = computed({
 })
 
 // 处理知识库ID列表变化
-const handleKbIdsChange = () => {
-  if (kbIdsString.value.trim()) {
-    formData.value.kbIds = kbIdsString.value
-      .split(',')
-      .map((id) => id.trim())
-      .filter((id) => id.length > 0)
+const handleKnowledgeBasesChange = (value: string[]) => {
+  formData.value.kbIds = value || []
+  // 如果只选择了一个知识库，也设置 knowledgeBaseId（兼容旧字段）
+  if (value && value.length === 1) {
+    formData.value.knowledgeBaseId = value[0]
   } else {
-    formData.value.kbIds = []
+    formData.value.knowledgeBaseId = ''
   }
 }
 
@@ -326,7 +356,8 @@ const loadPlugins = async () => {
   
   loadingPlugins.value = true
   try {
-    availablePlugins.value = await getPluginList()
+    const result = await getPluginList()
+    availablePlugins.value = result.list || []
     pluginsLoaded.value = true
   } catch (error: any) {
     console.error('加载插件列表失败:', error)
@@ -340,6 +371,30 @@ const loadPlugins = async () => {
 const loadPluginsIfNeeded = (visible: boolean) => {
   if (visible && !pluginsLoaded.value) {
     loadPlugins()
+  }
+}
+
+// 加载知识库列表
+const loadKnowledgeBases = async () => {
+  if (knowledgeBasesLoaded.value) return
+  
+  loadingKnowledgeBases.value = true
+  try {
+    const result = await getKnowledgeBaseList({ pageSize: 1000 }) // 获取所有知识库
+    availableKnowledgeBases.value = result.list || []
+    knowledgeBasesLoaded.value = true
+  } catch (error: any) {
+    console.error('加载知识库列表失败:', error)
+    ElMessage.error(error.message || '加载知识库列表失败')
+  } finally {
+    loadingKnowledgeBases.value = false
+  }
+}
+
+// 需要时加载知识库列表
+const loadKnowledgeBasesIfNeeded = (visible: boolean) => {
+  if (visible && !knowledgeBasesLoaded.value) {
+    loadKnowledgeBases()
   }
 }
 
@@ -366,9 +421,12 @@ const initFormData = async () => {
 
         // 处理知识库ID列表
         if (agent.kbIds && agent.kbIds.length > 0) {
-          kbIdsString.value = agent.kbIds.join(', ')
+          selectedKnowledgeBaseIds.value = agent.kbIds
+        } else if (agent.knowledgeBaseId) {
+          // 兼容旧字段 knowledgeBaseId
+          selectedKnowledgeBaseIds.value = [agent.knowledgeBaseId]
         } else {
-          kbIdsString.value = ''
+          selectedKnowledgeBaseIds.value = []
         }
 
         // 处理插件ID列表
@@ -398,7 +456,7 @@ const initFormData = async () => {
       modelId: '',
       temperature: 0.7
     }
-    kbIdsString.value = ''
+    selectedKnowledgeBaseIds.value = []
     selectedPluginIds.value = []
   }
 }
@@ -419,6 +477,15 @@ const handleSave = async () => {
     }
     if (modelConfigForm.value.temperature !== undefined) {
       modelConfig.temperature = modelConfigForm.value.temperature
+    }
+
+    // 确保知识库ID列表是最新的
+    formData.value.kbIds = selectedKnowledgeBaseIds.value || []
+    // 如果只选择了一个知识库，也设置 knowledgeBaseId（兼容旧字段）
+    if (selectedKnowledgeBaseIds.value && selectedKnowledgeBaseIds.value.length === 1) {
+      formData.value.knowledgeBaseId = selectedKnowledgeBaseIds.value[0]
+    } else {
+      formData.value.knowledgeBaseId = ''
     }
 
     // 构建提交数据
@@ -482,6 +549,8 @@ onMounted(() => {
   // 预加载模型和插件列表
   loadModels()
   loadPlugins()
+  // 预加载知识库列表
+  loadKnowledgeBases()
 })
 </script>
 
@@ -491,11 +560,48 @@ onMounted(() => {
   padding: 20px;
   height: calc(100vh - 40px);
   overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gradient-bg-primary);
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-layout {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:deep(.el-card__body) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+:deep(.el-card__body::-webkit-scrollbar) {
+  width: 8px;
+}
+
+:deep(.el-card__body::-webkit-scrollbar-track) {
+  background: #f1f3f5;
+  border-radius: 4px;
+}
+
+:deep(.el-card__body::-webkit-scrollbar-thumb) {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+:deep(.el-card__body::-webkit-scrollbar-thumb:hover) {
+  background: #94a3b8;
 }
 
 /* 使用公共样式类 */
@@ -595,6 +701,47 @@ onMounted(() => {
 .selected-count {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 知识库选项样式 */
+.kb-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kb-option-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.kb-option-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.kb-option-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-text {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 已选择知识库信息 */
+.selected-kbs {
+  margin-top: 8px;
 }
 </style>
 

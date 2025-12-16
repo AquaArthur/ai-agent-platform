@@ -46,7 +46,7 @@ export interface Workflow {
   updateTime?: string
 }
 
-// 工作流列表响应
+// 工作流列表响应（与后端API对齐）
 export interface WorkflowListResponse {
   total: number
   items: Workflow[]
@@ -58,31 +58,58 @@ export interface WorkflowExecutionRequest {
   llm_model_id?: string
 }
 
-// 工作流执行结果
+// 工作流执行结果（与后端API对齐）
 export interface WorkflowExecutionResult {
   execution_id: string
   status: string
   message?: string
-  output?: any
-  error_message?: string
-  execution_time?: number
-  node_executions?: any[]
 }
 
-// 工作流执行记录
+/**
+ * 工作流执行记录（与后端实体对齐）
+ * 注意：后端返回的是 snake_case 格式，前端同时支持两种格式以保持兼容性
+ */
 export interface WorkflowExecution {
-  id?: string
-  execution_id: string
-  workflow_id: string
-  workflow_uuid?: string
+  id?: number
+  // 执行ID（优先使用 camelCase，兼容 snake_case）
+  executionId?: string
+  execution_id?: string
+  // 工作流ID
+  workflowId?: string
+  workflow_id?: string
+  workflowUuid?: string
+  // 用户ID
+  userId?: string
+  user_id?: string
+  // 执行状态
   status: string
-  input?: any
-  output?: any
+  // 输入输出
+  input?: Record<string, any>
+  output?: Record<string, any>
+  // 错误信息（优先使用 camelCase，兼容 snake_case）
+  errorMessage?: string
   error_message?: string
+  // 执行时间（毫秒，优先使用 camelCase，兼容 snake_case）
+  executionTime?: number
   execution_time?: number
+  // 开始时间（优先使用 camelCase，兼容 snake_case）
+  startedAt?: string
   started_at?: string
+  // 完成时间（优先使用 camelCase，兼容 snake_case）
+  completedAt?: string
   completed_at?: string
+  // 节点执行记录（优先使用 camelCase，兼容 snake_case）
+  nodeExecutions?: any[]
   node_executions?: any[]
+  // 运行类型
+  runType?: string
+  run_type?: string
+  // 创建时间（优先使用 camelCase，兼容 snake_case）
+  createTime?: string
+  create_time?: string
+  // 更新时间（优先使用 camelCase，兼容 snake_case）
+  updateTime?: string
+  update_time?: string
 }
 
 /**
@@ -124,11 +151,31 @@ export const deleteWorkflow = async (uuid: string): Promise<void> => {
   return http.delete<void>(`/v1/workflows/${uuid}`)
 }
 
+// 工作流验证结果（兼容后端返回的snake_case格式）
+export interface WorkflowValidationResult {
+  valid: boolean
+  errorMessage?: string
+  error_message?: string // 后端返回的snake_case格式
+  warnings?: string[]
+  validationDetails?: {
+    hasStartNode?: boolean
+    hasEndNode?: boolean
+    hasCycle?: boolean
+    unreachableNodes?: string[]
+  }
+  validation_details?: { // 后端返回的snake_case格式
+    has_start_node?: boolean
+    has_end_node?: boolean
+    has_cycle?: boolean
+    unreachable_nodes?: string[]
+  }
+}
+
 /**
  * 验证工作流
  */
-export const validateWorkflow = async (uuid: string): Promise<{ valid: boolean; message?: string }> => {
-  return http.post<{ valid: boolean; message?: string }>(`/v1/workflows/${uuid}/validate`)
+export const validateWorkflow = async (uuid: string): Promise<WorkflowValidationResult> => {
+  return http.post<WorkflowValidationResult>(`/v1/workflows/${uuid}/validate`)
 }
 
 /**
@@ -138,7 +185,12 @@ export const executeWorkflow = async (
   uuid: string,
   request: WorkflowExecutionRequest
 ): Promise<WorkflowExecutionResult> => {
-  return http.post<WorkflowExecutionResult>(`/v1/workflows/${uuid}/execute`, request)
+  // 后端期望的格式：{ input: {...}, llm_model_id: "..." }
+  const payload = {
+    input: request.input || {},
+    llm_model_id: request.llm_model_id
+  }
+  return http.post<WorkflowExecutionResult>(`/v1/workflows/${uuid}/execute`, payload)
 }
 
 /**
@@ -151,16 +203,14 @@ export const getExecution = async (executionId: string): Promise<WorkflowExecuti
 /**
  * 获取工作流执行历史列表
  */
-export const getWorkflowExecutions = async (params?: {
-  workflow_uuid?: string
-  page?: number
-  pageSize?: number
-  status?: string
-}): Promise<{ total: number; items: WorkflowExecution[] }> => {
-  const { workflow_uuid, ...queryParams } = params || {}
-  const url = workflow_uuid
-    ? `/v1/workflows/${workflow_uuid}/executions`
-    : '/v1/workflows/executions'
-  return http.get<{ total: number; items: WorkflowExecution[] }>(url, { params: queryParams })
+export const getWorkflowExecutions = async (
+  uuid: string,
+  params?: {
+    page?: number
+    pageSize?: number
+    status?: string
+  }
+): Promise<{ total: number; items: WorkflowExecution[]; workflow_uuid?: string; workflow_name?: string }> => {
+  return http.get<{ total: number; items: WorkflowExecution[]; workflow_uuid?: string; workflow_name?: string }>(`/v1/workflows/${uuid}/executions`, { params })
 }
 

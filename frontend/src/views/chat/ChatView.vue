@@ -1,9 +1,15 @@
 <template>
   <div class="chat-view-container">
+    <!-- 返回按钮 -->
+    <div class="chat-header">
+      <el-button :icon="ArrowLeft" @click="handleBack">返回</el-button>
+      <h2 class="page-title">对话页面</h2>
+    </div>
+    
     <el-row :gutter="20" class="chat-layout">
       <!-- 左侧：智能体选择 -->
       <el-col :span="6">
-        <el-card>
+        <el-card class="agent-select-card">
           <template #header>
             <div class="card-header">
               <span class="card-title">选择智能体</span>
@@ -54,8 +60,8 @@
       <!-- 右侧：对话区域 -->
       <el-col :span="18">
         <ChatPanel
-          :agent-id="selectedAgentId"
-          :llm-model-id="getModelId()"
+          :agent-id="selectedAgentId || undefined"
+          :llm-model-id="routeModelId || getModelId() || undefined"
         />
       </el-col>
     </el-row>
@@ -64,13 +70,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { getAgentList } from '@/api/agent'
 import type { Agent } from '@/types/entity'
 import ChatPanel from '@/views/agent/components/ChatPanel.vue'
 
 const route = useRoute()
+const router = useRouter()
+
+// 从路由参数获取模型ID
+const routeModelId = computed(() => route.query.modelId as string | undefined)
 
 // 智能体列表
 const agents = ref<Agent[]>([])
@@ -113,14 +124,40 @@ const handleAgentChange = (agentId: string) => {
   }
 }
 
+// 返回按钮处理
+const handleBack = () => {
+  // 如果是从模型管理页面进入的，返回模型管理页面
+  if (routeModelId.value) {
+    router.push('/models')
+  } else {
+    // 否则返回上一页或智能体管理页面
+    router.back()
+  }
+}
+
 // 初始化
 onMounted(async () => {
   await loadAgents()
-  // 如果路由中有 agentId 参数，则自动选择该智能体
-  const agentIdFromQuery = route.query.agentId as string
-  if (agentIdFromQuery && agents.value.some(agent => agent.id === agentIdFromQuery)) {
-    selectedAgentId.value = agentIdFromQuery
-    handleAgentChange(agentIdFromQuery)
+  
+  // 如果路由中有 modelId 参数，尝试找到使用该模型的智能体
+  if (routeModelId.value) {
+    const agentWithModel = agents.value.find(agent => {
+      const modelId = agent.modelConfig?.modelId || agent.modelConfig?.model
+      return modelId === routeModelId.value
+    })
+    if (agentWithModel?.id) {
+      selectedAgentId.value = agentWithModel.id
+      handleAgentChange(agentWithModel.id)
+    } else {
+      ElMessage.info('未找到使用该模型的智能体，请手动选择智能体')
+    }
+  } else {
+    // 如果路由中有 agentId 参数，则自动选择该智能体
+    const agentIdFromQuery = route.query.agentId as string
+    if (agentIdFromQuery && agents.value.some(agent => agent.id === agentIdFromQuery)) {
+      selectedAgentId.value = agentIdFromQuery
+      handleAgentChange(agentIdFromQuery)
+    }
   }
 })
 </script>
@@ -128,15 +165,41 @@ onMounted(async () => {
 <style scoped>
 /* 使用公共布局样式 */
 .chat-view-container {
-  padding: 20px;
-  height: calc(100vh - 40px);
+  padding: 16px;
+  height: calc(100vh - 32px);
   overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  min-height: calc(100vh - 40px);
+  background: var(--gradient-bg-primary);
+  min-height: calc(100vh - 32px);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.agent-select-card {
+  height: 100%;
+  border-radius: 12px;
+}
+
+.agent-select-card :deep(.el-card__body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .chat-layout {
-  height: 100%;
+  height: calc(100% - 80px);
+  margin-bottom: 0;
 }
 
 /* 使用公共样式类 */

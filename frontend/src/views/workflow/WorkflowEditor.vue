@@ -97,9 +97,36 @@
           </template>
         </el-alert>
         
-        <div v-if="validationResult.message" class="validation-message">
+        <div v-if="validationErrorMsg" class="validation-message">
           <h4>验证信息：</h4>
-          <p>{{ validationResult.message }}</p>
+          <p>{{ validationErrorMsg }}</p>
+        </div>
+        
+        <div v-if="validationResult.warnings && validationResult.warnings.length > 0" class="validation-warnings">
+          <h4>警告信息：</h4>
+          <ul>
+            <li v-for="(warning, index) in validationResult.warnings" :key="index">{{ warning }}</li>
+          </ul>
+        </div>
+        
+        <div v-if="validationDetails" class="validation-details">
+          <h4>验证详情：</h4>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="有开始节点">
+              {{ (getField(validationDetails, 'hasStartNode', 'has_start_node', false)) ? '是' : '否' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="有结束节点">
+              {{ (getField(validationDetails, 'hasEndNode', 'has_end_node', false)) ? '是' : '否' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="存在循环依赖">
+              {{ (getField(validationDetails, 'hasCycle', 'has_cycle', false)) ? '是' : '否' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="不可达节点">
+              {{ (getField(validationDetails, 'unreachableNodes', 'unreachable_nodes', []) || []).length > 0 
+                ? (getField(validationDetails, 'unreachableNodes', 'unreachable_nodes', []) || []).join(', ')
+                : '无' }}
+            </el-descriptions-item>
+          </el-descriptions>
         </div>
       </div>
       
@@ -119,11 +146,11 @@
         <!-- 状态信息 -->
         <div class="status-header">
           <div class="status-info">
-            <el-tag :type="getStatusType(executionStatus)" size="large">
-              {{ getStatusText(executionStatus) }}
+            <el-tag :type="getWorkflowStatusType(executionStatus)" size="large">
+              {{ getWorkflowStatusText(executionStatus) }}
             </el-tag>
-            <span v-if="executionResult.execution_id" class="execution-id">
-              执行ID: {{ executionResult.execution_id }}
+            <span v-if="executionId" class="execution-id">
+              执行ID: {{ executionId }}
             </span>
           </div>
           <div class="time-info">
@@ -144,19 +171,19 @@
 
         <!-- 错误信息 -->
         <el-alert
-          v-if="executionStatus === 'failed' && executionResult.error_message"
+          v-if="executionStatus === 'failed' && executionErrorMsg"
           type="error"
           :closable="false"
           style="margin-top: 15px;"
         >
-          {{ executionResult.error_message }}
+          {{ executionErrorMsg }}
         </el-alert>
 
         <!-- 输出结果 -->
         <div v-if="executionStatus === 'completed' && executionResult.output" class="output-section">
           <h4>输出结果</h4>
           <div class="output-content">
-            <pre>{{ formatOutput(executionResult.output) }}</pre>
+            <pre class="json-display">{{ formatOutput(executionResult.output) }}</pre>
           </div>
         </div>
 
@@ -187,7 +214,7 @@
                 </div>
                 <div v-if="node.output" class="node-output">
                   <div class="detail-label">输出</div>
-                  <pre>{{ formatOutput(node.output) }}</pre>
+                  <pre class="json-display">{{ formatOutput(node.output) }}</pre>
                 </div>
                 <div v-if="node.error_message" class="node-error">
                   <div class="detail-label">错误信息</div>
@@ -219,6 +246,8 @@ import { ElMessage } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 import { MagicStick, FullScreen, Box, ArrowLeft, Check, CircleCheck, VideoPlay, CircleClose, RefreshLeft, RefreshRight } from '@element-plus/icons-vue';
 import { formatDate, formatTime, getWorkflowStatusType, getWorkflowStatusText } from '@/utils/formatters';
+import { getNodeLabelById, sortNodeExecutions, getField } from '@/utils/workflow';
+import { useWorkflowExecution } from '@/composables/useWorkflowExecution';
 
 import StartNode from './nodes/StartNode.vue';
 import LLMNode from './nodes/LLMNode.vue';
@@ -229,7 +258,7 @@ import StringNode from './nodes/StringNode.vue';
 import EndNode from './nodes/EndNode.vue';
 import NodeConfigDialog from './components/NodeConfigDialog.vue';
 
-import { getWorkflowByUuid, createWorkflow, updateWorkflow, validateWorkflow, executeWorkflow, getExecution, type Workflow, type WorkflowNode, type WorkflowEdge, type WorkflowExecution } from '@/api/workflow';
+import { getWorkflowByUuid, createWorkflow, updateWorkflow, validateWorkflow, type Workflow, type WorkflowNode, type WorkflowEdge, type WorkflowValidationResult } from '@/api/workflow';
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -259,9 +288,7 @@ const nodeTypesConfig = [
 ];
 
 // 可拖拽的节点类型（包含所有节点类型）
-const draggableNodeTypes = computed(() => {
-  return nodeTypesConfig;
-});
+const draggableNodeTypes = computed(() => nodeTypesConfig)
 
 // 节点颜色配置（与参考代码一致，使用纯色作为背景，保持对象格式用于节点组件）
 const nodeColors = {
@@ -285,20 +312,24 @@ const {
   getSelectedEdges, 
   removeNodes, 
   removeEdges,
-  getNodes,
-  getEdges,
   setNodes,
   setEdges,
   dimensions,
-  fitView
+  fitView,
+  nodes,
+  edges
 } = useVueFlow();
 
 // 工作流数据
 const workflowUuid = computed(() => route.params.uuid as string | undefined);
-const nodes = ref<Node[]>([]);
-const edges = ref<Edge[]>([]);
 const workflowData = ref<Workflow | null>(null);
 const saving = ref(false);
+
+// 自动保存相关
+const autoSaveInterval = ref<number | null>(null);
+const autoSaveIntervalMs = 30000; // 30秒自动保存一次
+const lastSaveTime = ref<number>(0);
+const hasUnsavedChanges = ref(false);
 
 // 撤销/重做历史状态管理
 interface HistoryState {
@@ -319,22 +350,26 @@ const selectedNode = ref<WorkflowNode | null>(null);
 // 验证相关
 const validating = ref(false);
 const validationDialogVisible = ref(false);
-const validationResult = ref<{ valid: boolean; message?: string } | null>(null);
+const validationResult = ref<WorkflowValidationResult | null>(null);
 
-// 运行相关
-const running = ref(false);
-const executionId = ref<string | null>(null);
-const executionStatus = ref<string>('pending');
-const executionResult = ref<WorkflowExecution | null>(null);
-const executionDialogVisible = ref(false);
-const pollTimer = ref<number | null>(null);
-const pollCount = ref(0);
-const baseInterval = 1000; // 初始轮询间隔1秒
-const maxInterval = 10000; // 最大轮询间隔10秒
+// 运行相关 - 使用组合式函数
+const {
+  running,
+  executionStatus,
+  executionResult,
+  executionDialogVisible,
+  progress,
+  progressStatus,
+  runWorkflow,
+  stopPolling,
+  resetExecution,
+  formatOutput
+} = useWorkflowExecution();
 
 // 将 Vue Flow 的 Node[] 转换为 WorkflowNode[] 格式
 const workflowNodes = computed<WorkflowNode[]>(() => {
-  return nodes.value
+  const currentNodes = nodes.value || [];
+  return currentNodes
     .filter(node => node.type) // 过滤掉没有 type 的节点
     .map(node => ({
       id: node.id,
@@ -380,7 +415,6 @@ const initDefaultNodes = () => {
   };
 
   setNodes([startNode, endNode]);
-  nodes.value = [startNode, endNode];
   
   // 初始化历史记录
   history.value = [{
@@ -431,23 +465,27 @@ const onDrop = (event: DragEvent) => {
     // 添加节点后保存历史
     nextTick(() => {
       saveToHistory();
+      hasUnsavedChanges.value = true;
     });
   }
 };
 
 onPaneReady(({ fitView }) => {
-  // 如果已经有节点，则居中显示；如果是新建工作流且还没有初始化节点，则初始化
-  if (nodes.value.length > 0) {
-    fitView();
-  } else if (!workflowUuid.value && !isInitialized.value) {
-    // 新建工作流时，初始化默认的开始和结束节点
-    initDefaultNodes();
-    nextTick(() => {
+  // 等待一下确保状态已同步
+  nextTick(() => {
+    // 如果已经有节点，则居中显示；如果是新建工作流且还没有初始化节点，则初始化
+    if (nodes.value && nodes.value.length > 0) {
       fitView({ duration: 300, padding: 0.2 });
-    });
-  } else {
-    fitView();
-  }
+    } else if (!workflowUuid.value && !isInitialized.value) {
+      // 新建工作流时，初始化默认的开始和结束节点
+      initDefaultNodes();
+      nextTick(() => {
+        fitView({ duration: 300, padding: 0.2 });
+      });
+    } else {
+      fitView({ duration: 300, padding: 0.2 });
+    }
+  });
 });
 
 const handleConnect = (connection: Connection) => {
@@ -455,6 +493,7 @@ const handleConnect = (connection: Connection) => {
   // 连接操作后保存历史
   nextTick(() => {
     saveToHistory();
+    hasUnsavedChanges.value = true;
   });
 };
 
@@ -483,8 +522,8 @@ const saveToHistory = () => {
   
   // 如果历史记录还未初始化，先初始化（保存当前状态作为初始状态）
   if (!isInitialized.value) {
-    const currentNodes = JSON.parse(JSON.stringify(getNodes.value));
-    const currentEdges = JSON.parse(JSON.stringify(getEdges.value));
+    const currentNodes = JSON.parse(JSON.stringify(nodes.value || []));
+    const currentEdges = JSON.parse(JSON.stringify(edges.value || []));
     history.value = [{
       nodes: currentNodes,
       edges: currentEdges
@@ -501,8 +540,8 @@ const saveToHistory = () => {
   
   // 使用防抖，延迟保存历史记录（避免频繁操作时保存过多历史）
   saveHistoryTimer = window.setTimeout(() => {
-    const currentNodes = JSON.parse(JSON.stringify(getNodes.value));
-    const currentEdges = JSON.parse(JSON.stringify(getEdges.value));
+    const currentNodes = JSON.parse(JSON.stringify(nodes.value || []));
+    const currentEdges = JSON.parse(JSON.stringify(edges.value || []));
     
     // 如果当前不在历史记录的末尾，删除后面的记录（因为用户做了新操作）
     if (historyIndex.value < history.value.length - 1) {
@@ -541,8 +580,6 @@ const handleUndo = () => {
   if (state) {
     setNodes(JSON.parse(JSON.stringify(state.nodes)));
     setEdges(JSON.parse(JSON.stringify(state.edges)));
-    nodes.value = JSON.parse(JSON.stringify(state.nodes));
-    edges.value = JSON.parse(JSON.stringify(state.edges));
   }
   
   nextTick(() => {
@@ -561,8 +598,6 @@ const handleRedo = () => {
   if (state) {
     setNodes(JSON.parse(JSON.stringify(state.nodes)));
     setEdges(JSON.parse(JSON.stringify(state.edges)));
-    nodes.value = JSON.parse(JSON.stringify(state.nodes));
-    edges.value = JSON.parse(JSON.stringify(state.edges));
   }
   
   nextTick(() => {
@@ -582,18 +617,18 @@ const canRedo = computed(() => {
 
 // 处理节点变化
 const handleNodesChange = (_changes: NodeChange[]) => {
-  // Vue Flow会自动处理节点变化，这里只需要同步到本地状态
-  nodes.value = getNodes.value;
-  // 保存到历史记录
+  // Vue Flow会自动处理节点变化，保存到历史记录
   saveToHistory();
+  // 标记有未保存的更改
+  hasUnsavedChanges.value = true;
 };
 
 // 处理边变化
 const handleEdgesChange = (_changes: EdgeChange[]) => {
-  // Vue Flow会自动处理边变化，这里只需要同步到本地状态
-  edges.value = getEdges.value;
-  // 保存到历史记录
+  // Vue Flow会自动处理边变化，保存到历史记录
   saveToHistory();
+  // 标记有未保存的更改
+  hasUnsavedChanges.value = true;
 };
 
 // 处理配置保存
@@ -602,7 +637,8 @@ const handleConfigSave = (config: any) => {
 
   // 更新节点数据
   const nodeId = selectedNode.value.id;
-  const updatedNodes = nodes.value.map(node => {
+  const currentNodes = nodes.value || [];
+  const updatedNodes = currentNodes.map(node => {
     if (node.id === nodeId) {
       return {
         ...node,
@@ -616,13 +652,15 @@ const handleConfigSave = (config: any) => {
   });
 
   setNodes(updatedNodes);
-  nodes.value = updatedNodes;
   
   // 配置保存后保存历史
   nextTick(() => {
     saveToHistory();
   });
 
+  // 标记有未保存的更改
+  hasUnsavedChanges.value = true;
+  
   // 保存到后端（如果有工作流UUID）
   if (workflowUuid.value) {
     saveWorkflow();
@@ -630,23 +668,41 @@ const handleConfigSave = (config: any) => {
 };
 
 // 保存工作流
-const saveWorkflow = async () => {
+const saveWorkflow = async (silent = false) => {
+  // 如果正在保存，跳过
+  if (saving.value) return;
+  
+  // 如果没有工作流UUID且没有未保存的更改，跳过
+  if (!workflowUuid.value && !hasUnsavedChanges.value) return;
+  
   saving.value = true;
   try {
-    const workflowNodes: WorkflowNode[] = nodes.value.map(node => ({
-      id: node.id,
-      type: node.type || '',
-      label: node.data?.label || '',
-      position: {
-        x: Math.round(node.position.x),
-        y: Math.round(node.position.y)
-      },
-      config: node.data?.config || {},
-      sourcePosition: Position.Right, // Set source handle to right
-      targetPosition: Position.Left, // Set target handle to left
-    }));
+    // 确保获取最新的节点和边数据
+    const currentNodes = nodes.value || [];
+    const currentEdges = edges.value || [];
+    
+    // 检查是否有节点
+    if (currentNodes.length === 0) {
+      if (!silent) {
+        ElMessage.warning('工作流没有节点，无法保存');
+      }
+      return;
+    }
+    
+    const nodesToSave: WorkflowNode[] = currentNodes
+      .filter(node => node.type) // 只保存有类型的节点
+      .map(node => ({
+        id: node.id,
+        type: node.type || '',
+        label: node.data?.label || '',
+        position: {
+          x: Math.round(node.position.x),
+          y: Math.round(node.position.y)
+        },
+        config: node.data?.config || {}
+      }));
 
-    const workflowEdges: WorkflowEdge[] = edges.value.map(edge => ({
+    const edgesToSave: WorkflowEdge[] = currentEdges.map(edge => ({
       id: edge.id,
       source: edge.source,
       target: edge.target
@@ -655,14 +711,17 @@ const saveWorkflow = async () => {
     const workflow: Workflow = {
       ...workflowData.value,
       name: workflowData.value?.name || '未命名工作流',
-      nodes: workflowNodes,
-      edges: workflowEdges
+      nodes: nodesToSave,
+      edges: edgesToSave
     };
 
     if (workflowUuid.value) {
       // 更新现有工作流
-      await updateWorkflow(workflowUuid.value, workflow);
-      ElMessage.success('工作流保存成功');
+      const updatedWorkflow = await updateWorkflow(workflowUuid.value, workflow);
+      workflowData.value = updatedWorkflow;
+      if (!silent) {
+        ElMessage.success('工作流保存成功');
+      }
     } else {
       // 创建新工作流
       const createdWorkflow = await createWorkflow(workflow);
@@ -671,19 +730,62 @@ const saveWorkflow = async () => {
       if (createdWorkflow.uuid) {
         router.replace(`/workflow-editor/${createdWorkflow.uuid}`);
       }
-      ElMessage.success('工作流创建成功');
+      if (!silent) {
+        ElMessage.success('工作流创建成功');
+      }
     }
+    
+    // 更新保存时间和未保存状态
+    lastSaveTime.value = Date.now();
+    hasUnsavedChanges.value = false;
   } catch (error: any) {
     console.error('保存工作流失败:', error);
-    ElMessage.error(error.message || '保存工作流失败');
+    if (!silent) {
+      ElMessage.error(error.message || '保存工作流失败');
+    }
   } finally {
     saving.value = false;
   }
 };
 
+// 自动保存工作流
+const autoSaveWorkflow = async () => {
+  // 只有在有工作流UUID且有未保存的更改时才自动保存
+  if (!workflowUuid.value || !hasUnsavedChanges.value || saving.value) {
+    return;
+  }
+  
+  // 检查距离上次保存的时间（如果从未保存过，lastSaveTime 为 0，需要保存）
+  const timeSinceLastSave = Date.now() - (lastSaveTime.value || 0);
+  if (timeSinceLastSave >= autoSaveIntervalMs) {
+    await saveWorkflow(true); // 静默保存，不显示消息
+  }
+};
+
+// 启动自动保存
+const startAutoSave = () => {
+  // 清除现有的定时器
+  if (autoSaveInterval.value) {
+    clearInterval(autoSaveInterval.value);
+  }
+  
+  // 设置新的定时器
+  autoSaveInterval.value = window.setInterval(() => {
+    autoSaveWorkflow();
+  }, autoSaveIntervalMs);
+};
+
+// 停止自动保存
+const stopAutoSave = () => {
+  if (autoSaveInterval.value) {
+    clearInterval(autoSaveInterval.value);
+    autoSaveInterval.value = null;
+  }
+};
+
 // 处理保存按钮点击
 const handleSave = () => {
-  saveWorkflow();
+  saveWorkflow(false); // 显示保存消息
 };
 
 // 处理返回按钮点击
@@ -693,8 +795,12 @@ const handleGoBack = () => {
 
 // 处理验证按钮点击
 const handleValidate = async () => {
+  // 验证前先保存工作流（如果没有UUID，会先创建）
+  await saveWorkflow(true); // 静默保存
+  
+  // 保存后再次检查UUID（新建工作流保存后会获得UUID）
   if (!workflowUuid.value) {
-    ElMessage.warning('工作流尚未保存，请先保存工作流');
+    ElMessage.warning('工作流保存失败，无法验证');
     return;
   }
 
@@ -706,13 +812,12 @@ const handleValidate = async () => {
     
     if (result.valid) {
       ElMessage.success('工作流验证通过');
-      // 更新工作流数据中的isValid字段
       if (workflowData.value) {
         workflowData.value.isValid = true;
       }
     } else {
-      ElMessage.warning('工作流验证失败：' + (result.message || '未知错误'));
-      // 更新工作流数据中的isValid字段
+      const errorMsg = getField(result, 'errorMessage', 'error_message', '未知错误')
+      ElMessage.warning('工作流验证失败：' + errorMsg);
       if (workflowData.value) {
         workflowData.value.isValid = false;
       }
@@ -722,7 +827,7 @@ const handleValidate = async () => {
     ElMessage.error(error.message || '验证工作流失败');
     validationResult.value = {
       valid: false,
-      message: error.message || '验证工作流失败'
+      errorMessage: error.message || '验证工作流失败'
     };
     validationDialogVisible.value = true;
   } finally {
@@ -741,18 +846,25 @@ const loadWorkflow = async () => {
     // 转换节点数据
     let vueFlowNodes: Node[] = [];
     if (workflow.nodes && workflow.nodes.length > 0) {
-      vueFlowNodes = workflow.nodes.map(node => ({
-        id: node.id,
-        type: node.type,
-        position: node.position,
-        sourcePosition: Position.Right, // Set source handle to right
-        targetPosition: Position.Left, // Set target handle to left
-        data: {
-          label: node.label,
-          config: node.config || {},
-          color: (nodeColors as any)[node.type || 'llm'] || nodeColors.llm // Assign color based on type, default to llm color
-        }
-      }));
+      vueFlowNodes = workflow.nodes.map(node => {
+        // 确保 position 存在且有效
+        const position = node.position || { x: 0, y: 0 };
+        return {
+          id: node.id,
+          type: node.type,
+          position: {
+            x: typeof position.x === 'number' ? position.x : parseInt(String(position.x)) || 0,
+            y: typeof position.y === 'number' ? position.y : parseInt(String(position.y)) || 0
+          },
+          sourcePosition: Position.Right,
+          targetPosition: Position.Left,
+          data: {
+            label: node.label || '',
+            config: node.config || {},
+            color: (nodeColors as any)[node.type || 'llm'] || nodeColors.llm
+          }
+        };
+      });
     }
     
     // 检查是否有开始和结束节点，如果没有则添加
@@ -791,29 +903,46 @@ const loadWorkflow = async () => {
       vueFlowNodes.push(endNode);
     }
     
+    // 设置节点和边
     setNodes(vueFlowNodes);
-    nodes.value = vueFlowNodes;
 
     // 转换边数据
+    const vueFlowEdges: Edge[] = [];
     if (workflow.edges && workflow.edges.length > 0) {
-      const vueFlowEdges: Edge[] = workflow.edges.map(edge => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target
-      }));
-      setEdges(vueFlowEdges);
-      edges.value = vueFlowEdges;
+      workflow.edges.forEach(edge => {
+        // 验证边的源节点和目标节点是否存在
+        const sourceExists = vueFlowNodes.some(n => n.id === edge.source);
+        const targetExists = vueFlowNodes.some(n => n.id === edge.target);
+        if (sourceExists && targetExists) {
+          vueFlowEdges.push({
+            id: edge.id || `edge_${edge.source}_${edge.target}`,
+            source: edge.source,
+            target: edge.target
+          });
+        }
+      });
     }
+    setEdges(vueFlowEdges);
 
     // 重置历史记录状态（不立即初始化，等用户第一次操作时再初始化）
     history.value = [];
     historyIndex.value = -1;
     isInitialized.value = false;
 
-    // 加载完成后自动排列节点
+    // 重置未保存状态和保存时间
+    hasUnsavedChanges.value = false;
+    lastSaveTime.value = Date.now();
+
+    // 等待 Vue Flow 更新状态后再进行后续操作
     await nextTick();
-    if (nodes.value.length > 0) {
-      autoLayout(false); // 加载时自动排列，不显示消息
+    await nextTick(); // 双重 nextTick 确保状态已更新
+    
+    // 加载完成后自动排列节点
+    if (vueFlowNodes.length > 0) {
+      // 使用 setTimeout 确保画布已完全渲染
+      setTimeout(() => {
+        autoLayout(false); // 加载时自动排列，不显示消息
+      }, 100);
     }
   } catch (error: any) {
     console.error('加载工作流失败:', error);
@@ -824,10 +953,16 @@ const loadWorkflow = async () => {
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   
+  // 启动自动保存
+  startAutoSave();
+  
   // 如果有工作流UUID，加载工作流数据
   // 注意：新建工作流的节点初始化在 onPaneReady 中处理，确保画布已准备好
   if (workflowUuid.value) {
     loadWorkflow();
+  } else {
+    // 新建工作流时，初始化保存时间
+    lastSaveTime.value = Date.now();
   }
 });
 
@@ -867,6 +1002,7 @@ const onKeyDown = (event: KeyboardEvent) => {
         // 删除节点后保存历史
         nextTick(() => {
           saveToHistory();
+          hasUnsavedChanges.value = true;
         });
       }
     }
@@ -876,6 +1012,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       // 删除边后保存历史
       nextTick(() => {
         saveToHistory();
+        hasUnsavedChanges.value = true;
       });
     }
   }
@@ -890,17 +1027,29 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 
 // 自动排列
-const autoLayout = (showMessage = true) => {
-  if (nodes.value.length === 0) {
-    ElMessage.info('画布为空');
+const autoLayout = async (showMessage = true) => {
+  // 用户手动点击自动排列时，先保存工作流
+  if (showMessage && workflowUuid.value) {
+    await saveWorkflow(true); // 静默保存
+  }
+  
+  const currentNodes = nodes.value || [];
+  const currentEdges = edges.value || [];
+  
+  if (currentNodes.length === 0) {
+    if (showMessage) {
+      ElMessage.info('画布为空');
+    }
     return;
   }
 
-  const startNodes = nodes.value.filter(n => n.type === 'start');
-  const endNodes = nodes.value.filter(n => n.type === 'end');
+  const startNodes = currentNodes.filter(n => n.type === 'start');
+  const endNodes = currentNodes.filter(n => n.type === 'end');
   
   if (startNodes.length === 0) {
-    ElMessage.warning('请先添加开始节点');
+    if (showMessage) {
+      ElMessage.warning('请先添加开始节点');
+    }
     return;
   }
 
@@ -908,7 +1057,7 @@ const autoLayout = (showMessage = true) => {
   const reverseEdgeMap = new Map<string, string[]>(); // target -> sources
 
   // 构建边的映射
-  edges.value.forEach(e => {
+  currentEdges.forEach(e => {
     if (!edgeMap.has(e.source)) edgeMap.set(e.source, []);
     edgeMap.get(e.source)!.push(e.target);
     
@@ -981,6 +1130,19 @@ const autoLayout = (showMessage = true) => {
     });
   }
 
+  // 处理孤立节点（没有连接到开始节点的节点）
+  const isolatedNodes = currentNodes.filter(node => !nodeLayer.has(node.id));
+  if (isolatedNodes.length > 0) {
+    // 计算最大层级，孤立节点放在右侧
+    const maxLayer = nodeLayer.size > 0 ? Math.max(...Array.from(nodeLayer.values()), 0) : -1;
+    const isolatedLayer = maxLayer + 1;
+    
+    // 为孤立节点分配层级
+    isolatedNodes.forEach((node) => {
+      nodeLayer.set(node.id, isolatedLayer);
+    });
+  }
+
   // 按层级分组节点
   const layers: string[][] = [];
   nodeLayer.forEach((layer, nodeId) => {
@@ -994,11 +1156,32 @@ const autoLayout = (showMessage = true) => {
   const startX = 150; // 起始X坐标
   const startY = 200; // 起始Y坐标
 
-  const updatedNodes = nodes.value.map(node => {
+  // 特殊处理：如果只有开始和结束节点，让它们水平排列（左右排列）
+  const onlyStartAndEnd = currentNodes.length === 2 && 
+    startNodes.length === 1 && 
+    endNodes.length === 1 &&
+    currentNodes.every(n => n.type === 'start' || n.type === 'end');
+
+  const updatedNodes = currentNodes.map(node => {
     if (nodeLayer.has(node.id)) {
       const layerIndex = nodeLayer.get(node.id);
       const layerNodes = layers[layerIndex] || [];
       const nodeIndex = layerNodes.indexOf(node.id);
+      
+      // 如果只有开始和结束节点，让它们水平排列
+      if (onlyStartAndEnd) {
+        let actualX = startX;
+        if (node.type === 'end') {
+          actualX = startX + layerWidth;
+        }
+        return {
+          ...node,
+          position: {
+            x: actualX,
+            y: startY // 同一Y坐标，水平排列
+          }
+        };
+      }
       
       // 计算这一层的总高度
       const totalHeight = (layerNodes.length - 1) * nodeHeight;
@@ -1035,11 +1218,14 @@ const autoLayout = (showMessage = true) => {
         }
       };
     }
+    // 如果节点仍然不在 nodeLayer 中（不应该发生，但为了安全起见）
     return node;
   });
 
   setNodes(updatedNodes);
-  nodes.value = updatedNodes;
+  
+  // 标记有未保存的更改
+  hasUnsavedChanges.value = true;
 
   nextTick(() => {
     fitViewNodes(false); // 自动排列后自动居中，不显示额外消息
@@ -1051,196 +1237,78 @@ const autoLayout = (showMessage = true) => {
 };
 
 // 居中显示
-const fitViewNodes = (showMessage = true) => {
+const fitViewNodes = async (showMessage = true) => {
+  // 用户手动点击居中显示时，先保存工作流
+  if (showMessage && workflowUuid.value) {
+    await saveWorkflow(true); // 静默保存
+  }
+  
   fitView({ duration: 300, padding: 0.2 });
   if (showMessage) {
-  ElMessage.success('已居中显示');
+    ElMessage.success('已居中显示');
   }
 };
 
-// 处理运行按钮点击
-const handleRun = async () => {
-  if (!workflowUuid.value) {
-    ElMessage.warning('工作流尚未保存，请先保存工作流');
-    return;
-  }
-
-  // 先保存工作流
-  await saveWorkflow();
-
-  // 检查保存是否成功
-  if (!workflowUuid.value) {
-    ElMessage.error('工作流保存失败，无法执行');
-    return;
-  }
-
-  // 执行工作流
-  running.value = true;
-  executionId.value = null;
-  executionStatus.value = 'pending';
-  executionResult.value = null;
-  pollCount.value = 0;
-
-  try {
-    // 调用执行API（这里假设不需要输入参数，如果需要可以从开始节点获取）
-    const result = await executeWorkflow(workflowUuid.value, {
-      input: {}
-    });
-
-    executionId.value = result.execution_id;
-    executionStatus.value = result.status;
-    executionResult.value = {
-      execution_id: result.execution_id,
-      workflow_id: workflowUuid.value,
-      status: result.status,
-      output: result.output,
-      error_message: result.error_message,
-      execution_time: result.execution_time,
-      node_executions: result.node_executions || []
-    };
-
-    // 显示执行结果对话框
-    executionDialogVisible.value = true;
-
-    // 如果状态是 running 或 pending，开始轮询
-    if (result.status === 'running' || result.status === 'pending') {
-      startPolling();
-    } else {
-      // 如果已经完成或失败，停止轮询
-      stopPolling();
-    }
-
-    if (result.status === 'completed') {
-      ElMessage.success('工作流执行完成');
-    } else if (result.status === 'failed') {
-      ElMessage.error('工作流执行失败');
-    }
-  } catch (error: any) {
-    console.error('执行工作流失败:', error);
-    ElMessage.error(error.message || '执行工作流失败');
-    executionStatus.value = 'failed';
-    executionResult.value = {
-      execution_id: '',
-      workflow_id: workflowUuid.value || '',
-      status: 'failed',
-      error_message: error.message || '执行工作流失败',
-      execution_time: 0,
-      node_executions: []
-    };
-    executionDialogVisible.value = true;
-  } finally {
-    running.value = false;
-  }
-};
-
-// 开始轮询
-const startPolling = () => {
-  if (pollTimer.value) return;
-  if (!executionId.value) return;
-
-  pollCount.value = 0;
-  const poll = async () => {
-    if (!executionId.value) {
-      stopPolling();
-      return;
-    }
-
-    pollCount.value++;
-    try {
-      const result = await getExecution(executionId.value);
-      
-      executionStatus.value = result.status;
-      executionResult.value = result;
-
-      // 如果执行完成或失败，停止轮询
-      if (result.status === 'completed' || result.status === 'failed') {
-        stopPolling();
-        if (result.status === 'completed') {
-          ElMessage.success('工作流执行完成');
-        } else if (result.status === 'failed') {
-          ElMessage.error('工作流执行失败');
-        }
-      } else {
-        // 继续轮询，使用指数退避策略
-        const interval = Math.min(
-          baseInterval * Math.pow(1.5, Math.floor(pollCount.value / 10)),
-          maxInterval
-        );
-        pollTimer.value = window.setTimeout(poll, interval);
-      }
-    } catch (error: any) {
-      console.error('轮询执行状态失败:', error);
-      // 错误时延长轮询间隔
-      stopPolling();
-      setTimeout(() => {
-        if (executionId.value && (executionStatus.value === 'running' || executionStatus.value === 'pending')) {
-          startPolling();
-        }
-      }, maxInterval * 2);
-    }
-  };
-
-  poll();
-};
-
-// 停止轮询
-const stopPolling = () => {
-  if (pollTimer.value) {
-    clearTimeout(pollTimer.value);
-    pollTimer.value = null;
-  }
-};
-
-// 进度计算
-const progress = computed(() => {
-  if (executionStatus.value === 'completed') return 100;
-  if (executionStatus.value === 'failed') return 0;
-  if (executionStatus.value === 'running') {
-    // 根据轮询次数估算进度（简单实现）
-    return Math.min(30 + pollCount.value * 5, 90);
-  }
-  return 0;
-});
-
-const progressStatus = computed(() => {
-  if (executionStatus.value === 'failed') return 'exception';
-  if (executionStatus.value === 'completed') return 'success';
-  return null;
-});
-
-// 使用公共工具函数
-const getStatusType = getWorkflowStatusType;
-const getStatusText = getWorkflowStatusText;
-
-// 格式化输出
-const formatOutput = (val: any): string => {
-  if (typeof val === 'object' && val !== null) {
-    // 如果对象只有一个 output 字段，直接返回 output 的值
-    if (Object.keys(val).length === 1 && 'output' in val) {
-      return formatOutput(val.output); // 递归处理
-    }
-    // 其他情况格式化为 JSON
-    return JSON.stringify(val, null, 2);
-  }
-  return String(val);
-};
+// 直接使用导入的工具函数
 
 // 获取节点标签
 const getNodeLabel = (nodeId: string): string => {
-  const node = nodes.value.find(n => n.id === nodeId);
-  return node?.data?.label || nodeId;
+  return getNodeLabelById(nodeId, workflowNodes.value);
 };
 
 // 排序节点执行记录
 const sortedNodeExecutions = computed(() => {
-  if (!executionResult.value?.node_executions) return [];
-  // 按开始时间排序
-  return [...executionResult.value.node_executions].sort((a, b) => {
-    const timeA = a.started_at ? new Date(a.started_at).getTime() : 0;
-    const timeB = b.started_at ? new Date(b.started_at).getTime() : 0;
-    return timeA - timeB;
-  });
-});
+  const nodeExecs = getField(executionResult.value, 'nodeExecutions', 'node_executions', []) || []
+  return nodeExecs.length > 0 ? sortNodeExecutions(nodeExecs) : []
+})
+
+// 验证结果字段访问（兼容 snake_case 和 camelCase）
+const validationErrorMsg = computed(() => 
+  getField(validationResult.value, 'errorMessage', 'error_message', null)
+)
+const validationDetails = computed(() => 
+  getField(validationResult.value, 'validationDetails', 'validation_details', null)
+)
+
+// 执行结果字段访问（兼容 snake_case 和 camelCase）
+const executionId = computed(() => 
+  getField(executionResult.value, 'executionId', 'execution_id', null)
+)
+const executionErrorMsg = computed(() => 
+  getField(executionResult.value, 'errorMessage', 'error_message', null)
+)
+
+// 处理运行按钮点击
+const handleRun = async () => {
+  // 运行前先保存工作流（如果没有UUID，会先创建）
+  await saveWorkflow(true); // 静默保存
+  
+  // 保存后再次检查UUID（新建工作流保存后会获得UUID）
+  if (!workflowUuid.value) {
+    ElMessage.warning('工作流保存失败，无法执行');
+    return;
+  }
+
+  // 运行前先验证工作流
+  try {
+    const result = await validateWorkflow(workflowUuid.value);
+    if (!result.valid) {
+      const errorMsg = getField(result, 'errorMessage', 'error_message', '未知错误')
+      ElMessage.warning('工作流验证失败，无法运行：' + errorMsg);
+      // 显示验证结果对话框
+      validationResult.value = result;
+      validationDialogVisible.value = true;
+      return;
+    }
+  } catch (error: any) {
+    console.error('验证工作流失败:', error);
+    ElMessage.error('验证工作流失败：' + (error.message || '未知错误'));
+    return;
+  }
+
+  // 验证通过，执行工作流
+  await runWorkflow(workflowUuid.value, { input: {} });
+};
 
 // 组件卸载时停止轮询
 watch(() => executionDialogVisible.value, (visible) => {
@@ -1250,7 +1318,8 @@ watch(() => executionDialogVisible.value, (visible) => {
 });
 
 onUnmounted(() => {
-  stopPolling();
+  resetExecution();
+  stopAutoSave(); // 停止自动保存
   window.removeEventListener('keydown', onKeyDown);
   // 清理历史记录保存定时器
   if (saveHistoryTimer) {
@@ -1265,7 +1334,7 @@ onUnmounted(() => {
 .workflow-page-container {
   padding: 20px;
   min-height: calc(100vh - 64px);
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--gradient-bg-secondary);
   position: relative;
 }
 
@@ -1411,7 +1480,7 @@ onUnmounted(() => {
 .workflow-pane {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--gradient-bg-secondary);
   background-image: 
     radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
@@ -1462,7 +1531,7 @@ onUnmounted(() => {
 .workflow-pane .vue-flow__handle {
   width: 12px;
   height: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
   border: 3px solid #ffffff;
   box-shadow: 
     0 2px 8px rgba(102, 126, 234, 0.4),
@@ -1557,9 +1626,10 @@ onUnmounted(() => {
 /* 验证结果对话框样式 */
 .validation-message {
   padding: 16px;
-  background: #f5f7fa;
+  background: #fef0f0;
   border-radius: 8px;
   margin-top: 16px;
+  border-left: 4px solid #f56c6c;
 }
 
 .validation-message h4 {
@@ -1576,6 +1646,44 @@ onUnmounted(() => {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.validation-warnings {
+  padding: 16px;
+  background: #fdf6ec;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #e6a23c;
+}
+
+.validation-warnings h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.validation-warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.validation-warnings li {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.validation-details {
+  margin-top: 16px;
+}
+
+.validation-details h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
 }
 
 /* 执行结果对话框样式 */
@@ -1641,19 +1749,28 @@ onUnmounted(() => {
 
 .output-content {
   background: #f5f7fa;
-  padding: 15px;
+  padding: 0;
   border-radius: 4px;
-  overflow-x: auto;
   max-height: 400px;
   overflow-y: auto;
   font-size: 12px;
 }
 
-.output-content pre {
+.json-display {
+  background: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
   margin: 0;
-  font-family: 'Courier New', monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: visible;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
 }
 
 .node-executions {
@@ -1738,15 +1855,9 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.node-output pre {
+.node-output .json-display {
   background: #fafafa;
   padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin: 0;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .error-msg {

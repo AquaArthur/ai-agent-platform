@@ -7,19 +7,22 @@
 .DS_Store
 Thumbs.db
 
-# Ignore node modules
+# 构建产物
 node_modules/
+target/
 dist/
 build/
 
-# Ignore environment files
+# 环境变量文件
 .env
-.env.local
-
 
 # Ignore python files
 venv/
 __pycache__/
 *.pyc
 
-CodeHubot-main/
+# Docker 相关
+docker-compose.override.yml
+
+# 日志文件
+*.log

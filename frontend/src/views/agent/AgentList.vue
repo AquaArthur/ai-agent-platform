@@ -119,11 +119,12 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { Plus, Search, Edit, Delete, ChatDotRound, ChatDotSquare, Connection, Clock } from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/useAgentStore'
 import type { Agent } from '@/types/entity'
 import { formatDateTime } from '@/utils/formatters'
+import { showSuccess, handleError } from '@/utils/message'
 
 const router = useRouter()
 const agentStore = useAgentStore()
@@ -225,11 +226,10 @@ const handleDelete = async (agent: Agent) => {
     )
 
     await agentStore.removeAgent(agent.id!)
-    ElMessage.success('删除成功')
+    showSuccess('删除成功')
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('删除智能体失败:', error)
-      ElMessage.error(error.message || '删除失败')
+      handleError(error, '删除失败', true)
     }
   }
 }
@@ -239,7 +239,7 @@ onMounted(async () => {
   try {
     await agentStore.fetchAgentList()
   } catch (error: any) {
-    ElMessage.error(error.message || '加载智能体列表失败')
+    handleError(error, '加载智能体列表失败', true)
   }
 })
 </script>
@@ -278,7 +278,7 @@ onMounted(async () => {
 /* 卡片头部 - 使用公共样式 */
 .agent-card .card-header {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
 }
 
 .header-top {

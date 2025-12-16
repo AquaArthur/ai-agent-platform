@@ -28,12 +28,16 @@ export const usePluginStore = defineStore('plugin', () => {
     withLoadingUtil(loading, operation, errorMessage)
 
   /**
-   * 获取插件列表
+   * 获取插件列表（支持分页）
    */
-  const fetchPluginList = async (): Promise<Plugin[]> => {
+  const fetchPluginList = async (params?: { page?: number; pageSize?: number }): Promise<{ list: Plugin[]; total: number }> => {
     return withLoading(async () => {
-      pluginList.value = await getPluginList()
-      return pluginList.value
+      const result = await getPluginList(params)
+      // 如果没有传入分页参数，更新store中的完整列表
+      if (!params) {
+        pluginList.value = result.list
+      }
+      return result
     }, '获取插件列表失败:')
   }
 
@@ -100,12 +104,9 @@ export const usePluginStore = defineStore('plugin', () => {
    * 获取插件操作列表
    */
   const fetchPluginOperations = async (pluginId: string) => {
-    try {
+    return withLoading(async () => {
       return await getPluginOperations(pluginId)
-    } catch (error) {
-      console.error('获取插件操作失败:', error)
-      throw error
-    }
+    }, '获取插件操作失败:')
   }
 
   /**
@@ -117,12 +118,9 @@ export const usePluginStore = defineStore('plugin', () => {
     params: Record<string, any>,
     timeout?: number
   ) => {
-    try {
+    return withLoading(async () => {
       return await invokePluginOperation(pluginId, operationId, params, timeout)
-    } catch (error) {
-      console.error('调用插件操作失败:', error)
-      throw error
-    }
+    }, '调用插件操作失败:')
   }
 
   return {

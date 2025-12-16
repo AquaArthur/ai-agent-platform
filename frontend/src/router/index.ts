@@ -37,7 +37,13 @@ const routes: RouteRecordRaw[] = [
         path: '/chat',
         name: 'chat',
         component: () => import('@/views/chat/ChatView.vue'),
-        meta: { title: '对话测试' }
+        meta: { title: '对话页面' }
+      },
+      {
+        path: '/models',
+        name: 'model-list',
+        component: () => import('@/views/model/ModelList.vue'),
+        meta: { title: '模型管理' }
       },
       {
         path: '/knowledge-bases',

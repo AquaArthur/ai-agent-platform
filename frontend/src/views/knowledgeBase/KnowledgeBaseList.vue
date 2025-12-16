@@ -423,7 +423,7 @@ onMounted(() => {
 /* 卡片头部 - 使用公共样式 */
 .kb-card .card-header {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
 }
 
 .header-top {

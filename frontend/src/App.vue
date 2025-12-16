@@ -12,7 +12,7 @@ html, body, #app {
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gradient-bg-primary);
 }
 
 #app {

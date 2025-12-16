@@ -82,7 +82,7 @@
 /* 卡片头部渐变背景 */
 .card-header-gradient {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
 }
 
 /* 卡片主体 */
@@ -122,7 +122,7 @@
   padding: 20px;
   height: calc(100vh - 40px);
   overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gradient-bg-primary);
   min-height: calc(100vh - 40px);
 }
 

@@ -3,7 +3,6 @@
     <el-card class="chat-card">
       <template #header>
         <div class="chat-header">
-          <span class="chat-title">对话测试</span>
           <div class="chat-header-actions">
             <el-button
               v-if="sessionId && boundPlugins.length > 0"
@@ -594,7 +593,7 @@ onUnmounted(() => {
 
 .chat-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 
@@ -602,11 +601,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.chat-title {
-  font-size: 16px;
-  font-weight: 600;
 }
 
 /* 插件面板样式 */
@@ -665,7 +659,7 @@ onUnmounted(() => {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px 16px;
   min-height: 0;
 }
 
@@ -693,15 +687,17 @@ onUnmounted(() => {
 
 .chat-input-wrapper {
   border-top: 1px solid var(--el-border-color-light);
+  flex-shrink: 0;
+  margin-top: -4px;
 }
 
 .start-chat {
-  padding: 20px;
+  padding: 12px 16px;
   text-align: center;
 }
 
 .disabled-tip {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }

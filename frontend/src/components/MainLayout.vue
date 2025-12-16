@@ -65,7 +65,10 @@
       <!-- 主内容区 -->
       <el-container>
         <!-- 顶部导航 -->
-        <el-header class="header">
+        <el-header 
+          class="header"
+          :style="{ left: sidebarCollapsed ? '80px' : '280px' }"
+        >
           <div class="header-left">
             <div class="page-title">
               <el-icon size="24" :color="pageIcon.color">
@@ -106,7 +109,10 @@
         </el-header>
         
         <!-- 内容区域 -->
-        <el-main class="main-content">
+        <el-main 
+          class="main-content"
+          :style="{ marginLeft: sidebarCollapsed ? '80px' : '280px' }"
+        >
           <div class="content-wrapper">
             <router-view />
           </div>
@@ -130,7 +136,8 @@ import {
   HomeFilled,
   Document,
   Share,
-  Monitor
+  Monitor,
+  Cpu
 } from '@element-plus/icons-vue'
 import type { Component } from 'vue'
 
@@ -203,11 +210,11 @@ const navigationSections: NavigationSection[] = [
         matchPaths: ['/workflows', '/workflow-editor']
       },
       {
-        route: '/chat',
-        title: '对话测试',
-        desc: '测试智能体对话',
-        icon: ChatDotSquare,
-        matchPaths: ['/chat']
+        route: '/models',
+        title: '模型管理',
+        desc: '管理LLM模型配置',
+        icon: Cpu,
+        matchPaths: ['/models']
       }
     ]
   },
@@ -234,7 +241,8 @@ const pageConfig: Record<string, PageConfig> = {
   '/knowledge-bases': { title: '知识库管理', icon: 'Document', color: '#E6A23C' },
   '/workflows': { title: '工作流管理', icon: 'Share', color: '#409EFF' },
   '/workflow-editor': { title: '工作流编辑器', icon: 'Share', color: '#409EFF' },
-  '/chat': { title: '对话测试', icon: 'ChatDotSquare', color: '#67C23A' }
+  '/models': { title: '模型管理', icon: 'Cpu', color: '#E6A23C' },
+  '/chat': { title: '对话页面', icon: 'ChatDotSquare', color: '#67C23A' }
 }
 
 // 判断导航项是否激活
@@ -489,7 +497,7 @@ onUnmounted(() => {
 /* 全新现代化设计样式 */
 .main-layout {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gradient-bg-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -505,10 +513,14 @@ onUnmounted(() => {
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.05);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  z-index: 1000;
 }
 
 .new-sidebar::before {
@@ -547,7 +559,7 @@ onUnmounted(() => {
 .logo-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: var(--gradient-bg-primary-button);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -771,7 +783,7 @@ onUnmounted(() => {
 }
 
 .nav-item:hover .item-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: var(--gradient-bg-primary-button);
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -809,7 +821,7 @@ onUnmounted(() => {
 }
 
 .nav-item.active .item-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: var(--gradient-bg-primary-button);
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
 }
 
@@ -862,6 +874,11 @@ onUnmounted(() => {
   padding: 0 16px 0 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   height: 64px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 999;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .header-left {
@@ -908,6 +925,8 @@ onUnmounted(() => {
   padding: 0;
   overflow-y: auto;
   min-height: calc(100vh - 64px);
+  margin-top: 64px;
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content-wrapper {
@@ -945,7 +964,7 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gradient-bg-primary);
   border: 1px solid #e2e8f0;
   color: #475569;
   cursor: pointer;
@@ -954,7 +973,7 @@ onUnmounted(() => {
 }
 
 .mobile-menu-btn:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: var(--gradient-bg-primary-button);
   color: #ffffff;
   border-color: #60a5fa;
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
@@ -1003,6 +1022,12 @@ onUnmounted(() => {
   .header {
     padding: 0 12px 0 0;
     height: 56px;
+    left: 0 !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    margin-top: 56px;
   }
   
   .mobile-menu-btn {
