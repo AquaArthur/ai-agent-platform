@@ -18,7 +18,7 @@ export const getHello = async (): Promise<string> => {
   if (USE_MOCK) {
     return Promise.resolve('Hello from Mock Server!')
   }
-  return http.get<string>('/v1/hello') as unknown as Promise<string>
+  return http.get<string>('/v1/hello')
 }
 
 // 导出所有 API

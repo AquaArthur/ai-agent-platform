@@ -38,7 +38,7 @@
     </div>
 
     <!-- 插件列表 - 卡片形式 -->
-    <div v-loading="pluginStore.loading" class="plugins-grid">
+    <div v-loading="loading || pluginStore.loading" class="plugins-grid">
       <el-empty v-if="!pluginStore.loading && paginatedPluginList.length === 0" description="暂无插件数据">
         <el-button type="primary" @click="handleCreate">创建第一个插件</el-button>
       </el-empty>
@@ -247,9 +247,29 @@ const testParams = ref('')
 const testLoading = ref(false)
 const testResult = ref<any>(null)
 
+// 插件列表数据
+const pluginList = ref<Plugin[]>([])
+const loading = ref(false)
+
+// 加载插件列表（从后端获取所有数据，前端做过滤和分页）
+const loadPlugins = async () => {
+  loading.value = true
+  try {
+    // 使用较大的pageSize获取所有插件，后续可以考虑支持后端搜索和过滤
+    const result = await pluginStore.fetchPluginList({ page: 1, pageSize: 1000 })
+    pluginList.value = result.list
+    // 触发过滤计算以更新总数
+    handleSearch()
+  } catch (error: any) {
+    ElMessage.error(error.message || '加载插件列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 过滤后的插件列表（未分页）
 const filteredPluginList = computed(() => {
-  let list = pluginStore.pluginList
+  let list = pluginList.value
 
   // 关键词搜索
   if (searchKeyword.value) {
@@ -294,9 +314,6 @@ const isPluginEnabled = (plugin: Plugin): boolean => {
 // 搜索处理
 const handleSearch = () => {
   pagination.page = 1
-  // 搜索逻辑已在 computed 中处理
-  // TODO: 如果有API，在这里调用API加载数据
-  // await loadPlugins()
 }
 
 // 重置筛选
@@ -308,8 +325,7 @@ const resetFilters = () => {
 
 // 分页变化处理
 const handlePageChange = () => {
-  // TODO: 如果有API，在这里调用API加载数据
-  // await loadPlugins()
+  // 分页逻辑已在 computed 中处理
 }
 
 // 创建插件
@@ -474,7 +490,7 @@ onMounted(async () => {
 /* 卡片头部 - 使用公共样式 */
 .plugin-card .card-header {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
 }
 
 .header-top {

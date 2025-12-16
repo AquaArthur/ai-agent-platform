@@ -2,20 +2,13 @@ import { http } from '@/utils/http'
 import type { Plugin } from '@/types/entity'
 
 /**
- * 查询所有插件
+ * 查询所有插件（返回分页结果）
  */
-export const getPluginList = async (): Promise<Plugin[]> => {
-  // 后端返回分页格式 { list: [...], total: n }，这里提取 list
-  const response: any = await http.get<{ list: Plugin[] }>('/v1/plugins')
-  const list = response?.list || response || []
-
-  // 后端返回 is_enabled (下划线)，前端使用 isEnabled (驼峰)，需要映射
-  return list.map((item: any) => ({
-    ...item,
-    isEnabled: item.is_enabled ?? item.isEnabled ?? false,
-    createTime: item.create_time || item.createTime,
-    updateTime: item.update_time || item.updateTime
-  }))
+export const getPluginList = async (params?: {
+  page?: number
+  pageSize?: number
+}): Promise<{ list: Plugin[]; total: number }> => {
+  return http.get<{ list: Plugin[]; total: number }>('/v1/plugins', { params })
 }
 
 /**
@@ -83,15 +76,14 @@ export const deletePlugin = async (id: string): Promise<void> => {
  * 更新插件状态（启用/禁用）
  */
 export const updatePluginStatus = async (id: string, isEnabled: boolean): Promise<Plugin> => {
-  return http.patch(`/v1/plugins/${id}/status`, { isEnabled })
+  return http.patch<Plugin>(`/v1/plugins/${id}/status`, { isEnabled })
 }
 
 /**
  * 获取插件的操作列表
  */
 export const getPluginOperations = async (pluginId: string): Promise<any[]> => {
-  const response: any = await http.get(`/v1/plugins/${pluginId}`)
-  return response?.operations || []
+  return http.get<any[]>(`/v1/plugins/${pluginId}/operations`)
 }
 
 /**

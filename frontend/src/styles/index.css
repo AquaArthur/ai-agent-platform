@@ -23,6 +23,14 @@
   
   --background-color: #f5f7fa;
   --background-light: #fafafa;
+  
+  /* 渐变背景变量 - 统一管理重复使用的渐变 */
+  --gradient-bg-primary: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  --gradient-bg-secondary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --gradient-bg-light: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  --gradient-bg-card-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-bg-primary-button: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-bg-success: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
 }
 
 /* 全局重置 */

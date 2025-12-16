@@ -54,108 +54,102 @@ export const formatSize = (bytes: number): string => {
 }
 
 /**
- * 工作流执行状态类型映射
+ * 通用映射函数
  */
-export const getWorkflowStatusType = (status: string): string => {
-  const types: Record<string, string> = {
+const createMapper = <T extends string>(
+  map: Record<string, T>,
+  defaultValue: T
+) => (key: string): T => map[key] || defaultValue
+
+/**
+ * 工作流执行状态映射
+ */
+const workflowStatusMap = {
+  type: {
     pending: 'info',
     running: 'warning',
     completed: 'success',
     failed: 'danger',
     success: 'success'
-  }
-  return types[status] || 'info'
-}
-
-/**
- * 工作流执行状态文本映射
- */
-export const getWorkflowStatusText = (status: string): string => {
-  const texts: Record<string, string> = {
+  } as Record<string, string>,
+  text: {
     pending: '等待中',
     running: '执行中',
     completed: '已完成',
     failed: '失败',
     success: '成功'
-  }
-  return texts[status] || status
+  } as Record<string, string>
 }
 
+export const getWorkflowStatusType = createMapper(workflowStatusMap.type, 'info')
+export const getWorkflowStatusText = (status: string): string => 
+  workflowStatusMap.text[status] || status
+
 /**
- * 文档状态类型映射
+ * 文档状态映射
  */
-export const getDocumentStatusType = (status: string): string => {
-  const types: Record<string, string> = {
+const documentStatusMap = {
+  type: {
     uploading: 'info',
     processing: 'warning',
     processed: 'success',
     failed: 'danger'
-  }
-  return types[status] || 'info'
-}
-
-/**
- * 文档状态文本映射
- */
-export const getDocumentStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
+  } as Record<string, string>,
+  label: {
     uploading: '上传中',
     processing: '处理中',
     processed: '已完成',
     failed: '失败'
-  }
-  return labels[status] || status
+  } as Record<string, string>
 }
 
+export const getDocumentStatusType = createMapper(documentStatusMap.type, 'info')
+export const getDocumentStatusLabel = (status: string): string => 
+  documentStatusMap.label[status] || status
+
 /**
- * 知识库作用域类型映射
+ * 知识库作用域映射
  */
-export const getScopeTagType = (scopeType: string): string => {
-  const typeMap: Record<string, string> = {
+const scopeMap = {
+  tagType: {
     system: 'danger',
     school: 'warning',
     course: 'success',
     agent: 'info',
     personal: ''
-  }
-  return typeMap[scopeType] || ''
-}
-
-/**
- * 知识库作用域标签文本映射
- */
-export const getScopeLabel = (scopeType: string): string => {
-  const labelMap: Record<string, string> = {
+  } as Record<string, string>,
+  label: {
     system: '系统',
     school: '学校',
     course: '课程',
     agent: '智能体',
     personal: '个人'
-  }
-  return labelMap[scopeType] || scopeType
+  } as Record<string, string>
 }
 
+export const getScopeTagType = (scopeType: string): string => 
+  scopeMap.tagType[scopeType] || ''
+export const getScopeLabel = (scopeType: string): string => 
+  scopeMap.label[scopeType] || scopeType
+
 /**
- * 知识库访问级别类型映射
+ * 知识库访问级别映射
  */
-export const getAccessLevelTagType = (accessLevel: string): string => {
-  const typeMap: Record<string, string> = {
+const accessLevelMap = {
+  tagType: {
     public: 'success',
     protected: 'warning',
     private: 'info'
-  }
-  return typeMap[accessLevel] || ''
-}
-
-/**
- * 知识库访问级别标签文本映射
- */
-export const getAccessLevelLabel = (accessLevel: string): string => {
-  const labelMap: Record<string, string> = {
+  } as Record<string, string>,
+  label: {
     public: '公开',
     protected: '受保护',
     private: '私有'
-  }
-  return labelMap[accessLevel] || accessLevel
+  } as Record<string, string>
 }
+
+export const getAccessLevelTagType = (accessLevel: string): string => 
+  accessLevelMap.tagType[accessLevel] || ''
+export const getAccessLevelLabel = (accessLevel: string): string => 
+  accessLevelMap.label[accessLevel] || accessLevel
 

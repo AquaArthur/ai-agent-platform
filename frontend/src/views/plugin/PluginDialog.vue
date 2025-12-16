@@ -4,6 +4,7 @@
     :title="isEdit ? '编辑插件' : '新增插件'"
     width="800px"
     :close-on-click-modal="false"
+    class="plugin-dialog"
     @close="handleClose"
   >
     <!-- JSON 文件导入区域 -->
@@ -428,7 +429,7 @@ const handleClose = () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  background: var(--gradient-bg-light);
   border-radius: 8px;
   margin-bottom: 8px;
 }
@@ -443,5 +444,37 @@ const handleClose = () => {
   line-height: 1.5;
 }
 
-/* 使用公共样式类 */
+/* 对话框样式优化 */
+:deep(.plugin-dialog .el-dialog__body) {
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+:deep(.plugin-dialog .el-dialog__body::-webkit-scrollbar) {
+  width: 8px;
+}
+
+:deep(.plugin-dialog .el-dialog__body::-webkit-scrollbar-track) {
+  background: #f1f3f5;
+  border-radius: 4px;
+}
+
+:deep(.plugin-dialog .el-dialog__body::-webkit-scrollbar-thumb) {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+:deep(.plugin-dialog .el-dialog__body::-webkit-scrollbar-thumb:hover) {
+  background: #94a3b8;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 6px;
+  line-height: 1.5;
+}
 </style>

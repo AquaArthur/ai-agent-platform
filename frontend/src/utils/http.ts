@@ -1,11 +1,11 @@
-import axios from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 
 const BASE_API = import.meta.env.VITE_BASE_API || '/api'
 
 // 是否启用 Mock（仅用于 getHello 前后端连通性测试，默认 true，可通过环境变量控制）
 const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
 
-const http = axios.create({
+const axiosInstance = axios.create({
   baseURL: BASE_API,
   timeout: 15000,
   withCredentials: false,
@@ -16,14 +16,14 @@ const http = axios.create({
 })
 
 // 请求拦截：可在此注入 Token
-http.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config) => {
   // const token = localStorage.getItem('token')
   // if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
 // 响应拦截：统一处理后端的 {code,message,data,timestamp}
-http.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => {
     // 二进制下载等直接放行
     const rt = response.request?.responseType
@@ -62,6 +62,34 @@ http.interceptors.response.use(
     }
   }
 )
+
+// 类型安全的 HTTP 客户端
+// 由于响应拦截器已经解包了响应，所以返回类型是 T 而不是 AxiosResponse<T>
+interface HttpClient {
+  get: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<T>
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<T>
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<T>
+  delete: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<T>
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<T>
+}
+
+const http: HttpClient = {
+  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    return axiosInstance.get<T>(url, config) as Promise<T>
+  },
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    return axiosInstance.post<T>(url, data, config) as Promise<T>
+  },
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    return axiosInstance.put<T>(url, data, config) as Promise<T>
+  },
+  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    return axiosInstance.delete<T>(url, config) as Promise<T>
+  },
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    return axiosInstance.patch<T>(url, data, config) as Promise<T>
+  }
+}
 
 export { http }
 export { USE_MOCK }

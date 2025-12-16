@@ -3,7 +3,7 @@
     <el-input
       v-model="inputText"
       type="textarea"
-      :rows="3"
+      :rows="9"
       :placeholder="placeholder"
       :disabled="disabled"
       @keydown.ctrl.enter="handleSend"
@@ -73,8 +73,7 @@ defineExpose({
 
 <style scoped>
 .chat-input-container {
-  border-top: 1px solid var(--el-border-color-light);
-  padding: 12px;
+  padding: 6px 12px 6px 12px;
   background-color: var(--el-bg-color);
 }
 
@@ -82,7 +81,7 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 .input-tip {

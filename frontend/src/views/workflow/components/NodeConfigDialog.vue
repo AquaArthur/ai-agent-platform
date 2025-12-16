@@ -505,16 +505,13 @@
           </el-form-item>
         </template>
       </template>
-
-      <el-divider />
-
-      <div style="display: flex; gap: 12px; margin-top: 20px;">
-        <el-button @click="handleClose" style="flex: 1;">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" style="flex: 1;">
-          保存
-        </el-button>
-      </div>
     </el-form>
+    </div>
+    <div class="config-footer">
+      <el-button @click="handleClose" style="flex: 1;">取消</el-button>
+      <el-button type="primary" @click="handleSave" :loading="saving" style="flex: 1;">
+        保存
+      </el-button>
     </div>
   </el-drawer>
 </template>
@@ -1012,8 +1009,19 @@ watch(visible, (newVal) => {
 /* 配置内容容器 */
 .config-content {
   padding: 0;
-  height: 100%;
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  margin-bottom: 20px;
+}
+
+/* 底部按钮区域 */
+.config-footer {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .config-content::-webkit-scrollbar {
@@ -1040,10 +1048,20 @@ watch(visible, (newVal) => {
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
+:deep(.el-drawer__body) {
+  padding: 20px;
+  height: calc(100% - 60px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
 :deep(.el-drawer__header) {
-  margin-bottom: 20px;
+  margin-bottom: 0;
   padding-bottom: 16px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 :deep(.el-drawer__title) {
@@ -1133,7 +1151,7 @@ watch(visible, (newVal) => {
 }
 
 :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
   border: none;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
@@ -1168,7 +1186,7 @@ watch(visible, (newVal) => {
 }
 
 :deep(.el-slider__bar) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-bg-card-header);
   border-radius: 4px;
 }
 

@@ -10,10 +10,10 @@
       
       <div class="status-content">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="执行ID">{{ executionId }}</el-descriptions-item>
+          <el-descriptions-item label="执行ID">{{ executionId || '-' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(status)" size="small">
-              {{ getStatusText(status) }}
+            <el-tag :type="getWorkflowStatusType(status)" size="small">
+              {{ getWorkflowStatusText(status) }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="开始时间">
@@ -54,15 +54,15 @@
             <el-table-column prop="node_type" label="节点类型" width="120" />
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)" size="small">
-                  {{ getStatusText(row.status) }}
+                <el-tag :type="getWorkflowStatusType(row.status)" size="small">
+                  {{ getWorkflowStatusText(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="execution_time" label="执行时间(ms)" width="120" />
             <el-table-column label="输出" min-width="200">
               <template #default="{ row }">
-                <pre class="node-output">{{ formatOutput(row.output) }}</pre>
+                <pre class="node-output">{{ formatWorkflowOutput(row.output) }}</pre>
               </template>
             </el-table-column>
           </el-table>
@@ -77,6 +77,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getExecution, type WorkflowExecution } from '@/api/workflow'
 import { formatDate, getWorkflowStatusType, getWorkflowStatusText } from '@/utils/formatters'
+import { formatWorkflowOutput, getField } from '@/utils/workflow'
 
 const props = defineProps<{
   executionId: string
@@ -119,16 +120,15 @@ const loadStatus = async () => {
   
   loading.value = true
   try {
-    const response = await getExecution(props.executionId)
-    const data = response as unknown as WorkflowExecution
+    const data = await getExecution(props.executionId)
     
     status.value = data.status
-    startedAt.value = data.started_at || null
-    completedAt.value = data.completed_at || null
-    executionTime.value = data.execution_time || null
-    errorMessage.value = data.error_message || null
+    startedAt.value = getField(data, 'startedAt', 'started_at', null)
+    completedAt.value = getField(data, 'completedAt', 'completed_at', null)
+    executionTime.value = getField(data, 'executionTime', 'execution_time', null)
+    errorMessage.value = getField(data, 'errorMessage', 'error_message', null)
     output.value = data.output
-    nodeExecutions.value = data.node_executions || []
+    nodeExecutions.value = getField(data, 'nodeExecutions', 'node_executions', [])
     
     // 如果执行完成或失败，停止轮询
     if (status.value === 'completed' || status.value === 'failed') {
@@ -179,28 +179,13 @@ const refreshStatus = () => {
   loadStatus()
 }
 
-// 格式化输出
-const formatOutput = (val: any): string => {
-  if (typeof val === 'object' && val !== null) {
-    // 如果对象只有一个 output 字段，直接返回 output 的值
-    if (Object.keys(val).length === 1 && 'output' in val) {
-      return formatOutput(val.output) // 递归处理，防止 output 值也是对象
-    }
-    // 其他情况格式化为 JSON
-    return JSON.stringify(val, null, 2)
-  }
-  return String(val || '')
-}
-
 // 格式化后的输出
 const formattedOutput = computed(() => {
   if (!output.value) return ''
-  return formatOutput(output.value)
+  return formatWorkflowOutput(output.value)
 })
 
-// 使用公共工具函数
-const getStatusType = getWorkflowStatusType
-const getStatusText = getWorkflowStatusText
+// 直接使用导入的工具函数
 
 onMounted(() => {
   loadStatus()

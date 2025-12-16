@@ -23,9 +23,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { CircleCheck, Loading, Warning } from '@element-plus/icons-vue'
 import { getHello } from '@/api'
+import { showSuccess, handleError } from '@/utils/message'
 
 const message = ref<string>('')
 const loading = ref(false)
@@ -36,11 +36,10 @@ const fetchHello = async () => {
   try {
     const result = await getHello()
     message.value = result || '连接成功'
-    ElMessage.success('前后端连接正常')
+    showSuccess('前后端连接正常')
   } catch (error: any) {
-    console.error('Failed to fetch hello:', error)
-    message.value = error.message || '连接失败'
-    ElMessage.error('前后端连接失败')
+    handleError(error, '前后端连接失败', true)
+    message.value = error?.message || '连接失败'
   } finally {
     loading.value = false
   }
@@ -93,7 +92,7 @@ onMounted(() => {
 }
 
 .status-indicator.success {
-  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  background: var(--gradient-bg-success);
   box-shadow: 0 8px 24px rgba(103, 194, 58, 0.3);
 }
 
