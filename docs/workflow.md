@@ -319,8 +319,7 @@ Content-Type: application/json
 {
   "input": {
     "user_message": "打开客厅的灯"
-  },
-  "llm_model_id": "model-xxx"
+  }
 }
 ```
 
@@ -462,8 +461,7 @@ Content-Type: application/json
 {
   "input": {
     "team_name": "巴塞罗那"
-  },
-  "llm_model_id": "model-xxx"
+  }
 }
 ```
 
@@ -702,8 +700,7 @@ Content-Type: application/json
 {
   "input": {
     "user_input": "我想了解一下产品的售后服务政策"
-  },
-  "llm_model_id": "model-xxx"
+  }
 }
 ```
 
