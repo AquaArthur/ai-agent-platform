@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent` (
     `status` VARCHAR(20) NOT NULL DEFAULT 'draft' COMMENT '智能体状态（draft/published）',
     `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
     `workflow_id` VARCHAR(64) DEFAULT NULL COMMENT '绑定的工作流ID',
+    `workflows` JSON DEFAULT NULL COMMENT '关联的工作流ID列表（JSON数组格式）',
     `knowledge_base_id` VARCHAR(64) DEFAULT NULL COMMENT '绑定的知识库ID',
     `kb_ids` JSON DEFAULT NULL COMMENT '关联的知识库ID列表（JSON数组格式）',
     `tools_config` JSON DEFAULT NULL COMMENT '绑定的插件配置（JSON数组存储插件ID列表）',

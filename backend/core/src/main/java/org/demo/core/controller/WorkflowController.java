@@ -8,8 +8,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.demo.core.api.ApiResponse;
+import org.demo.core.mapper.AgentMapper;
 import org.demo.core.mapper.WorkflowMapper;
 import org.demo.core.mapper.WorkflowExecutionMapper;
+import org.demo.core.model.entity.Agent;
 import org.demo.core.model.entity.Workflow;
 import org.demo.core.model.entity.WorkflowExecution;
 import org.demo.core.workflow.service.WorkflowExecutionService;
@@ -30,6 +32,7 @@ import java.util.*;
 @Slf4j
 public class WorkflowController {
 
+    private final AgentMapper agentMapper;
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper workflowExecutionMapper;
     private final WorkflowExecutionService workflowExecutionService;
@@ -225,51 +228,58 @@ public class WorkflowController {
     /**
      * 执行工作流
      *
-     * @param uuid             工作流UUID
+     * @param agentId          智能体ID
+     * @param workflowId       工作流ID
      * @param executionRequest 执行请求参数
      * @return 执行结果
      */
-    @Operation(summary = "执行工作流", description = "触发工作流执行，传入初始输入参数。返回执行ID，可通过执行ID查询执行状态和结果")
-    @PostMapping("/{uuid}/execute")
+    @Operation(summary = "执行工作流", description = "触发工作流执行，传入智能体ID、工作流ID和初始输入参数。返回执行ID，可通过执行ID查询执行状态和结果")
+    @PostMapping("/execute")
     public ApiResponse<Map<String, Object>> executeWorkflow(
-            @Parameter(description = "工作流的UUID", required = true) @PathVariable String uuid,
-            @Parameter(description = "执行请求参数，这个对象包括 input 和 llm_model_id", required = true) @RequestBody Map<String, Object> executionRequest) {
+            @Parameter(description = "智能体ID", required = true) @RequestParam String agentId,
+            @Parameter(description = "工作流ID", required = true) @RequestParam String workflowId,
+            @Parameter(description = "执行请求参数，包含 input 字段", required = true) @RequestBody Map<String, Object> executionRequest) {
         
-        QueryWrapper<Workflow> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("uuid", uuid);
-        Workflow workflow = workflowMapper.selectOne(queryWrapper);
+        // 1. 查询智能体
+        Agent agent = agentMapper.selectById(agentId);
+        if (agent == null) {
+            return ApiResponse.fail("智能体不存在");
+        }
         
+        // 2. 查询工作流
+        Workflow workflow = workflowMapper.selectById(workflowId);
         if (workflow == null) {
             return ApiResponse.fail("工作流不存在");
         }
         
+        // 3. 验证智能体是否关联了该工作流
+        List<String> workflows = agent.getWorkflows();
+        if (workflows == null || !workflows.contains(workflowId)) {
+            return ApiResponse.fail("该智能体未关联此工作流，无法执行");
+        }
+        
+        // 4. 验证工作流是否有效
         if (!workflow.getIsValid()) {
             return ApiResponse.fail("工作流未通过验证，无法执行");
         }
         
-        // 获取输入参数和LLM模型ID
+        // 5. 获取输入参数
         @SuppressWarnings("unchecked")
         Map<String, Object> input = (Map<String, Object>) executionRequest.get("input");
-        String llmModelId = (String) executionRequest.get("llm_model_id");
-        
-        log.info("收到工作流执行请求: workflowId={}, input={}, llmModelId={}", workflow.getId(), input, llmModelId);
-        
         if (input == null) {
             input = new HashMap<>();
         }
         
-//        if (llmModelId == null || llmModelId.isEmpty()) {
-//            return ApiResponse.fail("缺少必需参数: llm_model_id");
-//        }
+        log.info("收到工作流执行请求: agentId={}, workflowId={}, input={}", agentId, workflowId, input);
         
-        // 异步执行工作流
+        // 6. 异步执行工作流
         String executionId;
         try {
             executionId = workflowExecutionService.executeWorkflowAsync(
                 workflow.getId(),
                 input,
                 workflow.getUserId(), // TODO: 使用当前登录用户
-                llmModelId
+                agentId
             );
         } catch (Exception e) {
             return ApiResponse.fail("工作流执行失败: " + e.getMessage());

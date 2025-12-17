@@ -80,11 +80,12 @@ public class WorkflowExecutor {
      *
      * @param workflow 工作流定义
      * @param input 输入参数
-     * @param llmModelId LLM模型ID
+     * @param llmModelId LLM模型ID（已废弃，从节点配置获取）
+     * @param agentId 智能体ID
      * @return 执行结果
      */
-    public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId) {
-        return execute(workflow, input, llmModelId, null);
+    public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId, String agentId) {
+        return execute(workflow, input, llmModelId, agentId, null);
     }
 
     /**
@@ -92,11 +93,12 @@ public class WorkflowExecutor {
      *
      * @param workflow 工作流定义
      * @param input 输入参数
-     * @param llmModelId LLM模型ID
+     * @param llmModelId LLM模型ID（已废弃，从节点配置获取）
+     * @param agentId 智能体ID
      * @param nodeCallback 节点执行完成回调
      * @return 执行结果
      */
-    public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId, NodeExecutionCallback nodeCallback) {
+    public WorkflowExecutionResult execute(Workflow workflow, Map<String, Object> input, String llmModelId, String agentId, NodeExecutionCallback nodeCallback) {
         WorkflowExecutionResult result = new WorkflowExecutionResult();
         result.setWorkflowId(workflow.getId());
         result.setStartTime(LocalDateTime.now());
@@ -108,7 +110,7 @@ public class WorkflowExecutor {
 
             // 2. 初始化执行上下文
             Map<String, Object> nodeOutputs = new HashMap<>();
-            ExecutionContext context = new ExecutionContext(input, nodeOutputs, llmModelId);
+            ExecutionContext context = new ExecutionContext(input, nodeOutputs, llmModelId, agentId);
 
             // 3. 构建执行顺序
             List<Workflow.WorkflowNode> executionOrder = buildExecutionOrder(workflow);

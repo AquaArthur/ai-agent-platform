@@ -12,8 +12,15 @@ import lombok.EqualsAndHashCode;
 public class LLMNodeConfig extends BaseNodeConfig {
     /**
      * 关联的智能体UUID（必填）
+     * @deprecated 改为从ExecutionContext获取agentId
      */
+    @Deprecated
     private String agentUuid;
+
+    /**
+     * LLM模型ID（必填，节点创建时配置）
+     */
+    private String llmModelId;
 
     /**
      * 提示词，支持变量替换（必填）
@@ -36,8 +43,8 @@ public class LLMNodeConfig extends BaseNodeConfig {
 
     @Override
     public void validate() {
-        if (agentUuid == null || agentUuid.trim().isEmpty()) {
-            throw new IllegalArgumentException("LLM节点的 agentUuid 不能为空");
+        if (llmModelId == null || llmModelId.trim().isEmpty()) {
+            throw new IllegalArgumentException("LLM节点的 llmModelId 不能为空");
         }
         if (prompt == null || prompt.trim().isEmpty()) {
             throw new IllegalArgumentException("LLM节点的 prompt 不能为空");
