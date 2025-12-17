@@ -24,6 +24,11 @@ public class ExecutionContext {
      */
     private String llmModelId;
 
+    /**
+     * Agent ID（用于获取智能体信息）
+     */
+    private String agentId;
+
     public ExecutionContext(Map<String, Object> input, Map<String, Object> nodeOutputs) {
         this.input = input;
         this.nodeOutputs = nodeOutputs;
@@ -33,6 +38,13 @@ public class ExecutionContext {
         this.input = input;
         this.nodeOutputs = nodeOutputs;
         this.llmModelId = llmModelId;
+    }
+
+    public ExecutionContext(Map<String, Object> input, Map<String, Object> nodeOutputs, String llmModelId, String agentId) {
+        this.input = input;
+        this.nodeOutputs = nodeOutputs;
+        this.llmModelId = llmModelId;
+        this.agentId = agentId;
     }
 
     public Map<String, Object> getInput() {
@@ -49,6 +61,14 @@ public class ExecutionContext {
 
     public void setLlmModelId(String llmModelId) {
         this.llmModelId = llmModelId;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
     }
 
     /**

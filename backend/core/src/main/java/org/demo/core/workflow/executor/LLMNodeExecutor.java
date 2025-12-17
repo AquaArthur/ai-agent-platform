@@ -33,22 +33,27 @@ public class LLMNodeExecutor implements NodeExecutor {
         
         LLMNodeConfig llmConfig = (LLMNodeConfig) config;
         
-        // 查询智能体获取agentId
-        Agent agent = agentMapper.selectById(((LLMNodeConfig) config).getAgentUuid());
-        
-        if (agent == null) {
-            throw new IllegalArgumentException("智能体不存在: " + llmConfig.getAgentUuid());
+        // 从上下文获取智能体ID
+        String agentId = context.getAgentId();
+        if (agentId == null || agentId.isEmpty()) {
+            throw new IllegalArgumentException("未指定智能体ID");
         }
         
-        // 从上下文获取LLM模型ID
-        String llmModelId = context.getLlmModelId();
+        // 查询智能体验证存在性
+        Agent agent = agentMapper.selectById(agentId);
+        if (agent == null) {
+            throw new IllegalArgumentException("智能体不存在: " + agentId);
+        }
+        
+        // 从节点配置获取LLM模型ID
+        String llmModelId = llmConfig.getLlmModelId();
         if (llmModelId == null || llmModelId.isEmpty()) {
-            throw new IllegalArgumentException("未指定LLM模型ID");
+            throw new IllegalArgumentException("LLM节点未配置模型ID");
         }
         
         // 调用LLM服务
         String response = llmService.chat(
-            agent.getId(),
+            agentId,
             llmModelId,
             llmConfig.getPrompt(),
             null // conversationHistory
@@ -56,7 +61,8 @@ public class LLMNodeExecutor implements NodeExecutor {
         
         Map<String, Object> result = new HashMap<>();
         result.put("output", response);
-        result.put("agentUuid", llmConfig.getAgentUuid());
+        result.put("agentId", agentId);
+        result.put("llmModelId", llmModelId);
         result.put("prompt", llmConfig.getPrompt());
         
         return result;

@@ -42,6 +42,7 @@ public class LlmController {
     @GetMapping("/models")
     public ApiResponse<List<LlmModel>> selectAllModels() {
         List<LlmModel> models = llmModelMapper.selectList(new QueryWrapper<>());
+        models = models.stream().peek(m -> m.setApiKey("************")).toList();
         return ApiResponse.ok(models);
     }
 
@@ -64,6 +65,7 @@ public class LlmController {
         if (model == null) {
             return ApiResponse.fail("LLM模型不存在");
         }
+        model.setApiKey("************");
         return ApiResponse.ok(model);
     }
 
