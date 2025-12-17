@@ -30,8 +30,15 @@ public class IntentNodeConfig extends BaseNodeConfig {
 
     /**
      * 当使用llm方式时，关联的智能体UUID
+     * @deprecated 改为从ExecutionContext获取agentId
      */
+    @Deprecated
     private String agentUuid;
+
+    /**
+     * 当使用llm方式时，LLM模型ID（必填）
+     */
+    private String llmModelId;
 
     /**
      * 当使用keyword方式时，每个意图对应的关键词列表
@@ -55,8 +62,8 @@ public class IntentNodeConfig extends BaseNodeConfig {
             (!recognitionMethod.equals("llm") && !recognitionMethod.equals("keyword"))) {
             throw new IllegalArgumentException("Intent节点的 recognitionMethod 只支持 llm 或 keyword");
         }
-        if ("llm".equals(recognitionMethod) && (agentUuid == null || agentUuid.trim().isEmpty())) {
-            throw new IllegalArgumentException("使用 llm 识别方式时，agentUuid 不能为空");
+        if ("llm".equals(recognitionMethod) && (llmModelId == null || llmModelId.trim().isEmpty())) {
+            throw new IllegalArgumentException("使用 llm 识别方式时，llmModelId 不能为空");
         }
         if ("keyword".equals(recognitionMethod) && (keywords == null || keywords.isEmpty())) {
             throw new IllegalArgumentException("使用 keyword 识别方式时，keywords 不能为空");

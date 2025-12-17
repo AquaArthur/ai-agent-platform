@@ -71,8 +71,15 @@ public class Agent {
     /**
      * 绑定的工作流ID
      */
+    @Deprecated
     @TableField("workflow_id")
     private String workflowId;
+
+    /**
+     * 关联的工作流ID列表（JSON数组格式）
+     */
+    @TableField(value = "workflows", typeHandler = JacksonTypeHandler.class)
+    private List<String> workflows;
 
     /**
      * 绑定的知识库ID
