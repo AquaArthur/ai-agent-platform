@@ -34,10 +34,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
-import type { Node } from '@vue-flow/core'
 
 interface Props {
-  data?: {
+  data: {
     label?: string;
     config?: Record<string, any>;
     color?: { bg: string; border: string };
@@ -47,7 +46,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const hasConfig = computed(() => {
-  return props.data?.config && Object.keys(props.data.config).length > 0
+  return props.data.config && Object.keys(props.data.config).length > 0
 })
 </script>
 

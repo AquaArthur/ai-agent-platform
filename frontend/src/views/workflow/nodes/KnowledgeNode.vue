@@ -2,8 +2,8 @@
   <div
     class="knowledge-node workflow-node-base"
     :style="{
-      background: data.color?.bg || '#909399',
-      borderColor: data.color?.border || 'rgba(255, 255, 255, 0.3)',
+      background: data?.color?.bg || '#909399',
+      borderColor: data?.color?.border || 'rgba(255, 255, 255, 0.3)',
       '--node-hover-shadow-color': 'rgba(59, 130, 246, 0.45)',
       '--node-selected-shadow-color': 'rgba(59, 130, 246, 0.3)',
       '--node-selected-shadow-color-strong': 'rgba(59, 130, 246, 0.4)',

@@ -257,6 +257,7 @@ const loadPlugins = async () => {
   try {
     // 使用较大的pageSize获取所有插件，后续可以考虑支持后端搜索和过滤
     const result = await pluginStore.fetchPluginList({ page: 1, pageSize: 1000 })
+    console.log('Fetched plugin list result:', result); // 添加日志
     pluginList.value = result.list
     // 触发过滤计算以更新总数
     handleSearch()
@@ -367,6 +368,7 @@ const handleDelete = async (plugin: Plugin) => {
 const handleDialogSuccess = () => {
   dialogVisible.value = false
   currentPlugin.value = null
+  loadPlugins() // 重新加载插件列表，确保数据显示最新
 }
 
 // 切换插件状态
@@ -449,12 +451,8 @@ const executeTest = async () => {
 }
 
 // 初始化加载数据
-onMounted(async () => {
-  try {
-    await pluginStore.fetchPluginList()
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载插件列表失败')
-  }
+onMounted(() => {
+  loadPlugins()
 })
 </script>
 

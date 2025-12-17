@@ -133,7 +133,13 @@
       style="margin-top: 20px; justify-content: center;"
     />
   </div>
-</template>
+    <!-- 模型编辑/创建弹窗 -->
+    <ModelDialog
+      v-model="dialogVisible"
+      :model="currentModel"
+      @success="handleDialogSuccess"
+    />
+  </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
@@ -152,6 +158,7 @@ import {
 import { getLlmModelList, deleteLlmModel, updateLlmModel } from '@/api/llm'
 import type { LlmModel } from '@/types/entity'
 import { formatDateTime } from '@/utils/formatters'
+import ModelDialog from './ModelDialog.vue' // 导入 ModelDialog 组件
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -161,6 +168,10 @@ const filterStatus = ref<boolean | null>(null)
 const loading = ref(false)
 // 模型列表
 const models = ref<LlmModel[]>([])
+// 弹窗可见性
+const dialogVisible = ref(false)
+// 当前编辑的模型
+const currentModel = ref<LlmModel | null>(null)
 
 // 分页配置
 const pagination = reactive({
@@ -235,14 +246,14 @@ const handlePageChange = () => {
 
 // 创建模型
 const handleCreate = () => {
-  // TODO: 实现创建模型功能
-  ElMessage.info('创建模型功能待实现')
+  currentModel.value = null
+  dialogVisible.value = true
 }
 
 // 编辑模型
-const handleEdit = (_model: LlmModel) => {
-  // TODO: 实现编辑模型功能
-  ElMessage.info('编辑模型功能待实现')
+const handleEdit = (model: LlmModel) => {
+  currentModel.value = { ...model }
+  dialogVisible.value = true
 }
 
 // 删除模型
@@ -291,6 +302,13 @@ const handleToggleStatus = async (model: LlmModel) => {
 onMounted(() => {
   loadModels()
 })
+
+// 弹窗成功回调
+const handleDialogSuccess = () => {
+  dialogVisible.value = false
+  currentModel.value = null
+  loadModels() // 重新加载模型列表，确保数据显示最新
+}
 </script>
 
 <style scoped>
