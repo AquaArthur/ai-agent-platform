@@ -1,0 +1,46 @@
+# Maven 构建目录（保留target/*.jar）
+target/
+!target/*.jar
+
+# Maven wrapper
+.mvn/
+
+# IDE 相关文件
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# 日志文件
+*.log
+logs/
+
+# Git 相关
+.git/
+.gitignore
+
+# 文档文件
+README.md
+*.md
+
+# 测试相关
+src/test/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 环境变量文件（如果有的话）
+.env
+.env.local
+.env.dev
+.env.prod
+
+# 其他不需要的文件
+*.bak
+*.swp
+*~
+

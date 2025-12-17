@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:mysql://mysql:3306/ai_agent_platform_db?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true}
+    username: ${DATASOURCE_USERNAME:root}
+    password: ${DATASOURCE_PASSWORD:change_this_in_production}
+    hikari:
+      # 生产环境优化连接池配置
+      minimum-idle: 10
+      maximum-pool-size: 50
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 900000
+
+# 生产环境日志级别
+logging:
+  level:
+    root: ${LOG_LEVEL:WARN}
+    org.demo.core: ${APP_LOG_LEVEL:INFO}
+    org.demo.core.mapper: ${MAPPER_LOG_LEVEL:WARN}
+
+# 关闭 Swagger（生产环境建议关闭）
+springdoc:
+  api-docs:
+    enabled: ${ENABLE_SWAGGER:false}
+  swagger-ui:
+    enabled: ${ENABLE_SWAGGER:false}
+
+# RAG 服务配置（生产环境使用 Docker 服务名 'kb'）
+rag:
+  service-base-url: ${RAG_SERVICE_BASE_URL:http://kb:8000}
+  api:
+    base-url: ${RAG_SERVICE_BASE_URL:http://kb:8000}
+  timeout-ms: ${RAG_TIMEOUT_MS:5000}  # 生产环境增加超时时间
+  alpha: ${RAG_ALPHA:0.7}
+  beta: ${RAG_BETA:0.3}
+
+# 插件配置
+plugin:
+  invoke:
+    # 插件调用默认超时时间（毫秒）
+    timeout: ${PLUGIN_TIMEOUT:60000}  # 生产环境增加超时时间
+
+# MyBatis Plus 配置（生产环境关闭SQL日志）
+mybatis-plus:
+  configuration:
+    log-impl: ${MYBATIS_LOG_IMPL:}  # 生产环境不输出SQL日志
+
+# 管理端点配置（生产环境限制暴露）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+

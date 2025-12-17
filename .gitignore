@@ -13,8 +13,10 @@ target/
 dist/
 build/
 
-# 环境变量文件
+# 环境变量文件（只保留 *.example）
 .env
+.env.*
+!*.example
 
 # Ignore python files
 venv/

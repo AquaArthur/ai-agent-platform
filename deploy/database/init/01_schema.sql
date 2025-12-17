@@ -5,25 +5,25 @@
 -- 描述: 根据数据库设计文档生成的完整表结构定义
 -- ============================================================
 
+
 -- 设置字符集和排序规则
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================
--- 创建数据库
+-- 数据库已由 MySQL 容器自动创建
+-- 容器启动时会根据 MYSQL_DATABASE 环境变量创建数据库
 -- ============================================================
-CREATE DATABASE IF NOT EXISTS `ai_agent_platform_db` 
-    DEFAULT CHARACTER SET utf8mb4 
-    COLLATE utf8mb4_unicode_ci;
 
-USE `ai_agent_platform_db`;
+-- 注意：MySQL 容器会自动切换到 MYSQL_DATABASE 指定的数据库
+-- 所以这里不需要 USE 语句
 
 -- ============================================================
 -- 1. 用户表 (user)
 -- 功能: 存储用户账号信息及认证数据
 -- 关联用户故事: US-019, US-020, US-021
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`user` (
+CREATE TABLE IF NOT EXISTS `user` (
     `id` VARCHAR(64) NOT NULL COMMENT '用户唯一标识',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名（必填,用于登录）',
     `email` VARCHAR(100) NOT NULL COMMENT '邮箱地址（必填,用于登录和验证）',
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`user` (
 -- 功能: 存储智能体的基本信息、配置及状态
 -- 关联用户故事: US-001, US-002, US-003, US-004, US-005, US-017, US-022
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent` (
+CREATE TABLE IF NOT EXISTS `agent` (
     `id` VARCHAR(64) NOT NULL COMMENT '智能体唯一标识',
     `name` VARCHAR(100) NOT NULL COMMENT '智能体名称（必填）',
     `description` TEXT DEFAULT NULL COMMENT '智能体描述',
@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent` (
     `status` VARCHAR(20) NOT NULL DEFAULT 'draft' COMMENT '智能体状态（draft/published）',
     `user_id` VARCHAR(64) NOT NULL COMMENT '创建者ID',
     `workflow_id` VARCHAR(64) DEFAULT NULL COMMENT '绑定的工作流ID',
+    `workflows` JSON DEFAULT NULL COMMENT '关联的工作流ID列表（JSON数组格式）',
     `knowledge_base_id` VARCHAR(64) DEFAULT NULL COMMENT '绑定的知识库ID',
     `kb_ids` JSON DEFAULT NULL COMMENT '关联的知识库ID列表（JSON数组格式）',
     `tools_config` JSON DEFAULT NULL COMMENT '绑定的插件配置（JSON数组存储插件ID列表）',
@@ -78,7 +79,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent` (
 -- 功能: 存储智能体的对话历史记录
 -- 关联用户故事: US-004, US-018
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_conversation` (
+CREATE TABLE IF NOT EXISTS `agent_conversation` (
     `id` VARCHAR(64) NOT NULL COMMENT '对话记录ID',
     `session_id` VARCHAR(64) NOT NULL COMMENT '会话ID（聚合多轮对话）',
     `agent_id` VARCHAR(64) NOT NULL COMMENT '智能体ID',
@@ -100,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_conversation` (
 -- 功能: 存储工作流的定义、配置及状态
 -- 关联用户故事: US-011, US-012, US-013
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow` (
+CREATE TABLE IF NOT EXISTS `workflow` (
     `id` VARCHAR(64) NOT NULL COMMENT '工作流唯一标识',
     `uuid` VARCHAR(36) DEFAULT NULL COMMENT '工作流UUID（用于外部接口）',
     `agent_id` VARCHAR(64) DEFAULT NULL COMMENT '所属智能体ID',
@@ -131,7 +132,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow` (
 -- 功能: 记录工作流的每一次动态执行实例
 -- 关联用户故事: US-012, US-013
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_execution` (
+CREATE TABLE IF NOT EXISTS `workflow_execution` (
     `id` INT NOT NULL AUTO_INCREMENT COMMENT '执行记录ID',
     `execution_id` VARCHAR(36) NOT NULL COMMENT '执行UUID（用于外部查询）',
     `workflow_id` VARCHAR(64) NOT NULL COMMENT '工作流ID',
@@ -161,7 +162,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`workflow_execution` (
 -- 功能: 存储知识库的基本信息，支持分级设计
 -- 关联用户故事: US-006, US-008, US-010
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`knowledge_base` (
+CREATE TABLE IF NOT EXISTS `knowledge_base` (
     `id` VARCHAR(64) NOT NULL COMMENT '知识库唯一标识',
     `uuid` VARCHAR(36) DEFAULT NULL COMMENT 'UUID标识',
     `name` VARCHAR(100) NOT NULL COMMENT '知识库名称（必填）',
@@ -209,7 +210,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`knowledge_base` (
 -- 功能: 存储智能体与知识库的多对多关联关系
 -- 关联用户故事: US-001, US-006
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_knowledge_base` (
+CREATE TABLE IF NOT EXISTS `agent_knowledge_base` (
     `id` VARCHAR(64) NOT NULL COMMENT '关联记录唯一标识',
     `agent_id` VARCHAR(64) NOT NULL COMMENT '智能体ID',
     `knowledge_base_id` VARCHAR(64) NOT NULL COMMENT '知识库ID',
@@ -231,7 +232,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`agent_knowledge_base` (
 -- 功能: 存储知识库中上传的文档信息及处理状态
 -- 关联用户故事: US-007, US-008
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`document` (
+CREATE TABLE IF NOT EXISTS `document` (
     `id` VARCHAR(64) NOT NULL COMMENT '文档唯一标识',
     `uuid` VARCHAR(36) NOT NULL COMMENT '文档UUID（用于外部接口）',
     `name` VARCHAR(255) NOT NULL COMMENT '文档名称（显示名称）',
@@ -266,7 +267,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`document` (
 -- 功能: 存储插件的注册信息、配置及状态
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin` (
+CREATE TABLE IF NOT EXISTS `plugin` (
     `id` VARCHAR(64) NOT NULL COMMENT '插件唯一标识',
     `name` VARCHAR(100) NOT NULL COMMENT '插件名称',
     `identifier` VARCHAR(100) DEFAULT NULL COMMENT '插件唯一标识符（key）',
@@ -295,7 +296,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin` (
 -- 功能: 存储每个插件的接口操作信息
 -- 关联用户故事: US-014, US-015, US-016
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin_operation` (
+CREATE TABLE IF NOT EXISTS `plugin_operation` (
     `id` VARCHAR(64) NOT NULL COMMENT '插件操作唯一标识',
     `plugin_id` VARCHAR(64) NOT NULL COMMENT '所属插件ID',
     `operation_id` VARCHAR(100) NOT NULL COMMENT 'OpenAPI中的operationId（如getSensorData）',
@@ -317,7 +318,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`plugin_operation` (
 -- 功能: 存储系统操作日志及审计信息
 -- 关联用户故事: US-023
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_log` (
+CREATE TABLE IF NOT EXISTS `system_log` (
     `id` VARCHAR(64) NOT NULL COMMENT '日志唯一标识',
     `user_id` VARCHAR(64) DEFAULT NULL COMMENT '操作人ID（NULL表示系统操作）',
     `module` VARCHAR(50) NOT NULL COMMENT '操作模块（agent/workflow/plugin/knowledge_base等）',
@@ -338,7 +339,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_log` (
 -- 功能: 存储系统全局配置信息
 -- 关联用户故事: US-022
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_config` (
+CREATE TABLE IF NOT EXISTS `system_config` (
     `id` VARCHAR(64) NOT NULL COMMENT '配置唯一标识',
     `config_key` VARCHAR(100) NOT NULL COMMENT '配置键（如default_model、max_upload_size）',
     `config_value` TEXT NOT NULL COMMENT '配置值',
@@ -354,7 +355,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`system_config` (
 -- 功能: 存储LLM提供商信息
 -- 关联用户故事: US-022
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_providers` (
+CREATE TABLE IF NOT EXISTS `llm_providers` (
     `id` VARCHAR(64) NOT NULL COMMENT '提供商唯一标识',
     `code` VARCHAR(50) NOT NULL COMMENT '提供商代码',
     `name` VARCHAR(100) NOT NULL COMMENT '提供商名称',
@@ -381,7 +382,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_providers` (
 -- 功能: 存储LLM模型配置信息
 -- 关联用户故事: US-022
 -- ============================================================
-CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_models` (
+CREATE TABLE IF NOT EXISTS `llm_models` (
     `id` VARCHAR(64) NOT NULL COMMENT '模型唯一标识',
     `name` VARCHAR(100) NOT NULL COMMENT '模型名称',
     `display_name` VARCHAR(100) NOT NULL COMMENT '模型显示名称',
@@ -414,7 +415,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_platform_db`.`llm_models` (
 -- 功能: 存储文档分片后的向量
 
 -- ============================================================
-create table if not exists `ai_agent_platform_db`.`vector` (
+create table if not exists `vector` (
     id          bigint auto_increment comment '向量唯一标识'
         primary key,
     document_id VARCHAR(64)                         not null comment '所属文档id',
@@ -425,7 +426,7 @@ create table if not exists `ai_agent_platform_db`.`vector` (
     vector_dim  int                                 null comment '向量维度，便于一致性检查',
     create_time timestamp default CURRENT_TIMESTAMP null,
     constraint fk_vector_kb
-        foreign key (kb_id) references `ai_agent_platform_db`.`knowledge_base` (id)
+        foreign key (kb_id) references `knowledge_base` (id)
             on delete cascade
 )
 ENGINE=InnoDB 
@@ -434,14 +435,12 @@ COLLATE=utf8mb4_unicode_ci
 comment '文档向量表';
 
 create index idx_kb_document
-    on `ai_agent_platform_db`.`vector` (document_id, kb_id);
-
-
+    on `vector` (document_id, kb_id);
 
 -- ============================================================
 -- 初始化系统配置数据
 -- ============================================================
-INSERT INTO `ai_agent_platform_db`.`system_config` (`id`, `config_key`, `config_value`, `description`) VALUES
+INSERT INTO `system_config` (`id`, `config_key`, `config_value`, `description`) VALUES
 ('config_001', 'default_model', 'gpt-4', '默认大模型'),
 ('config_002', 'max_upload_size', '104857600', '最大上传文件大小（字节，默认100MB）'),
 ('config_003', 'enable_registration', 'true', '是否开放注册');

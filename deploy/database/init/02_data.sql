@@ -9,7 +9,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-USE `ai_agent_platform_db`;
+-- 注意：MySQL 容器会自动切换到 MYSQL_DATABASE 指定的数据库
+-- 所以这里不需要 USE 语句
 
 -- ------------------------------------------------------------
 -- 清空现有测试数据（可选，但推荐在测试环境中执行）
@@ -41,7 +42,7 @@ INSERT INTO `user` (`id`, `username`, `email`, `password`, `nickname`, `role`, `
 -- ============================================================
 -- 2. 智能体表 (agent) - 增加一个仅用插件的Agent
 -- ------------------------------------------------------------
-INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `status`, `user_id`, `workflow_id`, `kb_ids`, `tools_config`, `create_time`) VALUES
+INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `status`, `user_id`, `workflow_id`, `workflows`, `kb_ids`, `tools_config`, `create_time`) VALUES
 ('agent-001-smarthome', '智能家居助理', '你可以控制家里的LED灯，查询室内温度，并能回答关于设备文档的问题。', '你是一个友好的智能家居助手，可以帮助用户控制IoT设备。
 
 ## 设备信息
@@ -106,8 +107,8 @@ INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `sta
 ## 特别提示
 - 所有操作都自动使用设备UUID变量，你无需管理
 - 如果接口返回错误，友好地告知用户"暂时无法操作，请稍后重试"
-- 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["kb-001-dev", "kb-002-faq"]', '["plugin_be2e083736e0"]', '2025-11-22 10:00:00'),
-('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '["plugin-003-calendar"]', '2025-11-23 09:30:00'),
+- 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["wf-001-home-ctrl", "wf-002-auto-off","wf-005-knowledge-only"]', '["kb-001-dev", "kb-002-faq"]', '["plugin_be2e083736e0"]', '2025-11-22 10:00:00'),
+('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '[]', '["plugin-003-calendar"]', '2025-11-23 09:30:00'),
 ('agent-003-football', '足球冠军查询助手', '专门用于查询欧洲五大联赛球队的历史冠军荣誉，以表格形式展示。', '你是一位足球历史专家，精通欧洲五大联赛（英超、西甲、意甲、德甲、法甲）各支球队的冠军荣誉历史。
 
 ## 你的任务
@@ -146,7 +147,7 @@ INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `sta
 | 国王杯 | 19次 | 1905, 1906, ..., 2014 |
 | ... | ... | ... |
 
-皇家马德里是欧冠历史上最成功的球队！⚽"', '{"model": "model-001-qwen-turbo", "temperature": 0.3}', 'published', 'user-002-home', 'wf-003-llm-only', '[]', '[]', '2025-12-12 10:00:00');
+皇家马德里是欧冠历史上最成功的球队！⚽"', '{"model": "model-001-qwen-turbo", "temperature": 0.3}', 'published', 'user-002-home', 'wf-003-llm-only', '["wf-003-llm-only","wf-008-complex-string","wf-007-string-only"]', '[]', '[]', '2025-12-12 10:00:00');
 
 -- 关联 Agent 和 Workflow
 UPDATE `workflow` SET `agent_id` = 'agent-001-smarthome' WHERE `id` = 'wf-001-home-ctrl';
@@ -169,7 +170,7 @@ INSERT INTO `agent_conversation` (`id`, `session_id`, `agent_id`, `user_id`, `qu
 -- ------------------------------------------------------------
 INSERT INTO `workflow` (`id`, `uuid`, `agent_id`, `name`, `description`, `nodes`, `edges`, `config`, `is_valid`, `is_active`, `is_public`, `execution_count`, `success_count`, `user_id`, `create_time`) VALUES
 ('wf-001-home-ctrl', 'wf-uuid-001', 'agent-001-smarthome', '智能家居控制与反馈', '根据用户请求，执行灯光控制或温度查询，并提供知识库支持。', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"意图识别","position":{"x":250,"y":100},"config":{"agentUuid":"agent-001-smarthome","prompt":"识别用户意图：{input.user_message}","temperature":0.7,"maxTokens":2000}},{"id":"node_3","type":"http","label":"调用插件","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/control","method":"POST","headers":{"Content-Type":"application/json"},"body":{"intent":"{node_2.output}"}}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]', 
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"意图识别","position":{"x":250,"y":100},"config":{"llmModelId":"model-001-qwen-turbo","prompt":"识别用户意图：{input.user_message}","temperature":0.7,"maxTokens":2000}},{"id":"node_3","type":"http","label":"调用插件","position":{"x":400,"y":100},"config":{"url":"https://plugin.smarthome.local/control","method":"POST","headers":{"Content-Type":"application/json"},"body":{"intent":"{node_2.output}"}}},{"id":"node_4","type":"end","label":"结束","position":{"x":550,"y":100},"config":{}}]', 
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"},{"id":"edge_3","source":"node_3","target":"node_4"}]',
 '{"stop_on_error":false,"timeout":300,"retry_on_failure":false}', 
 TRUE, TRUE, FALSE, 4, 3, 'user-002-home', '2025-11-20 09:00:00'),
@@ -182,7 +183,7 @@ TRUE, TRUE, FALSE, 1, 1, 'user-002-home', '2025-11-21 15:00:00'),
 
 -- 单节点类型工作流示例
 ('wf-003-llm-only', 'wf-uuid-003', 'agent-003-football', 'LLM节点示例-足球冠军查询', '展示LLM节点的基本用法，查询五大联赛球队冠军荣誉', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"文本生成","position":{"x":250,"y":100},"config":{"agentUuid":"agent-003-football","prompt":"请为以下球队生成冠军荣誉表格：{input.team_name}","temperature":0.3,"maxTokens":1000}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"llm","label":"文本生成","position":{"x":250,"y":100},"config":{"llmModelId":"model-001-qwen-turbo","prompt":"请为以下球队生成冠军荣誉表格：{input.team_name}","temperature":0.3,"maxTokens":1000}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
 '{"stop_on_error":false,"timeout":120,"retry_on_failure":false}',
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:00:00'),
@@ -200,7 +201,7 @@ TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:10:00'),
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:20:00'),
 
 ('wf-006-intent-only', 'wf-uuid-006', 'agent-001-smarthome', '意图识别节点示例', '展示意图识别节点的基本用法', 
-'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"intent","label":"意图分类","position":{"x":250,"y":100},"config":{"inputText":"{input.user_input}","intentCategories":["查询","操作","咨询"],"recognitionMethod":"llm","agentUuid":"agent-001-smarthome"}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
+'[{"id":"node_1","type":"start","label":"开始","position":{"x":100,"y":100},"config":{}},{"id":"node_2","type":"intent","label":"意图分类","position":{"x":250,"y":100},"config":{"inputText":"{input.user_input}","intentCategories":["查询","操作","咨询"],"recognitionMethod":"llm","llmModelId":"model-001-qwen-turbo"}},{"id":"node_3","type":"end","label":"结束","position":{"x":400,"y":100},"config":{}}]',
 '[{"id":"edge_1","source":"node_1","target":"node_2"},{"id":"edge_2","source":"node_2","target":"node_3"}]',
 '{"stop_on_error":false,"timeout":60,"retry_on_failure":false}',
 TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 10:30:00'),
@@ -345,7 +346,7 @@ INSERT INTO `ai_agent_platform_db`.`system_config` (`id`, `config_key`, `config_
 -- 14. LLM提供商表 (llm_providers) - 初始数据
 -- ------------------------------------------------------------
 INSERT INTO `llm_providers` (`id`, `code`, `name`, `title`, `description`, `apply_url`, `doc_url`, `default_api_base`, `has_free_quota`, `tag_type`, `country`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
-('provider-001-qwen', 'qwen', '通义千问', '阿里云通义千问（模型服务平台百炼）', '阿里云自研的大语言模型，支持中文对话、代码生成、Function Calling 等功能。提供 Turbo、Plus、Max 等多个版本，性能强劲，响应快速。', 'https://dashscope.console.aliyun.com/', 'https://help.aliyun.com/zh/model-studio/qwen-api-reference', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 1, 'primary', 'cn', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('provider-001-qwen', 'qwen', '通义千问', '阿里云通义千问（模型服务平台百炼）', '阿里云自研的大语言模型，支持中文对话、代码生成、Function Calling 等功能。提供 Turbo、Plus、Max 等多个版本，性能强劲，响应快速。', 'https://dashscope.aliyuncs.com/', 'https://help.aliyun.com/zh/model-studio/qwen-api-reference', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 1, 'primary', 'cn', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('provider-002-doubao', 'doubao', '豆包', '火山引擎豆包（字节跳动）', '字节跳动自研的大语言模型，推理能力强，响应快速。支持多种场景应用，包括对话、文本生成、Kimi长文本等。火山引擎方舟平台提供稳定的API服务。', 'https://console.volcengine.com/ark', 'https://www.volcengine.com/docs/82379/1330310', 'https://ark.cn-beijing.volces.com/api/v3', 1, 'success', 'cn', 10, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('provider-003-openai', 'openai', 'OpenAI', 'OpenAI GPT系列', 'OpenAI 提供的 GPT 系列大语言模型，包括 GPT-3.5、GPT-4 等，业界领先的对话和生成能力。', 'https://platform.openai.com/', 'https://platform.openai.com/docs/api-reference', 'https://api.openai.com/v1', 0, 'info', 'us', 20, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
@@ -364,4 +365,3 @@ INSERT INTO `llm_models` (`id`, `name`, `display_name`, `provider`, `model_type`
 ('model-007-qwen-embedding','text-embedding-v4','通义千问向量化','qwen','embedding','https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings','YOUR_API_KET_HERE',8192, 0.70, 0.90, 0, 0.00, 0.00, NULL,'通义文本向量化模型',1,1,1,0,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 SET FOREIGN_KEY_CHECKS = 1;
-
