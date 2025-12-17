@@ -1,0 +1,157 @@
+services:
+  # MySQL（开发环境）
+  mysql:
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-mysql
+    image: mysql:8
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ai_agent_platform_dev_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev123456}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # phpMyAdmin（开发环境）
+  phpmyadmin:
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-phpmyadmin
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_PORT:-8082}:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 50M
+      TZ: ${TZ:-Asia/Shanghai}
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # 后端（Spring Boot，开发环境）
+  backend:
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-backend
+    build:
+      context: ../backend/core
+      dockerfile: Dockerfile.dev
+    image: ${PROJECT_NAME:-ai-agent-platform-dev}-backend:latest
+    restart: unless-stopped
+    ports:
+      # 开发环境：容器内应用监听 8081，对外映射到宿主机 BACKEND_PORT（默认 8081）
+      - "${BACKEND_PORT:-8081}:8081"
+    environment:
+      # 激活开发环境配置
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      
+      # 数据库配置（连接 mysql 服务）
+      DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-ai_agent_platform_dev_db}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+      DATASOURCE_USERNAME: root
+      DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev123456}
+
+      # 知识库服务（容器内通过 kb 服务名访问）
+      RAG_SERVICE_BASE_URL: http://kb:8000
+      
+      # Java 运行参数 (开发环境使用较少内存)
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+      
+      # 开发环境配置
+      DEBUG: ${DEBUG:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-true}
+      
+      # 时区
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - backend-dev-logs:/app/logs
+      # 开发环境可以挂载源码目录进行热重载
+      - ../backend/core/src:/app/src:ro
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # 前端（Vite Dev Server）
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-frontend
+    ports:
+      - "${WEB_ADMIN_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      # 告诉前端容器内的 Vite Dev Server：后端在 Docker 网络中的地址是 http://backend:8081
+      # 这样 make dev 场景下，/api 会被代理到后端容器；本地 npm run dev 时仍然使用默认的 http://localhost:8081
+      VITE_PROXY_TARGET: http://backend:8081
+    volumes:
+      # 挂载源码目录进行热重载
+      - ../frontend/src:/app/src
+      - ../frontend/public:/app/public
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # 知识库服务（KB，开发环境）
+  kb:
+    build:
+      context: ../backend/kb       
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-kb
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${KB_PORT:-9001}:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      KB_ENV: ${KB_ENV:-development}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev123456}
+      DB_NAME: ${MYSQL_DATABASE:-ai_agent_platform_dev_db}
+      DEBUG: ${DEBUG:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    volumes:
+      # 开发环境挂载源码目录
+      - ../backend/kb/src:/app/src
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  app-network:
+    driver: bridge
+    name: ${PROJECT_NAME:-ai-agent-platform-dev}-network
+
+volumes:
+  mysql-dev-data:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform-dev}-mysql-data
+  backend-dev-logs:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform-dev}-backend-logs
+    

@@ -1,99 +1,99 @@
-# 🐳 Docker 化部署
+# AI Agent Platform 部署指南
 
-## 部署目录
+## ⚙️ 首次使用前配置
+
+在项目根目录下：
+
+```bash
+cd deploy
+
+# 初始化环境变量文件（如已存在可跳过）
+cp env.dev.example  .env.dev
+cp env.prod.example .env.prod
+
+# ⚠️ 请务必编辑 .env.prod，修改数据库密码等敏感配置
 ```
-ai-agent-platform/
-├── frontend/                 # Vue3 + Vite 前端
-│   ├── Dockerfile
-│   ├── .env.development
-│   ├── .env.production
-│   └── src/
-│
-├── backend/
-│   └── core/
-│       ├── Dockerfile
-│       └── target/*.jar     # 构建后的 Spring Boot 可执行 jar
-│
-├── deploy/      
-│   ├── docker-compose.prod.yml
-│   ├── .env.prod
-│   ├── database/
-│   │   ├── schema.sql
-│   │   └── data.sql
-│   └── deploy.sh            # 一键启动脚本
-│
-└── README.md
-```
+
+确保本机已安装并启动 Docker / Docker Compose（例如 Docker Desktop）。
+
 ---
 
-## 🔧 环境要求
-- 软件	版本
-- Docker	20+
-- Docker Compose	2.x
-- Node（本地开发可选）	20+
-- Maven（本地后端构建可选）	3.8+
+## 🚀 一键启动
 
-## 🚀 一键部署
+### 开发环境（推荐用于开发和联调）
 
-项目根目录运行：
-```
-bash deploy/deploy.sh
-```
-这将自动执行：
-- 停止旧容器
-- 删除旧数据卷
-- 构建前后端镜像
-- 启动 MySQL + Backend + Frontend
-- 打印服务访问地址
-
-## 💡 手动部署（如需）
-后端打包：
-```
-cd backend/core
-mvn clean package -DskipTests
-```
-
-前端打包：
-```
-cd frontend
-npm install
-npm run build
-```
-
-使用 Docker Compose 启动：
-```
+```bash
 cd deploy
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+make dev           # 或 bash deploy.dev.sh
 ```
 
-## 🌐 服务访问说明
-模块	地址
-前端 UI	http://localhost
+启动后可访问：
 
-后端 API	http://localhost:8080
+- 前端（Vite Dev Server）：`http://localhost:3000`
+- 后端 API：`http://localhost:8081`
+  - Swagger UI：`http://localhost:8081/swagger-ui.html`（dev 默认开启）
+- 数据库管理（phpMyAdmin）：`http://localhost:8082`
+- 知识库服务（KB 文档）：`http://localhost:9001/docs`
 
-Swagger 文档（Knife4j）	http://localhost:8080/doc.html
+默认端口（可在 `.env.dev` 中修改）：
 
-Nginx API 代理（前端访问后端）	http://localhost/api/
+- MySQL：`localhost:3307`
+- Backend：`localhost:8081`
+- Frontend：`localhost:3000`
+- KB：`localhost:9001`
 
+---
 
-## 🧪 测试 Docker 状态
+### 生产环境（用于正式部署 / 本地模拟生产）
 
-查看容器：
+```bash
+cd deploy
+make prod          # 或 bash deploy.prod.sh
 ```
-docker ps
+
+启动后可访问：
+
+- 前端 Web：`http://localhost`  （或 `http://宿主机:WEB_ADMIN_PORT`）
+- 后端 API：`http://localhost:8080`
+  - 若在 `.env.prod` 中开启 `ENABLE_SWAGGER=true`：`http://localhost:8080/swagger-ui.html`
+- 数据库管理（phpMyAdmin）：`http://localhost:8081`
+- 知识库服务（KB 文档）：`http://localhost:9000/docs`
+
+默认端口（可在 `.env.prod` 中修改）：
+
+- MySQL：`localhost:3306`
+- Backend：`localhost:8080`
+- Frontend：`localhost:80`
+- KB：`localhost:9000`
+
+---
+
+## 📋 常用命令
+
+在 `deploy` 目录下：
+
+```bash
+make help       # 查看可用命令
+
+make dev        # 启动开发环境（等价于 bash deploy.dev.sh）
+make prod       # 启动生产环境（等价于 bash deploy.prod.sh）
+
+make stop-dev   # 停止开发环境容器
+make stop-prod  # 停止生产环境容器
+make stop       # 停止所有环境容器
 ```
 
-查看日志：
-```
-docker logs aiagent-frontend
-docker logs aiagent-backend
-docker logs aiagent-mysql
-```
+---
 
-## 🎉 部署成功标志
-- 正常打开前端：http://localhost
-- 后端 API 正常：http://localhost:8080/doc.html
-- 后端健康检查：http://localhost/api/v1/hello
-- MySQL 启动成功	✔
-- 所有容器状态为 Up	✔
+## 🔧 简单故障排查
+
+- 使用 `docker ps` 检查容器是否都处于 `Up` 状态。
+- 使用 `docker logs <容器名>` 查看具体服务日志，例如：
+  - `docker logs ai-agent-platform-dev-backend`
+  - `docker logs ai-agent-platform-dev-mysql`
+  - `docker logs ai-agent-platform-dev-frontend`
+  - `docker logs ai-agent-platform-dev-kb`
+
+如仍无法解决，可结合日志信息进行排查或提问。
+
+

@@ -1,7 +1,7 @@
 /**
  * 工作流相关工具函数
  */
-import type { Workflow, WorkflowNode, WorkflowExecution } from '@/api/workflow'
+import type { Workflow, WorkflowNode } from '@/api/workflow'
 
 /**
  * 检查工作流是否需要LLM模型

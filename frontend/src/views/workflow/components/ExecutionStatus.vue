@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getExecution, type WorkflowExecution } from '@/api/workflow'
+import { getExecution } from '@/api/workflow'
 import { formatDate, getWorkflowStatusType, getWorkflowStatusText } from '@/utils/formatters'
 import { formatWorkflowOutput, getField } from '@/utils/workflow'
 
@@ -125,10 +125,10 @@ const loadStatus = async () => {
     status.value = data.status
     startedAt.value = getField(data, 'startedAt', 'started_at', null)
     completedAt.value = getField(data, 'completedAt', 'completed_at', null)
-    executionTime.value = getField(data, 'executionTime', 'execution_time', null)
-    errorMessage.value = getField(data, 'errorMessage', 'error_message', null)
+    executionTime.value = getField<number | null>(data, 'executionTime', 'execution_time', null)
+    errorMessage.value = getField<string | null>(data, 'errorMessage', 'error_message', null)
     output.value = data.output
-    nodeExecutions.value = getField(data, 'nodeExecutions', 'node_executions', [])
+    nodeExecutions.value = getField<any[]>(data, 'nodeExecutions', 'node_executions', []) ?? []
     
     // 如果执行完成或失败，停止轮询
     if (status.value === 'completed' || status.value === 'failed') {

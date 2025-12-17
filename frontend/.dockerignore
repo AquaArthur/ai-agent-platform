@@ -1,0 +1,32 @@
+# 依赖目录（在容器中重新安装）
+node_modules/
+
+# 构建产物（在容器中重新构建）
+dist/
+dist-ssr/
+build/
+
+# 版本控制
+.git/
+.gitignore
+
+# 日志文件
+*.log
+npm-debug.log*
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 编辑器 / 杂项
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 文档类（不需要打进镜像）
+README.md
+LICENSE
+
+

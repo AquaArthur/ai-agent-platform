@@ -1,0 +1,42 @@
+# 开发者版本 Dockerfile - 支持快速构建和调试
+FROM maven:3.9-eclipse-temurin-17-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装调试工具和中文字体支持
+RUN apk add --no-cache curl netcat-openbsd tzdata && \
+    ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+# 复制 pom.xml 并下载依赖（利用Docker缓存）
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# 复制源代码
+COPY src ./src
+
+# 设置环境变量
+ENV MAVEN_OPTS="-Xmx1024m" \
+    JAVA_OPTS="-Xms256m -Xmx1g -Djava.security.egd=file:/dev/./urandom" \
+    SPRING_PROFILES_ACTIVE=dev \
+    DEBUG_PORT=5005 \
+    ENABLE_DEBUG=false
+
+# 暴露应用端口和调试端口（开发环境后端监听 8081）
+EXPOSE 8081 5005
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8081/actuator/health || exit 1
+
+# 启动脚本 - 支持调试模式
+ENTRYPOINT ["sh", "-c", "\
+    if [ \"$ENABLE_DEBUG\" = \"true\" ]; then \
+        echo 'Starting in DEBUG mode on port $DEBUG_PORT'; \
+        mvn spring-boot:run -Dspring-boot.run.jvmArguments=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:$DEBUG_PORT $JAVA_OPTS\" -Dspring-boot.run.arguments=\"$SPRING_OPTS\"; \
+    else \
+        echo 'Starting in NORMAL mode'; \
+        mvn spring-boot:run -Dspring-boot.run.jvmArguments=\"$JAVA_OPTS\" -Dspring-boot.run.arguments=\"$SPRING_OPTS\"; \
+    fi"]
+    

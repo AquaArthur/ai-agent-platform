@@ -122,10 +122,10 @@
         </el-form-item>
 
         <el-form-item label="请求头" prop="headers">
-          <div class="key-value-editor">
+        <div class="key-value-editor">
             <div
-              v-for="(value, key, index) in formData.headers"
-              :key="index"
+              v-for="(key, index) in headerKeys"
+              :key="key"
               class="key-value-item"
             >
               <el-input
@@ -311,8 +311,8 @@
         >
           <div class="keywords-editor">
             <div
-              v-for="(intentKey, index) in keywordIntentKeys"
-              :key="index"
+              v-for="(key, index) in keywordIntentKeys"
+              :key="key"
               class="keyword-item"
             >
               <el-input
@@ -322,7 +322,7 @@
                 @input="updateKeywordIntentKey(index, $event)"
               />
               <el-select
-                v-model="formData.keywords[keywordIntentKeys[index]]"
+                v-model="formData.keywords[key]"
                 multiple
                 filterable
                 allow-create
@@ -335,7 +335,7 @@
                 :icon="Delete"
                 circle
                 size="small"
-                @click="removeKeywordIntent(keywordIntentKeys[index])"
+                @click="removeKeywordIntent(key)"
               />
             </div>
             <el-button
@@ -397,7 +397,7 @@
           <el-form-item label="拼接字符串列表" prop="parameters.strings">
             <div class="key-value-editor">
               <div
-                v-for="(str, index) in concatStrings"
+                v-for="(_str, index) in concatStrings"
                 :key="index"
                 class="key-value-item"
               >
@@ -467,7 +467,7 @@
           <el-form-item label="格式化值映射" prop="parameters.values">
             <div class="key-value-editor">
               <div
-                v-for="(value, key, index) in formatValues"
+                v-for="(_value, key, index) in formatValues"
                 :key="index"
                 class="key-value-item"
               >
@@ -499,7 +499,7 @@
                 添加格式化值
               </el-button>
             </div>
-            <div class="form-item-tip">
+            <div class="form-item-tip" v-pre>
               在输入字符串中使用双大括号占位符，如：Hello {{name}}，您有 {{count}} 条消息
             </div>
           </el-form-item>
@@ -517,8 +517,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ref, computed, watch } from 'vue'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { getAgentList } from '@/api/agent'
 import { getKnowledgeBaseList } from '@/api/knowledgeBase'
@@ -621,7 +621,7 @@ const formRules = computed<FormRules>(() => {
     ]
     rules.agentUuid = [
       { 
-        validator: (rule, value, callback) => {
+        validator: (_rule, value, callback) => {
           if (formData.value.recognitionMethod === 'llm' && !value) {
             callback(new Error('使用LLM识别方式时，请选择智能体'))
           } else {
@@ -633,7 +633,7 @@ const formRules = computed<FormRules>(() => {
     ]
     rules.keywords = [
       {
-        validator: (rule, value, callback) => {
+        validator: (_rule, value, callback) => {
           if (formData.value.recognitionMethod === 'keyword' && (!value || Object.keys(value).length === 0)) {
             callback(new Error('使用关键词匹配方式时，请配置关键词映射'))
           } else {
@@ -752,21 +752,6 @@ const loadAgentsIfNeeded = (visible: boolean) => {
   if (visible && !agentsLoaded.value) {
     loadAgents()
   }
-}
-
-// 解析知识库ID
-// 后端KnowledgeNodeConfig期望Long类型，但知识库ID是String类型
-// 如果ID是纯数字字符串，转换为数字；否则使用字符串（后端执行时会转换为String）
-const parseKnowledgeBaseId = (id: string): number | string | null => {
-  if (!id) return null
-  // 尝试将字符串ID转换为数字
-  const numId = Number(id)
-  if (!isNaN(numId) && isFinite(numId) && numId > 0) {
-    return numId
-  }
-  // 如果无法转换为数字，返回字符串ID（后端在执行时会转换为String）
-  // 注意：这可能需要后端修改KnowledgeNodeConfig支持String类型
-  return id
 }
 
 // 加载知识库列表

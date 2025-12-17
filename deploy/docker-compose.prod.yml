@@ -1,19 +1,53 @@
 services:
-
-  # ============================
-  # MySQL 数据库
-  # ============================
+  # MySQL（生产环境）
   mysql:
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-mysql
     image: mysql:8
-    container_name: aiagent-mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ai_agent_platform_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_this_in_production}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # phpMyAdmin（生产环境，可选）
+  phpmyadmin:
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-phpmyadmin
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 50M
+      TZ: ${TZ:-Asia/Shanghai}
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # 生产环境建议注释掉此服务以提高安全性
+    # profiles:
+    #   - admin
+
+  # 后端（Spring Boot，生产环境）
       - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
       - ./database/data.sql:/docker-entrypoint-initdb.d/2-data.sql
 
@@ -34,56 +68,102 @@ services:
   # 后端 Spring Boot
   # ============================
   backend:
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-backend
     build:
       context: ../backend/core
-      dockerfile: Dockerfile
-    container_name: aiagent-backend
-    restart: always
-    depends_on:
-      - mysql
+      dockerfile: Dockerfile.prod
+    image: ${PROJECT_NAME:-ai-agent-platform}-backend:latest
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&useSSL=false
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # 激活生产环境配置
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      
+      # 数据库配置（连接 mysql 服务）
+      DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-ai_agent_platform_db}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+      DATASOURCE_USERNAME: root
+      DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_this_in_production}
+      
+      # Java 运行参数 (生产环境)
+      JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx1g -Djava.security.egd=file:/dev/./urandom}
+      
+      # 生产环境安全配置
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-false}
+      
+      # 时区
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - backend-logs:/app/logs
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # 生产环境健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
-  # ============================
-  # 前端 Nginx
-  # ============================
+  # 前端（Nginx，生产环境）
   frontend:
     build:
       context: ../frontend
-      dockerfile: Dockerfile
-    container_name: aiagent-frontend
+      dockerfile: Dockerfile.prod
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-frontend
     ports:
-      - "80:80"
+      - "${WEB_ADMIN_PORT:-80}:80"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
     depends_on:
       - backend
-    restart: always
+    restart: unless-stopped
+    networks:
+      - app-network
 
-  # ============================
-  # KB（知识库服务）
-  # ============================
+  # 知识库服务（KB，生产环境）
   kb:
     build:
       context: ../backend/kb       
       dockerfile: Dockerfile
-    container_name: aiagent-kb
-    restart: always
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-kb
+    restart: unless-stopped
     depends_on:
-      - mysql              # kb 依赖 mysql
+      mysql:
+        condition: service_healthy
     ports:
-      - "9000:8000"        # 避免与其他 8000 端口冲突
+      - "${KB_PORT:-9000}:8000"
     environment:
       PYTHONUNBUFFERED: "1"
-      KB_ENV: "production"
+      KB_ENV: ${KB_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
-      CELERY_BROKER_URL: redis://redis:6379/0
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_this_in_production}
+      DB_NAME: ${MYSQL_DATABASE:-ai_agent_platform_db}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - app-network
+    volumes:
+      - kb-logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+
+networks:
+  app-network:
+    driver: bridge
+    name: ${PROJECT_NAME:-ai-agent-platform}-network      CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_URL: redis://redis:6379/1
 
   # ============================
@@ -120,4 +200,12 @@ services:
 
 volumes:
   mysql-data:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform}-mysql-data
+  backend-logs:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform}-backend-logs
+  kb-logs:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform}-kb-logs
   redis-data:

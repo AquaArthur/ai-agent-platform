@@ -2,8 +2,8 @@
   <div
     class="string-node workflow-node-base"
     :style="{
-      background: data.color?.bg || 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-      borderColor: data.color?.border || 'rgba(255, 255, 255, 0.3)',
+      background: data?.color?.bg || 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+      borderColor: data?.color?.border || 'rgba(255, 255, 255, 0.3)',
       '--node-hover-shadow-color': 'rgba(139, 92, 246, 0.45)',
       '--node-selected-shadow-color': 'rgba(139, 92, 246, 0.3)',
       '--node-selected-shadow-color-strong': 'rgba(139, 92, 246, 0.4)',
