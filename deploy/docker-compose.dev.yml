@@ -1,4 +1,4 @@
-﻿services:
+services:
   # MySQL（开发环境）
   mysql:
     container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-mysql
