@@ -46,10 +46,10 @@ public class WorkflowExecutionService {
      * @param workflowId 工作流ID
      * @param input      输入参数
      * @param userId     执行用户ID
-     * @param llmModelId LLM模型ID
+     * @param agentId    智能体ID
      * @return 执行记录ID
      */
-    public String executeWorkflowAsync(String workflowId, Map<String, Object> input, String userId, String llmModelId) {
+    public String executeWorkflowAsync(String workflowId, Map<String, Object> input, String userId, String agentId) {
         // 1. 查询工作流定义
         Workflow workflow = workflowMapper.selectById(workflowId);
         if (workflow == null) {
@@ -94,8 +94,8 @@ public class WorkflowExecutionService {
                 workflowExecutionMapper.updateById(currentExecution);
 
                 // 执行工作流（带节点执行回调）
-                log.info("调用工作流执行引擎: executionId={}", executionId);
-                WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, llmModelId,
+                log.info("调用工作流执行引擎: executionId={}, agentId={}", executionId, agentId);
+                WorkflowExecutionResult result = workflowExecutor.execute(workflow, input, null, agentId,
                         new WorkflowExecutor.NodeExecutionCallback() {
                             @Override
                             public void onNodeCompleted(NodeExecutionRecord nodeRecord, List<NodeExecutionRecord> allNodeRecords) {
