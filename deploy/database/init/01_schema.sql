@@ -288,6 +288,7 @@ CREATE TABLE IF NOT EXISTS `plugin` (
     UNIQUE KEY `uk_identifier` (`identifier`),
     UNIQUE KEY `uk_user_name` (`user_id`, `name`),
     KEY `idx_status` (`status`),
+    KEY `idx_type` (`type`),
     CONSTRAINT `fk_plugin_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件表';
 
