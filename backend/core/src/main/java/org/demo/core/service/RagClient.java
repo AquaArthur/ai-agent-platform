@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class RagClient {
 
     @Value("${rag.api.base-url}")
-    private String baseUrl = "http://localhost:9000";   // 例如 http://localhost:9000
+    private String baseUrl;   // 例如 http://localhost:9000
 
     private final RestTemplate restTemplate;
 

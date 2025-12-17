@@ -41,6 +41,7 @@ mybatis-plus:
 
 rag:
   api:
+#    base-url: http://aiagent-kb:9000
     base-url: http://localhost:9000
 
 # 插件配置

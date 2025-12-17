@@ -1,6 +1,7 @@
 fastapi
+requests
 uvicorn
-mysql-connector-python
-sentence-transformers
 numpy
 pymysql
+celery>=5.4
+redis>=5.0

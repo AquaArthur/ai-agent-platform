@@ -5,6 +5,7 @@ from kb.database import get_db
 from kb.chunker import smart_chunk
 from kb.embed_client import EmbedClient, EMBEDDING_MODEL_NAME
 from kb.utils.response import success, error
+from kb.tasks import vectorize_document_task
 
 
 # -----------------------
@@ -36,39 +37,53 @@ def save_chunks_to_db(db, cursor, kb_id, document_id, chunks, embeddings):
 # -----------------------
 # 文档向量化（含 chunk）
 # -----------------------
-def vectorize_document(knowledge_base_id: str,
-                       document_id: str,
-                       title: str,
-                       content: str,
-                       model_name: str = EMBEDDING_MODEL_NAME):
+# def vectorize_document(knowledge_base_id: str,
+#                        document_id: str,
+#                        title: str,
+#                        content: str,
+#                        model_name: str = EMBEDDING_MODEL_NAME):
 
-    db, cursor = get_db()
-    embed_client = EmbedClient()
+#     db, cursor = get_db()
+#     embed_client = EmbedClient()
 
-    # 1. 分块
-    # is_markdown = ("#" in content)
-    is_markdown = (title.endswith('.md'))
-    chunks = smart_chunk(content, is_markdown)
+#     # 1. 分块
+#     # is_markdown = ("#" in content)
+#     is_markdown = (title.endswith('.md'))
+#     chunks = smart_chunk(content, is_markdown)
 
-    # 2. 对所有 chunk 做 embedding
-    embeddings_info = []
-    for chunk in chunks:
-        result = embed_client.embed_text(text=chunk, model_name=model_name)
-        # embedding = result["embedding"]
-        # vector_dim = result["vector_dim"]
-        embeddings_info.append(result)
+#     # 2. 对所有 chunk 做 embedding
+#     embeddings_info = []
+#     for chunk in chunks:
+#         result = embed_client.embed_text(text=chunk, model_name=model_name)
+#         # embedding = result["embedding"]
+#         # vector_dim = result["vector_dim"]
+#         embeddings_info.append(result)
 
-    # 3. 写入数据库
-    save_chunks_to_db(db, cursor, knowledge_base_id, document_id, chunks,
-                      embeddings_info)
+#     # 3. 写入数据库
+#     save_chunks_to_db(db, cursor, knowledge_base_id, document_id, chunks,
+#                       embeddings_info)
 
-    return success(data={
-        "knowledge_base_id": knowledge_base_id,
-        "document_id": document_id,
-        "chunks": len(chunks),
-        "vector_dim": embeddings_info[0]["vector_dim"]
-    },
-                   message="文档向量化成功")
+#     return success(data={
+#         "knowledge_base_id": knowledge_base_id,
+#         "document_id": document_id,
+#         "chunks": len(chunks),
+#         "vector_dim": embeddings_info[0]["vector_dim"]
+#     },
+#                    message="文档向量化成功")
+
+
+# -----------------------
+# 文档向量化（异步）
+# -----------------------
+def vectorize_document(knowledge_base_id,
+                       document_id,
+                       title,
+                       content,
+                       model_name=EMBEDDING_MODEL_NAME):
+    # 异步调用
+    task = vectorize_document_task.delay(knowledge_base_id, document_id, title,
+                                         content, model_name)
+    return success(data={"task_id": task.id}, message="文档向量化任务已提交")
 
 
 # -----------------------
