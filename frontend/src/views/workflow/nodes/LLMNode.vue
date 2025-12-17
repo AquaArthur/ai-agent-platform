@@ -2,8 +2,8 @@
   <div
     class="llm-node workflow-node-base"
     :style="{
-      background: data.color?.bg || 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-      borderColor: data.color?.border || 'rgba(255, 255, 255, 0.3)',
+      background: data?.color?.bg || 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      borderColor: data?.color?.border || 'rgba(255, 255, 255, 0.3)',
       '--node-hover-shadow-color': 'rgba(16, 185, 129, 0.45)',
       '--node-selected-shadow-color': 'rgba(16, 185, 129, 0.3)',
       '--node-selected-shadow-color-strong': 'rgba(16, 185, 129, 0.4)',

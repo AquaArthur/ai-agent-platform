@@ -222,7 +222,6 @@ import { getAgentById } from '@/api/agent'
 import type { AgentConversation, Plugin } from '@/types/entity'
 import ChatMessage from '@/views/chat/components/ChatMessage.vue'
 import ChatInput from '@/views/chat/components/ChatInput.vue'
-import { formatTime } from '@/utils/formatters'
 
 interface PluginOperation {
   operationId: string

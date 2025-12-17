@@ -37,14 +37,6 @@ ai-agent-platform/
 
 项目根目录运行：
 ```
-bash deploy/deploy.sh
-```
-这将自动执行：
-- 停止旧容器
-- 删除旧数据卷
-- 构建前后端镜像
-- 启动 MySQL + Backend + Frontend
-- 打印服务访问地址
 
 ## 💡 手动部署（如需）
 后端打包：

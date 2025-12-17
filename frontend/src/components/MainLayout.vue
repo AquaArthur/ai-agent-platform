@@ -132,7 +132,6 @@ import {
   Menu,
   ChatDotRound,
   Connection,
-  ChatDotSquare,
   HomeFilled,
   Document,
   Share,

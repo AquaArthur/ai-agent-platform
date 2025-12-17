@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 
 const BASE_API = import.meta.env.VITE_BASE_API || '/api'
 

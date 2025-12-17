@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 优先复制 npm 配置和依赖声明，充分利用构建缓存
+COPY .npmrc* ./
+COPY package*.json ./
+
+# 使用国内镜像源安装依赖（如无网络问题也可去掉 --registry）
+RUN npm install --registry=https://registry.npmmirror.com
+
+# 复制源码
+COPY . .
+
+ENV NODE_ENV=development
+
+EXPOSE 3000
+
+# 以开发模式启动 Vite Dev Server，监听 0.0.0.0:3000 供外部访问
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
