@@ -9,7 +9,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-USE `ai_agent_platform_db`;
+-- 注意：MySQL 容器会自动切换到 MYSQL_DATABASE 指定的数据库
+-- 所以这里不需要 USE 语句
 
 -- ------------------------------------------------------------
 -- 清空现有测试数据（可选，但推荐在测试环境中执行）
@@ -345,7 +346,7 @@ INSERT INTO `ai_agent_platform_db`.`system_config` (`id`, `config_key`, `config_
 -- 14. LLM提供商表 (llm_providers) - 初始数据
 -- ------------------------------------------------------------
 INSERT INTO `llm_providers` (`id`, `code`, `name`, `title`, `description`, `apply_url`, `doc_url`, `default_api_base`, `has_free_quota`, `tag_type`, `country`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
-('provider-001-qwen', 'qwen', '通义千问', '阿里云通义千问（模型服务平台百炼）', '阿里云自研的大语言模型，支持中文对话、代码生成、Function Calling 等功能。提供 Turbo、Plus、Max 等多个版本，性能强劲，响应快速。', 'https://dashscope.console.aliyun.com/', 'https://help.aliyun.com/zh/model-studio/qwen-api-reference', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 1, 'primary', 'cn', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('provider-001-qwen', 'qwen', '通义千问', '阿里云通义千问（模型服务平台百炼）', '阿里云自研的大语言模型，支持中文对话、代码生成、Function Calling 等功能。提供 Turbo、Plus、Max 等多个版本，性能强劲，响应快速。', 'https://dashscope.aliyuncs.com/', 'https://help.aliyun.com/zh/model-studio/qwen-api-reference', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 1, 'primary', 'cn', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('provider-002-doubao', 'doubao', '豆包', '火山引擎豆包（字节跳动）', '字节跳动自研的大语言模型，推理能力强，响应快速。支持多种场景应用，包括对话、文本生成、Kimi长文本等。火山引擎方舟平台提供稳定的API服务。', 'https://console.volcengine.com/ark', 'https://www.volcengine.com/docs/82379/1330310', 'https://ark.cn-beijing.volces.com/api/v3', 1, 'success', 'cn', 10, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('provider-003-openai', 'openai', 'OpenAI', 'OpenAI GPT系列', 'OpenAI 提供的 GPT 系列大语言模型，包括 GPT-3.5、GPT-4 等，业界领先的对话和生成能力。', 'https://platform.openai.com/', 'https://platform.openai.com/docs/api-reference', 'https://api.openai.com/v1', 0, 'info', 'us', 20, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
@@ -364,4 +365,3 @@ INSERT INTO `llm_models` (`id`, `name`, `display_name`, `provider`, `model_type`
 ('model-007-qwen-embedding','text-embedding-v4','通义千问向量化','qwen','embedding','https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings','YOUR_API_KET_HERE',8192, 0.70, 0.90, 0, 0.00, 0.00, NULL,'通义文本向量化模型',1,1,1,0,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 SET FOREIGN_KEY_CHECKS = 1;
-

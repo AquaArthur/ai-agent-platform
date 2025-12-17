@@ -1,0 +1,64 @@
+server:
+  # 开发环境使用 8081 端口，方便与生产 8080 区分
+  port: 8081
+
+spring:
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:mysql://localhost:3307/ai_agent_platform_dev_db?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true}
+    username: ${DATASOURCE_USERNAME:root}
+    password: ${DATASOURCE_PASSWORD:dev123456}
+    hikari:
+      # 开发环境较小的连接池配置
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# 开发环境日志级别
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    org.demo.core: ${APP_LOG_LEVEL:DEBUG}
+    org.demo.core.mapper: ${MAPPER_LOG_LEVEL:DEBUG}
+
+# 开启 Swagger（开发环境启用）
+springdoc:
+  api-docs:
+    enabled: ${ENABLE_SWAGGER:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${ENABLE_SWAGGER:true}
+    path: /swagger-ui.html
+    url: /v3/api-docs
+    disable-swagger-default-url: true
+
+# RAG 服务配置（开发环境使用不同端口）
+rag:
+  service-base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9001}
+  api:
+    base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9001}
+  timeout-ms: ${RAG_TIMEOUT_MS:3000}
+  alpha: ${RAG_ALPHA:0.7}
+  beta: ${RAG_BETA:0.3}
+
+# MyBatis Plus 配置（开发环境启用SQL日志）
+mybatis-plus:
+  configuration:
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.stdout.StdOutImpl}  # 开发环境输出SQL日志
+
+# 管理端点配置（开发环境完全暴露）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# 插件配置
+plugin:
+  invoke:
+    # 插件调用默认超时时间（毫秒）
+    timeout: ${PLUGIN_TIMEOUT:30000}

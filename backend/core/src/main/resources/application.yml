@@ -7,42 +7,81 @@ spring:
   application:
     name: ai-agent-platform-core
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
-    url: jdbc:mysql://localhost:3306/ai_agent_platform_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    url: ${DATASOURCE_URL:jdbc:mysql://localhost:3306/ai_agent_platform_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true&useUnicode=true}
+    username: ${DATASOURCE_USERNAME:root}
+    password: ${DATASOURCE_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
 
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
 
 # MyBatis Plus 配置
 mybatis-plus:
   configuration:
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 开启SQL日志输出
+    log-impl: ${MYBATIS_LOG_IMPL:}  # 开发环境可开启：org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
   global-config:
     db-config:
       id-type: assign_id # 使用雪花算法生成ID
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.demo.core.model.entity
 
-# 开发环境日志级别
-#logging:
-#  level:
-#    root: INFO
-#    org.demo.core.mapper: DEBUG # 开启Mapper层日志
+# 日志配置
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    org.demo.core: ${APP_LOG_LEVEL:INFO}
+    org.demo.core.mapper: ${MAPPER_LOG_LEVEL:INFO}
 
+# RAG 知识库服务配置
 rag:
+  service-base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9000}
   api:
-    base-url: http://localhost:9000
+    base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9000}
+  timeout-ms: ${RAG_TIMEOUT_MS:3000}
+  alpha: ${RAG_ALPHA:0.7}
+  beta: ${RAG_BETA:0.3}
+
+# SpringDoc OpenAPI 配置 
+springdoc:
+  api-docs:
+    enabled: ${ENABLE_SWAGGER:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${ENABLE_SWAGGER:true}
+    path: /swagger-ui.html
+    url: /v3/api-docs
+    config-url: /v3/api-docs/swagger-config
+    disable-swagger-default-url: true
+  show-actuator: false
+  # 默认排序
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
 
 # 插件配置
 plugin:
   invoke:
     # 插件调用默认超时时间（毫秒）
-    timeout: 30000
+    timeout: ${PLUGIN_TIMEOUT:30000}
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:when_authorized}
+      
