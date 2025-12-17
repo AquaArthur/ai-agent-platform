@@ -47,9 +47,6 @@ services:
     # profiles:
     #   - admin
 
-  # 后端（Spring Boot，生产环境）
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
-      - ./database/data.sql:/docker-entrypoint-initdb.d/2-data.sql
 
   # ============================
   # Redis（Celery 消息队列 & 结果后端）
@@ -163,8 +160,8 @@ services:
 networks:
   app-network:
     driver: bridge
-    name: ${PROJECT_NAME:-ai-agent-platform}-network      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_URL: redis://redis:6379/1
+    name: ${PROJECT_NAME:-ai-agent-platform}-network      
+    
 
   # ============================
   # Celery Worker（处理异步任务）
