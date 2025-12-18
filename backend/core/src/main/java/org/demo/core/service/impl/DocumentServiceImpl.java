@@ -259,16 +259,16 @@ public class DocumentServiceImpl implements DocumentService {
                 throw new RuntimeException("文档向量化失败: " + (response != null ? response.getMessage() : "无响应"));
             }
 
-            // 更新状态为已完成
-            document.setStatus("processed");
-            document.setProcessStatus(2);
+            // 更新状态为处理中
+            document.setStatus("processing");
+            document.setProcessStatus(1);
             document.setChunkCount(response.getData().getChunks());
             document.setProcessedAt(LocalDateTime.now());
             document.setUpdatedAt(LocalDateTime.now());
             document.setUpdateTime(LocalDateTime.now());
             documentMapper.updateById(document);
 
-            log.info("文档处理成功，documentId: {}", documentId);
+            log.info("文档处理中，documentId: {}", documentId);
 
         } catch (Exception e) {
             log.error("文档处理失败，documentId: {}", documentId, e);

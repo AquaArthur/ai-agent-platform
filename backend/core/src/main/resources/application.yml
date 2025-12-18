@@ -48,6 +48,7 @@ logging:
 rag:
   service-base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9000}
   api:
+#    base-url: http://aiagent-kb:9000
     base-url: ${RAG_SERVICE_BASE_URL:http://localhost:9000}
   timeout-ms: ${RAG_TIMEOUT_MS:3000}
   alpha: ${RAG_ALPHA:0.7}

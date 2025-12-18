@@ -11,8 +11,8 @@ def get_db():
     db = pymysql.connect(host=os.getenv("DB_HOST", "localhost"),
                          user=os.getenv("DB_USER", "root"),
                          port=int(os.getenv("DB_PORT", 3306)),
-                         password=os.getenv("DB_PASSWORD", ""),
-                         database=os.getenv("DB_NAME", ""),
+                         password=os.getenv("DB_PASSWORD", "123456"),
+                         database=os.getenv("DB_NAME", "ai_agent_platform_db"),
                          charset='utf8mb4',
                          cursorclass=pymysql.cursors.DictCursor)
     cursor = db.cursor()
