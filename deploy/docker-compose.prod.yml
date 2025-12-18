@@ -53,7 +53,7 @@ services:
   # ============================
   redis:
     image: redis:7-alpine
-    container_name: aiagent-redis
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-redis
     restart: always
     ports:
       - "6379:6379"         
@@ -141,7 +141,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_this_in_production}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       DB_NAME: ${MYSQL_DATABASE:-ai_agent_platform_db}
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -156,13 +156,6 @@ services:
       retries: 3
       start_period: 60s
 
-
-networks:
-  app-network:
-    driver: bridge
-    name: ${PROJECT_NAME:-ai-agent-platform}-network      
-    
-
   # ============================
   # Celery Worker（处理异步任务）
   # ============================
@@ -170,7 +163,7 @@ networks:
     build:
       context: ../backend/kb       # 与 kb 服务使用相同的 Dockerfile
       dockerfile: Dockerfile
-    container_name: aiagent-celery
+    container_name: ${PROJECT_NAME:-ai-agent-platform}-celery
     restart: always
     depends_on:
       - redis                     # 必须等 Redis 启动
@@ -178,13 +171,12 @@ networks:
     environment:
       # 下面的变量可以在 .env 中统一管理，也可以直接写死
       CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_URL: redis://redis:6379/1
       # 其它 KB 需要的环境变量（如 DB 连接）也要写进去
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      DB_NAME: ${MYSQL_DATABASE:-ai_agent_platform_db}
     # 这里使用 Celery 官方推荐的启动命令
     command: >
       bash -c "pip install -r /app/requirements.txt && \
@@ -194,6 +186,14 @@ networks:
                --queues=default"
     # 将日志直接输出到 stdout，便于 `docker compose logs -f celery-worker` 查看
     tty: true
+
+networks:
+  app-network:
+    driver: bridge
+    name: ${PROJECT_NAME:-ai-agent-platform}-network      
+    
+
+  
 
 volumes:
   mysql-data:
