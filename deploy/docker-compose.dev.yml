@@ -44,6 +44,20 @@ services:
       mysql:
         condition: service_healthy
 
+
+  # ============================
+  # Redis（Celery 消息队列 & 结果后端）
+  # ============================
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-redis
+    restart: always
+    ports:
+      - "6379:6379"         
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
   # 后端（Spring Boot，开发环境）
   backend:
     container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-backend
@@ -141,6 +155,37 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  # ============================
+  # Celery Worker（处理异步任务）
+  # ============================
+  celery-worker:
+    build:
+      context: ../backend/kb       # 与 kb 服务使用相同的 Dockerfile
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-ai-agent-platform-dev}-celery
+    restart: always
+    depends_on:
+      - redis                     # 必须等 Redis 启动
+      - kb                        # 可选：确保 KB 已经可用（如果任务需要调用 KB 接口）
+    environment:
+      # 下面的变量可以在 .env 中统一管理，也可以直接写死
+      CELERY_BROKER_URL: redis://redis:6379/0
+      # 其它 KB 需要的环境变量（如 DB 连接）也要写进去
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev123456}
+      DB_NAME: ${MYSQL_DATABASE:-ai_agent_platform_dev_db}
+    # 这里使用 Celery 官方推荐的启动命令
+    command: >
+      bash -c "pip install -r /app/requirements.txt && \
+               celery -A kb.celery_app.celery worker \
+               --loglevel=info \
+               --concurrency=4 \
+               --queues=default"
+    # 将日志直接输出到 stdout，便于 `docker compose logs -f celery-worker` 查看
+    tty: true
 
 networks:
   app-network:
