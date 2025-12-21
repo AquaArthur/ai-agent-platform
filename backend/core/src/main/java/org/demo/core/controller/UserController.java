@@ -44,17 +44,17 @@ public class UserController {
         User user = userService.findByUsername(request.getUsername());
         
         if (user == null) {
-            return ApiResponse.error(401, "用户名或密码错误");
+            return ApiResponse.fail(401, "用户名或密码错误");
         }
 
         // 检查账户状态
         if (!"active".equals(user.getStatus())) {
-            return ApiResponse.error(403, "账户已被锁定或未激活");
+            return ApiResponse.fail(403, "账户已被锁定或未激活");
         }
 
         // 验证密码
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ApiResponse.error(401, "用户名或密码错误");
+            return ApiResponse.fail(401, "用户名或密码错误");
         }
 
         // 生成JWT令牌
@@ -74,7 +74,7 @@ public class UserController {
         );
 
         log.info("User '{}' logged in successfully from IP: {}", user.getUsername(), clientIp);
-        return ApiResponse.success(response);
+        return ApiResponse.ok(response);
     }
 
     /**
@@ -86,12 +86,12 @@ public class UserController {
                                              HttpServletRequest httpRequest) {
         // 检查用户名是否已存在
         if (userService.findByUsername(request.getUsername()) != null) {
-            return ApiResponse.error(400, "用户名已存在");
+            return ApiResponse.fail(400, "用户名已存在");
         }
 
         // 检查邮箱是否已存在
         if (userService.findByEmail(request.getEmail()) != null) {
-            return ApiResponse.error(400, "邮箱已被注册");
+            return ApiResponse.fail(400, "邮箱已被注册");
         }
 
         // 创建新用户
@@ -126,7 +126,7 @@ public class UserController {
         );
 
         log.info("User '{}' registered successfully from IP: {}", user.getUsername(), clientIp);
-        return ApiResponse.success(response);
+        return ApiResponse.ok(response);
     }
 
     /**

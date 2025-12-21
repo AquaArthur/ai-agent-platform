@@ -13,6 +13,7 @@ import org.demo.core.model.vo.PluginInvokeResult;
 import org.demo.core.service.LlmService;
 import org.demo.core.service.PluginService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
