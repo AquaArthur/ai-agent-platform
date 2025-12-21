@@ -54,7 +54,7 @@ public class SecurityConfig {
             // 配置授权规则
             .authorizeHttpRequests(authorize -> authorize
                 // 允许登录、注册端点无需认证
-                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                .requestMatchers("/api/v1/user/login", "/api/v1/user/register").permitAll()
                 
                 // 允许Swagger UI相关端点无需认证
                 .requestMatchers(

@@ -17,9 +17,6 @@ public class AuthResponse {
     @Schema(description = "JWT令牌")
     private String token;
 
-    @Schema(description = "令牌类型", example = "Bearer")
-    private String tokenType = "Bearer";
-
     @Schema(description = "用户ID")
     private String userId;
 
@@ -31,12 +28,4 @@ public class AuthResponse {
 
     @Schema(description = "角色")
     private String role;
-
-    public AuthResponse(String token, String userId, String username, String nickname, String role) {
-        this.token = token;
-        this.userId = userId;
-        this.username = username;
-        this.nickname = nickname;
-        this.role = role;
-    }
 }

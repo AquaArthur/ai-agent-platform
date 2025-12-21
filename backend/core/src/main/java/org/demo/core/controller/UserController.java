@@ -14,6 +14,7 @@ import org.demo.core.model.vo.AuthResponse;
 import org.demo.core.service.UserService;
 import org.demo.core.util.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -38,7 +39,7 @@ public class UserController {
      */
     @Operation(summary = "用户登录", description = "使用用户名和密码登录，成功后返回JWT令牌")
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ApiResponse<AuthResponse> login(@Validated @RequestBody LoginRequest request) {
         // 查询用户
         User user = userService.findByUsername(request.getUsername());
 
@@ -77,7 +78,7 @@ public class UserController {
      */
     @Operation(summary = "用户注册", description = "注册新用户账号")
     @PostMapping("/register")
-    public ApiResponse<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ApiResponse<AuthResponse> register(@Validated @RequestBody RegisterRequest request) {
         // 检查用户名是否已存在
         if (userService.findByUsername(request.getUsername()) != null) {
             return ApiResponse.fail(400, "用户名已存在");
@@ -111,23 +112,5 @@ public class UserController {
 
         log.info("User '{}' registered successfully", user.getUsername());
         return ApiResponse.ok(response);
-    }
-
-    /**
-     * 获取客户端真实IP
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 如果是多级代理，取第一个IP
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 }
