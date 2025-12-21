@@ -30,12 +30,6 @@ public class User {
     private String username;
 
     /**
-     * 邮箱（必填，唯一）
-     */
-    @TableField("email")
-    private String email;
-
-    /**
      * 密码（BCrypt加密）
      */
     @TableField("password")
@@ -60,12 +54,6 @@ public class User {
     private String status;
 
     /**
-     * 邮箱是否已验证
-     */
-    @TableField("email_verified")
-    private Boolean emailVerified;
-
-    /**
      * 创建时间
      */
     @TableField(value = "create_time", fill = FieldFill.INSERT)
@@ -76,16 +64,4 @@ public class User {
      */
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-
-    /**
-     * 最后登录时间
-     */
-    @TableField("last_login_time")
-    private LocalDateTime lastLoginTime;
-
-    /**
-     * 最后登录IP
-     */
-    @TableField("last_login_ip")
-    private String lastLoginIp;
 }

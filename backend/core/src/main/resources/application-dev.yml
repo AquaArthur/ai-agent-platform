@@ -1,6 +1,6 @@
 server:
   # 开发环境使用 8081 端口，方便与生产 8080 区分
-  port: 8081
+  port: 8080
 
 spring:
   datasource:

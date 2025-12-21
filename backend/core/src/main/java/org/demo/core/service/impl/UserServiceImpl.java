@@ -29,13 +29,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByEmail(String email) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getEmail, email);
-        return userMapper.selectOne(wrapper);
-    }
-
-    @Override
     @Transactional
     public User createUser(User user) {
         user.setCreateTime(LocalDateTime.now());
@@ -50,16 +43,5 @@ public class UserServiceImpl implements UserService {
         user.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(user);
         return user;
-    }
-
-    @Override
-    @Transactional
-    public void updateLastLogin(String userId, String ip) {
-        User user = userMapper.selectById(userId);
-        if (user != null) {
-            user.setLastLoginTime(LocalDateTime.now());
-            user.setLastLoginIp(ip);
-            userMapper.updateById(user);
-        }
     }
 }

@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Tag(name = "用户认证", description = "提供用户登录、注册等认证功能接口")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -38,11 +38,10 @@ public class UserController {
      */
     @Operation(summary = "用户登录", description = "使用用户名和密码登录，成功后返回JWT令牌")
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request, 
-                                          HttpServletRequest httpRequest) {
+    public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
         // 查询用户
         User user = userService.findByUsername(request.getUsername());
-        
+
         if (user == null) {
             return ApiResponse.fail(401, "用户名或密码错误");
         }
@@ -60,20 +59,16 @@ public class UserController {
         // 生成JWT令牌
         String token = jwtUtil.generateToken(user.getUsername());
 
-        // 更新最后登录信息
-        String clientIp = getClientIp(httpRequest);
-        userService.updateLastLogin(user.getId(), clientIp);
-
         // 构造响应
         AuthResponse response = new AuthResponse(
-            token,
-            user.getId(),
-            user.getUsername(),
-            user.getNickname(),
-            user.getRole()
+                token,
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getRole()
         );
 
-        log.info("User '{}' logged in successfully from IP: {}", user.getUsername(), clientIp);
+        log.info("User '{}' logged in successfully", user.getUsername());
         return ApiResponse.ok(response);
     }
 
@@ -82,27 +77,20 @@ public class UserController {
      */
     @Operation(summary = "用户注册", description = "注册新用户账号")
     @PostMapping("/register")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                             HttpServletRequest httpRequest) {
+    public ApiResponse<AuthResponse> register(@RequestBody RegisterRequest request) {
         // 检查用户名是否已存在
         if (userService.findByUsername(request.getUsername()) != null) {
             return ApiResponse.fail(400, "用户名已存在");
         }
 
-        // 检查邮箱是否已存在
-        if (userService.findByEmail(request.getEmail()) != null) {
-            return ApiResponse.fail(400, "邮箱已被注册");
-        }
 
         // 创建新用户
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
         user.setRole("user");
         user.setStatus("active");
-        user.setEmailVerified(false);
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
 
@@ -112,20 +100,16 @@ public class UserController {
         // 生成JWT令牌
         String token = jwtUtil.generateToken(user.getUsername());
 
-        // 更新登录信息
-        String clientIp = getClientIp(httpRequest);
-        userService.updateLastLogin(user.getId(), clientIp);
-
         // 构造响应
         AuthResponse response = new AuthResponse(
-            token,
-            user.getId(),
-            user.getUsername(),
-            user.getNickname(),
-            user.getRole()
+                token,
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getRole()
         );
 
-        log.info("User '{}' registered successfully from IP: {}", user.getUsername(), clientIp);
+        log.info("User '{}' registered successfully", user.getUsername());
         return ApiResponse.ok(response);
     }
 

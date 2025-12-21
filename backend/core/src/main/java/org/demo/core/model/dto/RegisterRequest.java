@@ -18,11 +18,6 @@ public class RegisterRequest {
     @Schema(description = "用户名", example = "newuser")
     private String username;
 
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
-    @Schema(description = "邮箱", example = "newuser@example.com")
-    private String email;
-
     @NotBlank(message = "密码不能为空")
     @Size(min = 6, max = 100, message = "密码长度必须在6-100之间")
     @Schema(description = "密码", example = "password123")
