@@ -10,6 +10,7 @@ import org.demo.core.mapper.LlmModelMapper;
 import org.demo.core.mapper.LlmProviderMapper;
 import org.demo.core.model.entity.LlmModel;
 import org.demo.core.model.entity.LlmProvider;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -84,6 +85,9 @@ public class LlmController {
             @Parameter(description = "LLM模型信息对象，包含名称、提供商、API配置、参数设置等字段", required = true)
             @RequestBody LlmModel model
     ) {
+        if (!SecurityUtil.isAdmin()) {
+            return ApiResponse.fail(403, "无权创建LLM模型");
+        }
         int rows = llmModelMapper.insert(model);
         if (rows > 0) {
             return ApiResponse.ok("创建成功", model);
@@ -110,6 +114,10 @@ public class LlmController {
             @Parameter(description = "更新后的LLM模型信息，可以包含任何需要修改的字段", required = true)
             @RequestBody LlmModel model
     ) {
+        if (!SecurityUtil.isAdmin()) {
+            return ApiResponse.fail(403, "无权更新LLM模型");
+        }
+
         LlmModel existingModel = llmModelMapper.selectById(id);
         if (existingModel == null) {
             return ApiResponse.fail("LLM模型不存在");
@@ -137,6 +145,9 @@ public class LlmController {
             @Parameter(description = "要删除的LLM模型的唯一标识符ID", required = true, example = "1234567890")
             @PathVariable String id
     ) {
+        if (!SecurityUtil.isAdmin()) {
+            return ApiResponse.fail(403, "无权删除LLM模型");
+        }
         LlmModel existingModel = llmModelMapper.selectById(id);
         if (existingModel == null) {
             return ApiResponse.fail("LLM模型不存在");

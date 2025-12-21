@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.mapper.AgentMapper;
 import org.demo.core.model.entity.Agent;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +34,14 @@ public class AgentController {
     @Operation(summary = "查询所有智能体", description = "获取系统中所有智能体的完整列表，包括智能体的基本信息、配置参数、关联的知识库和插件等信息")
     @GetMapping
     public ApiResponse<List<Agent>> selectAll() {
-        List<Agent> agents = agentMapper.selectList(new QueryWrapper<>());
+        // 从 Security Context 获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        
+        // 权限过滤：只返回当前用户创建的智能体
+        QueryWrapper<Agent> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", currentUserId);
+        
+        List<Agent> agents = agentMapper.selectList(queryWrapper);
         return ApiResponse.ok(agents);
     }
 
@@ -51,6 +59,13 @@ public class AgentController {
         if (agent == null) {
             return ApiResponse.fail("智能体不存在");
         }
+        
+        // 权限检查：只有创建者可以查看
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!agent.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权访问该智能体");
+        }
+        
         return ApiResponse.ok(agent);
     }
 
@@ -64,9 +79,10 @@ public class AgentController {
     @PostMapping
     public ApiResponse<Agent> create(
             @Parameter(description = "智能体信息对象，包含名称、描述、提示词、模型配置等字段", required = true) @RequestBody Agent agent) {
-        // TODO: 从登录用户获取userId，当前使用默认值
-        if (agent.getUserId() == null || agent.getUserId().isEmpty()) {
-            agent.setUserId("user-002-home"); // 使用测试数据中的默认用户
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId != null) {
+            agent.setUserId(currentUserId);
         }
         int rows = agentMapper.insert(agent);
         if (rows > 0) {
@@ -92,7 +108,17 @@ public class AgentController {
         if (existingAgent == null) {
             return ApiResponse.fail("智能体不存在");
         }
+        
+        // 权限检查：只有创建者可以修改
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!existingAgent.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权修改该智能体");
+        }
+        
         agent.setId(id);
+        // 保持 user_id 不变
+        agent.setUserId(existingAgent.getUserId());
+        
         int rows = agentMapper.updateById(agent);
         if (rows > 0) {
             return ApiResponse.ok("更新成功", agent);
@@ -114,6 +140,13 @@ public class AgentController {
         if (existingAgent == null) {
             return ApiResponse.fail("智能体不存在");
         }
+        
+        // 权限检查：只有创建者可以删除
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!existingAgent.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权删除该智能体");
+        }
+        
         int rows = agentMapper.deleteById(id);
         if (rows > 0) {
             return ApiResponse.ok("删除成功", null);

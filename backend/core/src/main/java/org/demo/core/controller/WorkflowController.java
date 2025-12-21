@@ -14,6 +14,7 @@ import org.demo.core.mapper.WorkflowExecutionMapper;
 import org.demo.core.model.entity.Agent;
 import org.demo.core.model.entity.Workflow;
 import org.demo.core.model.entity.WorkflowExecution;
+import org.demo.core.util.SecurityUtil;
 import org.demo.core.workflow.service.WorkflowExecutionService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -52,8 +53,14 @@ public class WorkflowController {
             @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
             @Parameter(description = "搜索关键词") @RequestParam(required = false) String search) {
         
+        // 从 Security Context 获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        
         Page<Workflow> pageParam = new Page<>(page, pageSize);
         QueryWrapper<Workflow> queryWrapper = new QueryWrapper<>();
+        
+        // 权限过滤：只显示当前用户创建的工作流
+        queryWrapper.eq("user_id", currentUserId);
         
         if (search != null && !search.isEmpty()) {
             queryWrapper.and(wrapper -> wrapper
@@ -89,6 +96,13 @@ public class WorkflowController {
         if (workflow == null) {
             return ApiResponse.fail("工作流不存在");
         }
+        
+        // 权限检查：只有创建者可以查看
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!workflow.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权访问该工作流");
+        }
+        
         return ApiResponse.ok(workflow);
     }
 
@@ -103,9 +117,10 @@ public class WorkflowController {
     public ApiResponse<Workflow> createWorkflow(
             @Parameter(description = "工作流信息对象", required = true) @RequestBody Workflow workflow) {
         
-        // TODO: 从登录用户获取userId
-        if (workflow.getUserId() == null || workflow.getUserId().isEmpty()) {
-            workflow.setUserId("user-002-home"); // 使用测试数据中的默认用户
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId != null) {
+            workflow.setUserId(currentUserId);
         }
         
         // 生成UUID
@@ -159,9 +174,16 @@ public class WorkflowController {
             return ApiResponse.fail("工作流不存在");
         }
         
-        // 保持ID和UUID不变
+        // 权限检查：只有创建者可以修改
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!existingWorkflow.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权修改该工作流");
+        }
+        
+        // 保持ID、UUID和 user_id 不变
         workflow.setId(existingWorkflow.getId());
         workflow.setUuid(existingWorkflow.getUuid());
+        workflow.setUserId(existingWorkflow.getUserId());
         
         int rows = workflowMapper.updateById(workflow);
         if (rows > 0) {
@@ -187,6 +209,12 @@ public class WorkflowController {
         
         if (existingWorkflow == null) {
             return ApiResponse.fail("工作流不存在");
+        }
+        
+        // 权限检查：只有创建者可以删除
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!existingWorkflow.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权删除该工作流");
         }
         
         int rows = workflowMapper.deleteById(existingWorkflow.getId());
@@ -215,6 +243,12 @@ public class WorkflowController {
             return ApiResponse.fail("工作流不存在");
         }
         
+        // 权限检查：只有创建者可以验证
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (!workflow.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权验证该工作流");
+        }
+        
         // 执行DAG验证
         Map<String, Object> validationResult = performDAGValidation(workflow);
         
@@ -240,16 +274,29 @@ public class WorkflowController {
             @Parameter(description = "工作流ID", required = true) @RequestParam String workflowId,
             @Parameter(description = "执行请求参数，包含 input 字段", required = true) @RequestBody Map<String, Object> executionRequest) {
         
+        // 获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        
         // 1. 查询智能体
         Agent agent = agentMapper.selectById(agentId);
         if (agent == null) {
             return ApiResponse.fail("智能体不存在");
         }
         
+        // 权限检查：智能体必须属于当前用户
+        if (!agent.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权执行该智能体的工作流");
+        }
+        
         // 2. 查询工作流
         Workflow workflow = workflowMapper.selectById(workflowId);
         if (workflow == null) {
             return ApiResponse.fail("工作流不存在");
+        }
+        
+        // 权限检查：工作流必须属于当前用户
+        if (!workflow.getUserId().equals(currentUserId)) {
+            return ApiResponse.fail("无权执行该工作流");
         }
         
         // 3. 验证智能体是否关联了该工作流

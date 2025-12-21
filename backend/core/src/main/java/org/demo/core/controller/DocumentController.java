@@ -7,8 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.model.vo.DocumentVO;
 import org.demo.core.model.vo.PageResult;
-import org.demo.core.service.DocumentService;
-import org.springframework.web.bind.annotation.*;
+import org.demo.core.service.DocumentService;import org.demo.core.util.SecurityUtil;import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -44,8 +43,8 @@ public class DocumentController {
             @RequestParam(required = false, defaultValue = "10") Integer pageSize,
             @Parameter(description = "文档状态（uploading/processing/processed/failed）")
             @RequestParam(required = false) String status) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
 
         PageResult<DocumentVO> result = documentService.listDocuments(kbUuid, page, pageSize, status, currentUserId);
         return ApiResponse.ok("查询成功", result);
@@ -66,8 +65,8 @@ public class DocumentController {
             @PathVariable String kbUuid,
             @Parameter(description = "上传的文件", required = true)
             @RequestParam("file") MultipartFile file) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
 
         DocumentVO result = documentService.uploadDocument(kbUuid, file, currentUserId);
         return ApiResponse.ok("上传成功", result);
@@ -85,8 +84,8 @@ public class DocumentController {
     public ApiResponse<DocumentVO> getDocument(
             @Parameter(description = "文档UUID", required = true)
             @PathVariable String uuid) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
 
         DocumentVO result = documentService.getDocument(uuid, currentUserId);
         return ApiResponse.ok("查询成功", result);
@@ -104,8 +103,8 @@ public class DocumentController {
     public ApiResponse<Object> deleteDocument(
             @Parameter(description = "文档UUID", required = true)
             @PathVariable String uuid) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
 
         documentService.deleteDocument(uuid, currentUserId);
         return ApiResponse.ok();

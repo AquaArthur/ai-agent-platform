@@ -13,6 +13,7 @@ import org.demo.core.model.vo.KnowledgeBaseVO;
 import org.demo.core.model.vo.PageResult;
 import org.demo.core.service.KnowledgeBaseService;
 import org.demo.core.service.RagClient;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,8 +41,8 @@ public class KnowledgeBaseController {
     @PostMapping
     public ApiResponse<KnowledgeBaseVO> createKnowledgeBase(
             @Validated @RequestBody KnowledgeBaseCreateDTO dto) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码，实际应从Security Context获取
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         
         KnowledgeBaseVO result = knowledgeBaseService.createKnowledgeBase(dto, currentUserId);
         return ApiResponse.ok("创建成功", result);
@@ -71,8 +72,8 @@ public class KnowledgeBaseController {
             @RequestParam(required = false) String scopeType,
             @Parameter(description = "访问级别（public/protected/private）") 
             @RequestParam(required = false) String accessLevel) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         
         PageResult<KnowledgeBaseVO> result = knowledgeBaseService.listKnowledgeBases(
                 page, pageSize, search, scopeType, accessLevel, currentUserId);
@@ -91,8 +92,8 @@ public class KnowledgeBaseController {
     public ApiResponse<KnowledgeBaseVO> getKnowledgeBase(
             @Parameter(description = "知识库UUID", required = true) 
             @PathVariable String uuid) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         
         KnowledgeBaseVO result = knowledgeBaseService.getKnowledgeBase(uuid, currentUserId);
         return ApiResponse.ok("查询成功", result);
@@ -112,8 +113,8 @@ public class KnowledgeBaseController {
             @Parameter(description = "知识库UUID", required = true) 
             @PathVariable String uuid,
             @Validated @RequestBody KnowledgeBasePatchDTO dto) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         
         KnowledgeBaseVO result = knowledgeBaseService.updateKnowledgeBase(uuid, dto, currentUserId);
         return ApiResponse.ok("更新成功", result);
@@ -131,8 +132,8 @@ public class KnowledgeBaseController {
     public ApiResponse<Void> deleteKnowledgeBase(
             @Parameter(description = "知识库UUID", required = true) 
             @PathVariable String uuid) {
-        // TODO: 从认证上下文获取当前用户ID
-        String currentUserId = "user-002-home"; // 临时硬编码
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         
         knowledgeBaseService.deleteKnowledgeBase(uuid, currentUserId);
         return ApiResponse.ok("删除成功", null);

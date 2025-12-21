@@ -16,6 +16,7 @@ import org.demo.core.model.vo.PluginInvokeResult;
 import org.demo.core.model.vo.PluginListItemVO;
 import org.demo.core.model.vo.PluginOperationVO;
 import org.demo.core.service.PluginService;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -75,8 +76,8 @@ public class PluginController {
     @PostMapping
     public ApiResponse<PluginDetailVO> createPlugin(
             @Parameter(description = "创建插件请求体", required = true) @RequestBody PluginCreateRequest request) {
-        // TODO: 从登录上下文获取当前用户ID，暂时使用数据库中的测试用户
-        String currentUserId = "user-004-dev";
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         PluginDetailVO detail = pluginService.createPlugin(request, currentUserId);
         return ApiResponse.ok("创建成功", detail);
     }
@@ -94,8 +95,8 @@ public class PluginController {
     public ApiResponse<PluginDetailVO> updatePlugin(
             @Parameter(description = "要更新的插件ID", required = true, example = "plugin_456") @PathVariable String pluginId,
             @Parameter(description = "更新插件请求体", required = true) @RequestBody PluginUpdateRequest request) {
-        // TODO: 从登录上下文获取当前用户ID，暂时使用数据库中的测试用户
-        String currentUserId = "user-004-dev";
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         PluginDetailVO detail = pluginService.updatePlugin(pluginId, request, currentUserId);
         return ApiResponse.ok("更新成功", detail);
     }
@@ -111,8 +112,8 @@ public class PluginController {
     @DeleteMapping("/{pluginId}")
     public ApiResponse<Void> deletePlugin(
             @Parameter(description = "要删除的插件ID", required = true, example = "plugin_456") @PathVariable String pluginId) {
-        // TODO: 从登录上下文获取当前用户ID，暂时使用数据库中的测试用户
-        String currentUserId = "user-004-dev";
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         pluginService.deletePlugin(pluginId, currentUserId);
         return ApiResponse.ok("删除成功", null);
     }
@@ -128,8 +129,8 @@ public class PluginController {
     @PostMapping("/import-openapi")
     public ApiResponse<PluginDetailVO> importFromOpenApi(
             @Parameter(description = "导入请求体", required = true) @RequestBody PluginOpenApiImportRequest request) {
-        // TODO: 从登录上下文获取当前用户ID，暂时使用数据库中的测试用户
-        String currentUserId = "user-004-dev";
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         PluginDetailVO detail = pluginService.importFromOpenApi(request, currentUserId);
         return ApiResponse.ok("导入成功", detail);
     }
@@ -162,8 +163,8 @@ public class PluginController {
     public ApiResponse<PluginDetailVO> updatePluginStatus(
             @Parameter(description = "插件ID", required = true, example = "plugin_456") @PathVariable String pluginId,
             @Parameter(description = "状态更新请求体", required = true) @RequestBody PluginStatusUpdateRequest request) {
-        // TODO: 从登录上下文获取当前用户ID，暂时使用数据库中的测试用户
-        String currentUserId = "user-004-dev";
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
         PluginDetailVO detail = pluginService.updatePluginStatus(pluginId, request.getIsEnabled(), currentUserId);
         return ApiResponse.ok("状态更新成功", detail);
     }

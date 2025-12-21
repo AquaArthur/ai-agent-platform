@@ -71,6 +71,11 @@ public class PluginServiceImpl implements PluginService {
         // 分页查询
         Page<Plugin> pageParam = new Page<>(pageNo, pageSize);
         LambdaQueryWrapper<Plugin> queryWrapper = new LambdaQueryWrapper<>();
+        
+        // 权限过滤：只能看到系统插件（user_id为null）或自己创建的插件
+        // 注意：这里暂时返回所有插件，因为方法签名中没有 userId 参数
+        // 建议后续修改接口签名添加 userId 参数
+        
         queryWrapper.orderByDesc(Plugin::getCreateTime);
 
         Page<Plugin> resultPage = pluginMapper.selectPage(pageParam, queryWrapper);
@@ -89,6 +94,10 @@ public class PluginServiceImpl implements PluginService {
         if (plugin == null) {
             throw new PluginNotFoundException(pluginId);
         }
+
+        // 权限检查：系统插件（user_id为null）可以被所有人访问
+        // 用户创建的插件暂时也允许所有人访问（可根据需求调整）
+        // TODO: 如需严格权限控制，可以添加 userId 参数并检查 plugin.getUserId().equals(userId)
 
         // 获取插件的所有操作
         List<PluginOperation> operations = pluginOperationService.listByPluginId(pluginId);
@@ -150,6 +159,14 @@ public class PluginServiceImpl implements PluginService {
             throw new PluginNotFoundException(pluginId);
         }
 
+        // 权限检查：只有创建者可以修改自己的插件
+        if (plugin.getUserId() == null) {
+            throw new SecurityException("系统插件不允许修改");
+        }
+        if (!plugin.getUserId().equals(userId)) {
+            throw new SecurityException("无权修改该插件");
+        }
+
         // 更新基本信息（只更新非空字段）
         if (request.getName() != null) {
             plugin.setName(request.getName());
@@ -202,6 +219,15 @@ public class PluginServiceImpl implements PluginService {
         if (plugin == null) {
             throw new PluginNotFoundException(pluginId);
         }
+        
+        // 权限检查：只有创建者可以删除自己的插件
+        if (plugin.getUserId() == null) {
+            throw new SecurityException("系统插件不允许删除");
+        }
+        if (!plugin.getUserId().equals(userId)) {
+            throw new SecurityException("无权删除该插件");
+        }
+        
         // 先删除关联的操作
         pluginOperationService.deleteByPluginId(pluginId);
         // 再删除插件
