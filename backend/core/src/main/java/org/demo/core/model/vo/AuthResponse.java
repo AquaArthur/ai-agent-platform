@@ -1,6 +1,5 @@
 package org.demo.core.model.vo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,21 +10,15 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "认证响应")
 public class AuthResponse {
 
-    @Schema(description = "JWT令牌")
     private String token;
 
-    @Schema(description = "用户ID")
     private String userId;
 
-    @Schema(description = "用户名")
     private String username;
 
-    @Schema(description = "昵称")
     private String nickname;
 
-    @Schema(description = "角色")
     private String role;
 }
