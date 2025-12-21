@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.demo.core.api.ApiResponse;
 import org.demo.core.mapper.AgentMapper;
 import org.demo.core.model.entity.Agent;
+import org.demo.core.util.SecurityUtil;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,9 +65,10 @@ public class AgentController {
     @PostMapping
     public ApiResponse<Agent> create(
             @Parameter(description = "智能体信息对象，包含名称、描述、提示词、模型配置等字段", required = true) @RequestBody Agent agent) {
-        // TODO: 从登录用户获取userId，当前使用默认值
-        if (agent.getUserId() == null || agent.getUserId().isEmpty()) {
-            agent.setUserId("user-002-home"); // 使用测试数据中的默认用户
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId != null) {
+            agent.setUserId(currentUserId);
         }
         int rows = agentMapper.insert(agent);
         if (rows > 0) {

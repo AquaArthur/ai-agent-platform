@@ -14,6 +14,7 @@ import org.demo.core.mapper.WorkflowExecutionMapper;
 import org.demo.core.model.entity.Agent;
 import org.demo.core.model.entity.Workflow;
 import org.demo.core.model.entity.WorkflowExecution;
+import org.demo.core.util.SecurityUtil;
 import org.demo.core.workflow.service.WorkflowExecutionService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -103,9 +104,10 @@ public class WorkflowController {
     public ApiResponse<Workflow> createWorkflow(
             @Parameter(description = "工作流信息对象", required = true) @RequestBody Workflow workflow) {
         
-        // TODO: 从登录用户获取userId
-        if (workflow.getUserId() == null || workflow.getUserId().isEmpty()) {
-            workflow.setUserId("user-002-home"); // 使用测试数据中的默认用户
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId != null) {
+            workflow.setUserId(currentUserId);
         }
         
         // 生成UUID

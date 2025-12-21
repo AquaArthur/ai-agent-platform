@@ -98,10 +98,10 @@ public class ChatController {
             return ApiResponse.fail("metadata.llmModelId不能为空");
         }
 
-        // 暂时写死 userId
-        // 确保 userId 有值（如果前端没传，使用默认测试用户）
-        if (conversation.getUserId() == null || conversation.getUserId().isEmpty()) {
-            conversation.setUserId("user-003-tester");
+        // 从Security Context获取当前用户ID
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId != null) {
+            conversation.setUserId(currentUserId);
         }
 
         try {

@@ -224,14 +224,14 @@ TRUE, TRUE, TRUE, 0, 0, 'user-002-home', '2025-11-25 11:00:00');
 -- 6. 工作流执行历史表 (workflow_execution) - 增加执行记录
 -- ------------------------------------------------------------
 INSERT INTO `workflow_execution` (`execution_id`, `workflow_id`, `user_id`, `status`, `input`, `output`, `error_message`, `node_executions`, `run_type`, `started_at`, `completed_at`, `execution_time`, `create_time`) VALUES
-('exec-uuid-001', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
+('exec-uuid-001', 'wf-001-home-ctrl', 'user-002-home', 'completed', 
 '{"user_message":"打开客厅的灯"}', 
 '{"node_1":{"user_message":"打开客厅的灯"},"node_2":"意图识别结果：打开灯","node_3":{"result":"success","message":"客厅灯已打开"},"node_4":{"result":"success","message":"客厅灯已打开"}}', 
 NULL,
 '[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-23T11:00:00","endTime":"2025-11-23T11:00:00","output":{"user_message":"打开客厅的灯"}},{"nodeId":"node_2","nodeType":"llm","status":"completed","startTime":"2025-11-23T11:00:00","endTime":"2025-11-23T11:00:01","output":"意图识别结果：打开灯"},{"nodeId":"node_3","nodeType":"http","status":"completed","startTime":"2025-11-23T11:00:01","endTime":"2025-11-23T11:00:03","output":{"result":"success","message":"客厅灯已打开"}},{"nodeId":"node_4","nodeType":"end","status":"completed","startTime":"2025-11-23T11:00:03","endTime":"2025-11-23T11:00:03","output":{"result":"success","message":"客厅灯已打开"}}]',
 'full', '2025-11-23 11:00:00', '2025-11-23 11:00:03', 3000, '2025-11-23 11:00:00'),
 
-('exec-uuid-002', 'wf-001-home-ctrl', 'user-003-tester', 'completed', 
+('exec-uuid-002', 'wf-001-home-ctrl', 'user-002-home', 'completed', 
 '{"user_message":"现在温度是多少"}', 
 '{"node_1":{"user_message":"现在温度是多少"},"node_2":"意图识别结果：查询温度","node_3":{"temperature":26.5,"humidity":55},"node_4":{"temperature":26.5,"humidity":55}}', 
 NULL,
@@ -245,7 +245,7 @@ NULL,
 '[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"trigger":"scheduled"}},{"nodeId":"node_2","nodeType":"http","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"light_status":"off"}},{"nodeId":"node_3","nodeType":"http","status":"completed","startTime":"2025-11-23T23:00:00","endTime":"2025-11-23T23:00:00","output":{"result":"skipped"}},{"nodeId":"node_4","nodeType":"end","status":"completed","startTime":"2025-11-23T23:00:01","endTime":"2025-11-23T23:00:01","output":{"result":"success","message":"卧室灯已关闭"}}]',
 'full', '2025-11-23 23:00:00', '2025-11-23 23:00:01', 1000, '2025-11-23 23:00:00'),
 
-('exec-uuid-004', 'wf-001-home-ctrl', 'user-003-tester', 'failed', 
+('exec-uuid-004', 'wf-001-home-ctrl', 'user-002-home', 'failed', 
 '{"user_message":"打开阳台的灯"}', 
 '{"node_1":{"user_message":"打开阳台的灯"},"node_2":"意图识别结果：打开灯"}', 
 '节点 node_3 执行失败: Device not found: balcony light is not configured',
@@ -253,14 +253,14 @@ NULL,
 'full', '2025-11-24 12:00:00', '2025-11-24 12:00:05', 5000, '2025-11-24 12:00:00'),
 
 -- 新增工作流执行记录
-('exec-uuid-005', 'wf-007-string-only', 'user-003-tester', 'completed',
+('exec-uuid-005', 'wf-007-string-only', 'user-002-home', 'completed',
 '{"firstName":"张","lastName":"三"}',
 '{"node_1":{"firstName":"张","lastName":"三"},"node_2":"张 三","node_3":"张 三"}',
 NULL,
 '[{"nodeId":"node_1","nodeType":"start","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":{"firstName":"张","lastName":"三"}},{"nodeId":"node_2","nodeType":"string","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":"张 三"},{"nodeId":"node_3","nodeType":"end","status":"completed","startTime":"2025-11-25T14:00:00","endTime":"2025-11-25T14:00:00","output":"张 三"}]',
 'full', '2025-11-25 14:00:00', '2025-11-25 14:00:00', 50, '2025-11-25 14:00:00'),
 
-('exec-uuid-006', 'wf-008-complex-string', 'user-003-tester', 'completed',
+('exec-uuid-006', 'wf-008-complex-string', 'user-002-home', 'completed',
 '{"rawText":"  hello OLD world  ","timestamp":"2025-12-11 10:00:00"}',
 '{"start":{"rawText":"  hello OLD world  ","timestamp":"2025-12-11 10:00:00"},"trim_input":"hello OLD world","to_lower":"hello old world","to_upper":"HELLO OLD WORLD","extract_prefix":"hello","extract_suffix":"world","replace_text":"HELLO NEW WORLD","concat_parts":"hello-world","format_result":"Result: HELLO NEW WORLD","merge_upper_lower":"hello-world | Result: HELLO NEW WORLD","add_timestamp":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD","final_trim":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD","end":"[2025-12-11 10:00:00] hello-world | Result: HELLO NEW WORLD"}',
 NULL,
@@ -273,8 +273,8 @@ NULL,
 -- ------------------------------------------------------------
 INSERT INTO `knowledge_base` (`id`, `uuid`, `name`, `description`, `icon`, `scope_type`, `scope_id`, `parent_kb_id`, `owner_id`, `user_id`, `access_level`, `document_count`, `chunk_count`, `total_size`, `chunk_size`, `chunk_overlap`, `embedding_model`, `embedding_model_id`, `retrieval_config`, `create_time`) VALUES
 ('kb-001-dev', 'kb-uuid-001', '智能设备开发文档', '包含LED灯、传感器等设备的API和故障排除文档。', NULL, 'personal', NULL, NULL, 'user-002-home', 'user-002-home', 'private', 2, 40, 1098576, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.4, "max_context_length": 2000}', '2025-11-10 09:10:00'),
-('kb-002-faq', 'kb-uuid-002', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', NULL, 'system', NULL, NULL, 'user-001-admin', 'user-001-admin', 'public', 2, 35, 780288, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.4, "max_context_length": 2000}', '2025-11-12 14:00:00'),
-('kb-003-tt', 'kb-uuid-003', '测试知识库', '测试知识库', null, 'system', null, null, 'user-001-admin', 'user-001-admin', 'public', 1, 3, 1145, 800, 50, 'text-embedding-v4', null, '{"top_k": 5, "max_context_length": 2000, "similarity_threshold": 0.4}', '2025-12-08 21:33:26');
+('kb-002-faq', 'kb-uuid-002', '常见问题解答', '用户对智能家居系统的常见疑问及标准答案。', NULL, 'system', NULL, NULL, 'user-002-home', 'user-002-home', 'public', 2, 35, 780288, 800, 50, 'text-embedding-3-small', NULL, '{"top_k": 5, "similarity_threshold": 0.4, "max_context_length": 2000}', '2025-11-12 14:00:00'),
+('kb-003-tt', 'kb-uuid-003', '测试知识库', '测试知识库', null, 'system', null, null, 'user-002-home', 'user-002-home', 'public', 1, 3, 1145, 800, 50, 'text-embedding-v4', null, '{"top_k": 5, "max_context_length": 2000, "similarity_threshold": 0.4}', '2025-12-08 21:33:26');
 
 
 -- ============================================================
@@ -292,9 +292,9 @@ INSERT INTO `agent_knowledge_base` (`id`, `agent_id`, `knowledge_base_id`, `prio
 INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url`, `file_path`, `file_size`, `file_type`, `chunk_count`, `status`, `process_status`, `error_message`, `processed_at`, `knowledge_base_id`, `kb_id`, `user_id`, `create_time`, `created_at`, `update_time`, `updated_at`) VALUES
 ('doc-001', 'doc-uuid-001', 'LED设备操作手册', 'LED_Manual.txt', 'LED_Manual.txt', 'http://storage.com/kb-001/led_manual.txt', '/files/kb-001/led_manual.txt', 1048576, 'txt', 30, 'processed', 2, NULL, '2025-11-10 10:35:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 10:30:00', '2025-11-10 10:30:00', '2025-11-10 10:35:00', '2025-11-10 10:35:00'),
 ('doc-002', 'doc-uuid-002', '温度传感器技术规格', 'Temp_Sensor_Spec.txt', 'Temp_Sensor_Spec.txt', 'http://storage.com/kb-001/temp_spec.txt', '/files/kb-001/temp_spec.txt', 50000, 'txt', 10, 'processed', 2, NULL, '2025-11-10 11:05:00', 'kb-001-dev', 'kb-001-dev', 'user-002-home', '2025-11-10 11:00:00', '2025-11-10 11:00:00', '2025-11-10 11:05:00', '2025-11-10 11:05:00'),
-('doc-003', 'doc-uuid-003', '常见问题排查指南', 'Troubleshooting.md', 'Troubleshooting.md', 'http://storage.com/kb-002/trouble.md', '/files/kb-002/trouble.md', 256000, 'md', 20, 'processed', 2, NULL, '2025-11-13 09:10:00', 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 09:00:00', '2025-11-13 09:00:00', '2025-11-13 09:10:00', '2025-11-13 09:10:00'),
-('doc-004', 'doc-uuid-004', '设备安装指南', 'Installation_Guide.md', 'Installation_Guide.md', 'http://storage.com/kb-002/install.md', '/files/kb-002/install.md', 524288, 'markdown', 15, 'processing', 1, NULL, NULL, 'kb-002-faq', 'kb-002-faq', 'user-001-admin', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00'),
-('doc-005', 'doc-uuid-005', '测试文档', '测试文档.md', '测试文档.md', 'http://storage.com/kb-002/测试文档.md', '/files/kb-003/test.md', 1111, 'markdown', 3, DEFAULT, null, null, null, 'kb-003-tt', 'kb-003-tt', 'user-001-admin', DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+('doc-003', 'doc-uuid-003', '常见问题排查指南', 'Troubleshooting.md', 'Troubleshooting.md', 'http://storage.com/kb-002/trouble.md', '/files/kb-002/trouble.md', 256000, 'md', 20, 'processed', 2, NULL, '2025-11-13 09:10:00', 'kb-002-faq', 'kb-002-faq', 'user-002-home', '2025-11-13 09:00:00', '2025-11-13 09:00:00', '2025-11-13 09:10:00', '2025-11-13 09:10:00'),
+('doc-004', 'doc-uuid-004', '设备安装指南', 'Installation_Guide.md', 'Installation_Guide.md', 'http://storage.com/kb-002/install.md', '/files/kb-002/install.md', 524288, 'markdown', 15, 'processing', 1, NULL, NULL, 'kb-002-faq', 'kb-002-faq', 'user-002-home', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00', '2025-11-13 10:00:00'),
+('doc-005', 'doc-uuid-005', '测试文档', '测试文档.md', '测试文档.md', 'http://storage.com/kb-002/测试文档.md', '/files/kb-003/test.md', 1111, 'markdown', 3, DEFAULT, null, null, null, 'kb-003-tt', 'kb-003-tt', 'user-002-home', DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 
 
 -- ============================================================
@@ -303,7 +303,7 @@ INSERT INTO `document` (`id`, `uuid`, `name`, `filename`, `file_name`, `file_url
 INSERT INTO `plugin` (`id`, `name`, `identifier`, `description`, `type`, `base_url`, `openapi_spec`, `status`, `is_enabled`, `auth_type`, `user_id`, `create_time`) VALUES
 ('plugin-001-led', '智能灯光控制', 'led_controller', '用于开启、关闭和调整智能LED灯的亮度或颜色。', 'http', 'https://plugin.smarthome.local', '{"openapi": "3.0.0", "info": {"title": "LED Control API"}, "paths": {"/light/on": {}, "/light/off": {}}}', 'enabled', TRUE, 'api_key', 'user-002-home', '2025-11-15 10:00:00'),
 ('plugin-002-temp', '室内温度查询', 'temperature_sensor', '获取当前房间的实时温度和湿度数据。', 'http', 'https://plugin.smarthome.local', '{"openapi": "3.0.0", "info": {"title": "Temperature API"}, "paths": {"/sensor/current_temp": {}}}', 'enabled', TRUE, 'none', 'user-002-home', '2025-11-15 11:30:00'),
-('plugin-003-calendar', '家庭日程提醒', 'family_calendar', '用于查询和添加家庭共享日历事件。', 'http', 'https://calendar.api.local', '{"openapi": "3.0.0", "info": {"title": "Calendar API"}, "paths": {"/events": {}}}', 'disabled', FALSE, 'oauth', 'user-004-dev', '2025-11-18 14:00:00'),
+('plugin-003-calendar', '家庭日程提醒', 'family_calendar', '用于查询和添加家庭共享日历事件。', 'http', 'https://calendar.api.local', '{"openapi": "3.0.0", "info": {"title": "Calendar API"}, "paths": {"/events": {}}}', 'disabled', FALSE, 'oauth', 'user-002-home', '2025-11-18 14:00:00'),
 ('plugin_be2e083736e0','IoT设备控制','iot','传感器查询、设备控制（LED/继电器/舵机/PWM）、预设指令','http','https://plugin.aiot.hello1023.com','{"type": "openapi", "baseUrl": "https://plugin.aiot.hello1023.com", "originalSpec": {"info": {"title": "IoT设备控制", "version": "1.2.0", "description": "传感器查询、设备控制（LED/继电器/舵机/PWM）、预设指令"}, "paths": {"/plugin/preset": {"post": {"tags": ["预设指令"], "summary": "执行预设", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}}}, "description": "成功"}}, "description": "通过preset_key执行用户自定义预设", "operationId": "executePreset", "requestBody": {"content": {"application/json": {"schema": {"type": "object", "required": ["device_uuid", "preset_name"], "properties": {"parameters": {"type": "object", "example": {}, "description": "可选参数（通常为空）", "additionalProperties": true}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}, "preset_name": {"type": "string", "example": "led_blink_k8x9y2", "description": "预设标识(preset_key)，如：led_blink_k8x9y2"}}}, "example": {"parameters": {}, "device_uuid": "test", "preset_name": "led_blink_k8x9y2"}}}, "required": true}}}, "/plugin/control": {"post": {"tags": ["设备控制"], "summary": "控制设备", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"result": {"type": "string", "example": "success"}}}}}}}, "description": "成功"}}, "description": "控制LED、继电器、舵机、PWM等设备", "operationId": "controlDevice", "requestBody": {"content": {"application/json": {"schema": {"type": "object", "required": ["device_uuid", "port_type", "port_id", "action"], "properties": {"value": {"type": "integer", "example": 90, "maximum": 180, "minimum": 0, "description": "设置值：舵机角度(0-180)或PWM占空比(0-100)，仅当action为set时需要"}, "action": {"enum": ["on", "off", "set"], "type": "string", "example": "on", "description": "动作：on(打开)/off(关闭)/set(设置值，用于舵机角度或PWM占空比)"}, "port_id": {"type": "integer", "example": 1, "maximum": 4, "minimum": 1, "description": "端口ID：LED和继电器为1-4，舵机为1-4，PWM为1-2"}, "port_type": {"enum": ["led", "relay", "servo", "pwm"], "type": "string", "example": "led", "description": "设备类型：led(LED灯)、relay(继电器)、servo(舵机)、pwm(PWM输出)"}, "device_uuid": {"type": "string", "example": "test", "description": "设备UUID"}}}, "example": {"action": "on", "port_id": 1, "port_type": "led", "device_uuid": "test"}}}, "required": true}}}, "/plugin/sensor-data": {"get": {"tags": ["传感器"], "summary": "查询传感器", "responses": {"200": {"content": {"application/json": {"schema": {"type": "object", "properties": {"msg": {"type": "string", "example": "成功"}, "code": {"type": "integer", "example": 200}, "data": {"type": "object", "properties": {"unit": {"type": "string", "example": "°C"}, "value": {"type": "number", "example": 24.5}}}}}, "example": {"msg": "成功", "code": 200, "data": {"unit": "°C", "value": 24.5}}}}, "description": "成功"}}, "parameters": [{"in": "query", "name": "uuid", "schema": {"type": "string", "example": "test"}, "required": true, "description": "UUID"}, {"in": "query", "name": "sensor", "schema": {"enum": ["温度", "湿度", "雨水", "雨水级别", "DS18B20", "DS18B20温度", "temperature", "humidity", "rain", "rain_level"], "type": "string", "example": "温度"}, "required": true, "description": "传感器类型"}], "description": "获取各类传感器数据（温度、湿度、雨水、DS18B20等）", "operationId": "getSensorData"}}}, "openapi": "3.0.0", "servers": [{"url": "https://plugin.aiot.hello1023.com", "description": "生产服务器"}]}}','enabled',TRUE,'none','user-004-dev','2025-12-03 14:37:30');
 
 -- ============================================================
@@ -325,9 +325,9 @@ INSERT INTO `plugin_operation` (`id`, `plugin_id`, `operation_id`, `name`, `meth
 INSERT INTO `system_log` (`id`, `user_id`, `module`, `action`, `level`, `content`, `create_time`, `request_params`) VALUES
 ('log-001', 'user-002-home', 'agent', 'create', 'info', '用户 [home_creator] 创建了智能体 [智能家居助理]', '2025-11-22 10:00:00', '{"name": "智能家居助理"}'),
 ('log-002', 'user-002-home', 'plugin', 'enable', 'info', '用户 [home_creator] 启用了插件 [智能灯光控制]', '2025-11-15 10:05:00', '{"id": "plugin-001-led"}'),
-('log-003', 'user-003-tester', 'workflow', 'execute', 'info', '工作流 [智能家居控制与反馈] (run-001) 执行成功', '2025-11-23 11:00:03', '{"run_id": "run-001"}'),
-('log-004', 'user-001-admin', 'knowledge_base', 'upload_doc', 'info', '管理员上传了新文档到 [常见问题解答]', '2025-11-13 10:00:00', '{"doc_id": "doc-004"}'),
-('log-005', 'user-003-tester', 'workflow', 'execute', 'error', '工作流执行失败: Device not found in location [balcony]', '2025-11-24 12:00:05', '{"run_id": "run-004"}');
+('log-003', 'user-002-home', 'workflow', 'execute', 'info', '工作流 [智能家居控制与反馈] (run-001) 执行成功', '2025-11-23 11:00:03', '{"run_id": "run-001"}'),
+('log-004', 'user-002-home', 'knowledge_base', 'upload_doc', 'info', '管理员上传了新文档到 [常见问题解答]', '2025-11-13 10:00:00', '{"doc_id": "doc-004"}'),
+('log-005', 'user-002-home', 'workflow', 'execute', 'error', '工作流执行失败: Device not found in location [balcony]', '2025-11-24 12:00:05', '{"run_id": "run-004"}');
 
 
 -- ============================================================
