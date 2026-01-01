@@ -790,7 +790,7 @@ const handleSave = () => {
 
 // 处理返回按钮点击
 const handleGoBack = () => {
-  router.push('/workflows');
+  router.push('/main/workflows');
 };
 
 // 处理验证按钮点击
@@ -1288,6 +1288,18 @@ const handleRun = async () => {
     ElMessage.warning('工作流保存失败，无法执行');
     return;
   }
+  
+  // 检查工作流是否有关联的智能体
+  if (!workflowData.value?.agentId) {
+    ElMessage.warning('该工作流未关联智能体，无法执行。请先在智能体配置中关联此工作流。');
+    return;
+  }
+  
+  // 检查工作流是否有id
+  if (!workflowData.value?.id) {
+    ElMessage.error('工作流ID不存在');
+    return;
+  }
 
   // 运行前先验证工作流
   try {
@@ -1307,7 +1319,7 @@ const handleRun = async () => {
   }
 
   // 验证通过，执行工作流
-  await runWorkflow(workflowUuid.value, { input: {} });
+  await runWorkflow(workflowData.value.agentId, workflowData.value.id, { input: {} });
 };
 
 // 组件卸载时停止轮询
@@ -1346,7 +1358,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
   pointer-events: none;
 }
@@ -1482,7 +1494,7 @@ onUnmounted(() => {
   height: 100%;
   background: var(--gradient-bg-secondary);
   background-image: 
-    radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
 }
@@ -1521,7 +1533,7 @@ onUnmounted(() => {
 
 .workflow-pane .vue-flow__edge.selected {
   stroke-width: 3;
-  filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4));
+  filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.4));
 }
 
 .workflow-pane .vue-flow__edge-path {
@@ -1534,7 +1546,7 @@ onUnmounted(() => {
   background: var(--gradient-bg-card-header);
   border: 3px solid #ffffff;
   box-shadow: 
-    0 2px 8px rgba(102, 126, 234, 0.4),
+    0 2px 8px rgba(14, 165, 233, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: crosshair;
@@ -1544,7 +1556,7 @@ onUnmounted(() => {
   width: 14px;
   height: 14px;
   box-shadow: 
-    0 4px 12px rgba(102, 126, 234, 0.6),
+    0 4px 12px rgba(14, 165, 233, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transform: scale(1.2);
 }
@@ -1605,13 +1617,13 @@ onUnmounted(() => {
 .workflow-pane .vue-flow__controls-button {
   background: transparent;
   border: none;
-  color: #667eea;
+  color: #0ea5e9;
   transition: all 0.2s ease;
 }
 
 .workflow-pane .vue-flow__controls-button:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #764ba2;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0891b2;
 }
 
 /* 小地图样式 */

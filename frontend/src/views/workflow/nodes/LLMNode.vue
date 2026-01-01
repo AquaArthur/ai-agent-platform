@@ -25,7 +25,8 @@
         <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <div class="node-label">LLM节点</div>
+    <div class="node-label">{{ nodeLabel }}</div>
+    <div v-if="modelInfo" class="node-sub-label">{{ modelInfo }}</div>
     <div v-if="hasConfig" class="node-badge">✓</div>
     <!-- 输出连接点（右侧） -->
     <Handle
@@ -53,6 +54,18 @@ const props = defineProps<Props>()
 const hasConfig = computed(() => {
   return props.data?.config && Object.keys(props.data.config).length > 0
 })
+
+const nodeLabel = computed(() => {
+  return props.data?.label || 'LLM节点'
+})
+
+const modelInfo = computed(() => {
+  const config = props.data?.config
+  if (!config || !config.llmModelId) return null
+  
+  // 可以显示模型ID或其他简短信息
+  return `模型: ${config.llmModelId.substring(0, 8)}...`
+})
 </script>
 
 <style scoped>
@@ -73,5 +86,16 @@ const hasConfig = computed(() => {
   box-shadow: 
     0 4px 12px rgba(245, 158, 11, 0.4),
     0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* 节点子标签 */
+.node-sub-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+  font-weight: 500;
+  opacity: 0.9;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 </style>

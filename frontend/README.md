@@ -226,7 +226,7 @@ docker run -d -p 80:80 ai-agent-platform-frontend
 | 路径 | 名称 | 说明 |
 |------|------|------|
 | `/` | - | 重定向到 `/agents` |
-| `/home` | home | 系统测试页面 |
+| `/hello` | hello | 系统测试页面 |
 | `/agents` | agent-list | 智能体列表页 |
 | `/agents/:id` | agent-editor | 智能体编辑器（创建/编辑） |
 | `/plugins` | plugin-list | 插件管理列表页 |

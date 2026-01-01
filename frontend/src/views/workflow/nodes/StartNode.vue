@@ -2,15 +2,15 @@
   <div
     class="start-node workflow-node-base"
     :style="{
-      background: data.color?.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: data.color?.bg || 'linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%)',
       borderColor: data.color?.border || 'rgba(255, 255, 255, 0.3)',
-      '--node-hover-shadow-color': 'rgba(102, 126, 234, 0.45)',
-      '--node-selected-shadow-color': 'rgba(102, 126, 234, 0.3)',
-      '--node-selected-shadow-color-strong': 'rgba(102, 126, 234, 0.4)',
-      '--node-pulse-shadow-color-1': 'rgba(102, 126, 234, 0.3)',
-      '--node-pulse-shadow-color-2': 'rgba(102, 126, 234, 0.4)',
-      '--node-pulse-shadow-color-3': 'rgba(102, 126, 234, 0.2)',
-      '--node-pulse-shadow-color-4': 'rgba(102, 126, 234, 0.5)'
+      '--node-hover-shadow-color': 'rgba(14, 165, 233, 0.45)',
+      '--node-selected-shadow-color': 'rgba(14, 165, 233, 0.3)',
+      '--node-selected-shadow-color-strong': 'rgba(14, 165, 233, 0.4)',
+      '--node-pulse-shadow-color-1': 'rgba(14, 165, 233, 0.3)',
+      '--node-pulse-shadow-color-2': 'rgba(14, 165, 233, 0.4)',
+      '--node-pulse-shadow-color-3': 'rgba(14, 165, 233, 0.2)',
+      '--node-pulse-shadow-color-4': 'rgba(14, 165, 233, 0.5)'
     }"
   >
     <!-- 开始节点只有输出连接点（右侧） -->
@@ -54,7 +54,7 @@ const hasConfig = computed(() => {
 /* 使用公共样式类，只保留节点特定的样式 */
 .start-node {
   box-shadow: 
-    0 8px 24px rgba(102, 126, 234, 0.35),
+    0 8px 24px rgba(14, 165, 233, 0.35),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset,
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }

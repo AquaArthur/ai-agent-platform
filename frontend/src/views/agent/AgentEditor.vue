@@ -229,6 +229,7 @@ import { useAgentStore } from '@/stores/useAgentStore'
 import { getLlmModelList } from '@/api/llm'
 import { getPluginList } from '@/api'
 import { getKnowledgeBaseList, type KnowledgeBase } from '@/api/knowledgeBase'
+import { getAgentKnowledgeBases, syncAgentKnowledgeBases } from '@/api/agent'
 import { getScopeTagType, getScopeLabel, getAccessLevelTagType, getAccessLevelLabel } from '@/utils/formatters'
 import type { Agent, LlmModel, Plugin } from '@/types/entity'
 import MonacoEditor from '@/components/MonacoEditor.vue'
@@ -406,32 +407,45 @@ const initFormData = async () => {
       await agentStore.fetchAgentById(agentId.value)
       const agent = agentStore.currentAgent
       if (agent) {
+        // 处理 snake_case 和 camelCase 兼容性
+        const modelCfg = agent.modelConfig || agent.model_config
+        const promptTpl = agent.promptTemplate || agent.prompt_template || ''
+        const kbId = agent.knowledgeBaseId || agent.knowledge_base_id
+        const kbIdList = agent.kbIds || agent.kb_ids || []
+        const toolsCfg = agent.toolsConfig || agent.tools_config || []
+
         formData.value = {
           ...agent,
           status: agent.status || 'draft',
           prompt: agent.prompt || '',
-          promptTemplate: agent.promptTemplate || ''
+          promptTemplate: promptTpl
         }
 
         // 处理模型配置
-        if (agent.modelConfig) {
-          modelConfigForm.value.modelId = agent.modelConfig.modelId || agent.modelConfig.model || ''
-          modelConfigForm.value.temperature = agent.modelConfig.temperature || 0.7
+        if (modelCfg) {
+          modelConfigForm.value.modelId = modelCfg.modelId || modelCfg.model_id || modelCfg.model || ''
+          modelConfigForm.value.temperature = modelCfg.temperature ?? 0.7
         }
 
-        // 处理知识库ID列表
-        if (agent.kbIds && agent.kbIds.length > 0) {
-          selectedKnowledgeBaseIds.value = agent.kbIds
-        } else if (agent.knowledgeBaseId) {
-          // 兼容旧字段 knowledgeBaseId
-          selectedKnowledgeBaseIds.value = [agent.knowledgeBaseId]
-        } else {
-          selectedKnowledgeBaseIds.value = []
+        // 通过关联API加载智能体绑定的知识库
+        try {
+          const linkedKbs = await getAgentKnowledgeBases(agentId.value)
+          selectedKnowledgeBaseIds.value = linkedKbs.map(kb => kb.id || kb.uuid)
+        } catch (kbError) {
+          console.warn('加载智能体关联知识库失败，尝试使用旧字段:', kbError)
+          // 降级处理：使用旧字段
+          if (kbIdList.length > 0) {
+            selectedKnowledgeBaseIds.value = kbIdList
+          } else if (kbId) {
+            selectedKnowledgeBaseIds.value = [kbId]
+          } else {
+            selectedKnowledgeBaseIds.value = []
+          }
         }
 
         // 处理插件ID列表
-        if (agent.toolsConfig && agent.toolsConfig.length > 0) {
-          selectedPluginIds.value = agent.toolsConfig
+        if (toolsCfg.length > 0) {
+          selectedPluginIds.value = toolsCfg
         } else {
           selectedPluginIds.value = []
         }
@@ -479,39 +493,49 @@ const handleSave = async () => {
       modelConfig.temperature = modelConfigForm.value.temperature
     }
 
-    // 确保知识库ID列表是最新的
-    formData.value.kbIds = selectedKnowledgeBaseIds.value || []
-    // 如果只选择了一个知识库，也设置 knowledgeBaseId（兼容旧字段）
-    if (selectedKnowledgeBaseIds.value && selectedKnowledgeBaseIds.value.length === 1) {
-      formData.value.knowledgeBaseId = selectedKnowledgeBaseIds.value[0]
-    } else {
-      formData.value.knowledgeBaseId = ''
-    }
-
-    // 构建提交数据
+    // 构建提交数据（不再包含知识库字段，由关联API管理）
     const submitData: Agent = {
       ...formData.value,
-      modelConfig: Object.keys(modelConfig).length > 0 ? modelConfig : undefined
+      modelConfig: Object.keys(modelConfig).length > 0 ? modelConfig : undefined,
+      // 清空旧的知识库字段，使用关联表管理
+      kbIds: [],
+      knowledgeBaseId: ''
     }
 
     // 确保数组字段正确
-    if (!submitData.kbIds) submitData.kbIds = []
     if (!submitData.toolsConfig) submitData.toolsConfig = []
 
     loading.value = true
 
+    let savedAgentId: string
+
     if (isEdit.value) {
-      // 更新智能体
+      // 更新智能体基本信息
       await agentStore.editAgent(agentId.value, submitData)
-      ElMessage.success('保存成功')
-      // 刷新数据
-      await initFormData()
+      savedAgentId = agentId.value
     } else {
       // 创建智能体
       const created = await agentStore.addAgent(submitData)
-      ElMessage.success('创建成功')
+      savedAgentId = created.id!
+    }
+
+    // 同步知识库关联（使用关联API）
+    const targetKbIds = selectedKnowledgeBaseIds.value || []
+    try {
+      await syncAgentKnowledgeBases(savedAgentId, targetKbIds)
+    } catch (syncError: any) {
+      console.error('同步知识库关联失败:', syncError)
+      ElMessage.warning('知识库关联同步失败，请在编辑页面重试')
+    }
+
+    ElMessage.success(isEdit.value ? '保存成功' : '创建成功')
+
+    if (isEdit.value) {
+      // 刷新数据
+      await initFormData()
+    } else {
       // 跳转到编辑页面
-      router.replace({ name: 'agent-editor', params: { id: created.id! } })
+      router.replace({ name: 'agent-editor', params: { id: savedAgentId } })
     }
   } catch (error: any) {
     console.error('保存失败:', error)

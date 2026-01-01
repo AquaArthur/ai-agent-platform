@@ -57,6 +57,8 @@ services:
     volumes:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - app-network
 
   # 后端（Spring Boot，开发环境）
   backend:
@@ -199,4 +201,7 @@ volumes:
   backend-dev-logs:
     driver: local
     name: ${PROJECT_NAME:-ai-agent-platform-dev}-backend-logs
+  redis-data:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform-dev}-redis-data
     

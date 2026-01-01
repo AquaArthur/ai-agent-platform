@@ -15,7 +15,8 @@ export interface Agent {
   modelConfig?: Record<string, any>
   status?: string // draft/published
   userId?: string
-  workflowId?: string
+  workflowId?: string // 废弃，使用workflows
+  workflows?: string[] // 关联的工作流ID列表
   knowledgeBaseId?: string
   kbIds?: string[]
   toolsConfig?: string[] // 插件ID列表
@@ -25,22 +26,33 @@ export interface Agent {
 
 /**
  * 插件实体
+ * 同时支持 camelCase 和 snake_case 以兼容后端返回格式
  */
 export interface Plugin {
   id?: string
   name: string
-  identifier: string
+  identifier?: string
   description?: string
-  openapiSpec?: any // OpenAPI规范内容
-  openapiSchema?: any // OpenAPI规范（别名字段）
-  status?: string // enabled/disabled
+  type?: string
+  baseUrl?: string
+  method?: string
+  endpoint?: string
+  openapiSpec?: any
+  openapiSchema?: any
+  paramsSchema?: Record<string, any>
+  responseSchema?: Record<string, any>
+  status?: string
   isEnabled?: boolean
-  authInfo?: any // 鉴权信息
-  authType?: string // none/api_key/oauth等
-  authConfig?: any // 鉴权配置
+  is_enabled?: boolean
+  authInfo?: any
+  authType?: string
+  authConfig?: any
+  operations?: any[]
   userId?: string
-  createTime?: string
-  updateTime?: string
+  createTime?: string | number
+  create_time?: string | number
+  updateTime?: string | number
+  update_time?: string | number
 }
 
 /**

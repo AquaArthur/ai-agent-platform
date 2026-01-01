@@ -7,7 +7,7 @@
     <!-- 搜索和筛选 -->
     <div class="filter-section">
       <el-row :gutter="16">
-        <el-col :span="10">
+        <el-col :span="8">
           <el-input
             v-model="searchQuery"
             placeholder="搜索工作流名称或描述"
@@ -28,7 +28,7 @@
             <el-option label="无效" :value="false" />
           </el-select>
         </el-col>
-        <el-col :span="8" style="text-align: right;">
+        <el-col :span="10" style="text-align: right;">
           <el-button @click="resetFilters">重置筛选</el-button>
           <el-button type="primary" :icon="Plus" @click="createWorkflow">
             创建工作流
@@ -84,10 +84,23 @@
             {{ formatDate(row.createTime || row.create_time) }}
           </template>
         </el-table-column>
+        <el-table-column label="关联智能体" width="120">
+          <template #default="{ row }">
+            <el-tag v-if="row.agentId" type="success" size="small">已关联</el-tag>
+            <el-tag v-else type="info" size="small">未关联</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="editWorkflow(row)">编辑</el-button>
-            <el-button type="success" size="small" @click="executeWorkflow(row)">执行</el-button>
+            <el-tooltip
+              v-if="!row.agentId"
+              content="该工作流未关联智能体，请先在智能体配置中关联此工作流"
+              placement="top"
+            >
+              <el-button type="success" size="small" disabled>执行</el-button>
+            </el-tooltip>
+            <el-button v-else type="success" size="small" @click="executeWorkflow(row)">执行</el-button>
             <el-button type="info" size="small" @click="viewExecutions(row)">执行历史</el-button>
             <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -187,7 +200,7 @@
       <!-- 筛选和搜索 -->
       <div class="execution-filter" style="margin-bottom: 16px;">
         <el-row :gutter="16">
-          <el-col :span="8">
+          <el-col :span="6">
             <el-select
               v-model="executionFilterStatus"
               placeholder="状态筛选"
@@ -447,12 +460,12 @@ const resetFilters = () => {
 
 // 创建工作流
 const createWorkflow = () => {
-  router.push('/workflow-editor')
+  router.push('/main/workflow-editor')
 }
 
 // 编辑工作流
 const editWorkflow = (workflow: Workflow) => {
-  router.push(`/workflow-editor/${workflow.uuid}`)
+  router.push(`/main/workflow-editor/${workflow.uuid}`)
 }
 
 
@@ -557,6 +570,18 @@ const formatJson = () => {
 const confirmExecute = async () => {
   if (!currentWorkflow.value) return
   
+  // 检查工作流是否有关联的智能体
+  if (!currentWorkflow.value.agentId) {
+    ElMessage.warning('该工作流未关联智能体，无法执行。请先在智能体配置中关联此工作流。')
+    return
+  }
+  
+  // 检查工作流是否有id
+  if (!currentWorkflow.value.id) {
+    ElMessage.error('工作流ID不存在')
+    return
+  }
+  
   // 如果需要LLM模型但未选择，提示用户
   if (needsLlmModel.value && !executeForm.value.llmModelId) {
     ElMessage.warning('请选择LLM模型')
@@ -586,8 +611,9 @@ const confirmExecute = async () => {
     
     executing.value = true
     
-    // 按照workflow.md要求的格式构建请求
-    // 格式: { "input": {...}, "llm_model_id": "..." }
+    // 按照后端API要求的格式构建请求
+    // API: POST /api/v1/workflows/execute?agentId=xxx&workflowId=xxx
+    // 请求体: { "input": {...}, "llm_model_id": "..." }
     const request: Record<string, any> = {
       input: input
     }
@@ -597,7 +623,11 @@ const confirmExecute = async () => {
       request.llm_model_id = executeForm.value.llmModelId
     }
     
-    const response = await executeWorkflowAPI(currentWorkflow.value.uuid!, request)
+    const response = await executeWorkflowAPI(
+      currentWorkflow.value.agentId,
+      currentWorkflow.value.id,
+      request
+    )
     
     ElMessage.success('工作流执行已提交')
     executeDialogVisible.value = false

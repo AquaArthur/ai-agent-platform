@@ -29,7 +29,18 @@
         <el-input v-model="formData.apiBase" placeholder="请输入模型API基础地址"></el-input>
       </el-form-item>
       <el-form-item label="API Key" prop="apiKey">
-        <el-input v-model="formData.apiKey" placeholder="请输入模型API密钥" show-password></el-input>
+        <el-input 
+          v-model="formData.apiKey" 
+          :placeholder="isEdit ? '留空则保持原有API Key不变，或输入新API Key' : '请输入模型API密钥'" 
+          show-password
+          :disabled="!isAdmin"
+        ></el-input>
+        <div v-if="!isAdmin" class="form-item-hint">
+          <el-text type="info" size="small">仅管理员可修改 API Key</el-text>
+        </div>
+        <div v-else-if="isEdit" class="form-item-hint">
+          <el-text type="info" size="small">编辑时留空则保持原有API Key不变</el-text>
+        </div>
       </el-form-item>
       <el-form-item label="API Version" prop="apiVersion">
         <el-input v-model="formData.apiVersion" placeholder="请输入模型API版本（可选）"></el-input>
@@ -89,6 +100,7 @@ import { ElMessage, ElForm } from 'element-plus'
 import type { FormRules } from 'element-plus'
 import { createLlmModel, updateLlmModel } from '@/api/llm'
 import type { LlmModel } from '@/types/entity'
+import { useUserStore } from '@/stores/useUserStore'
 
 const props = defineProps({
   modelValue: { // 控制弹窗显示隐藏
@@ -105,6 +117,10 @@ const emit = defineEmits(['update:modelValue', 'success'])
 
 const formRef = ref<typeof ElForm | null>(null)
 const loading = ref(false)
+
+// 用户权限
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.isAdmin)
 
 // 弹窗可见性
 const visible = computed({
@@ -146,7 +162,24 @@ const formRules = reactive<FormRules<LlmModel>>({
   provider: [{ required: true, message: '请输入模型提供商', trigger: 'blur' }],
   modelType: [{ required: true, message: '请输入模型类型', trigger: 'blur' }],
   apiBase: [{ required: true, message: '请输入API基础地址', trigger: 'blur' }],
-  apiKey: [{ required: true, message: '请输入API Key', trigger: 'blur' }],
+  apiKey: [
+    { 
+      validator: (_rule: any, value: string, callback: (error?: Error) => void) => {
+        // 只有管理员才能修改，且仅在创建时必填，编辑时可以为空（保持原值）
+        if (isAdmin.value) {
+          if (!isEdit.value && !value) {
+            callback(new Error('创建模型时请输入API Key'))
+          } else {
+            callback()
+          }
+        } else {
+          // 非管理员不能修改，但不会走到这里（因为只有管理员才能打开对话框）
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
   maxTokens: [{ required: true, message: '请输入最大Token数', trigger: 'blur' }],
   temperature: [{ required: true, message: '请输入温度', trigger: 'blur' }],
   topP: [{ required: true, message: '请输入Top P', trigger: 'blur' }],
@@ -179,6 +212,10 @@ watch(
       if (typeof newVal.config !== 'string' && newVal.config !== null && newVal.config !== undefined) {
         formData.config = JSON.stringify(newVal.config, null, 2)
       }
+      // 特殊处理 API Key：如果后端返回的是隐藏值 "************"，则清空让管理员重新输入
+      if (newVal.apiKey === '************') {
+        formData.apiKey = ''
+      }
     } else {
       Object.assign(formData, initialFormData)
     }
@@ -195,6 +232,16 @@ const handleSubmit = async () => {
       loading.value = true
       try {
         const dataToSubmit = { ...formData } as any
+        
+        // 编辑模式下，如果 API Key 为空，则不提交该字段（保持原有值）
+        // 这是因为后端返回的是 "************"，我们清空了，如果用户没填新的，就不应该更新
+        if (isEdit.value && props.model?.id) {
+          if (!dataToSubmit.apiKey || dataToSubmit.apiKey.trim() === '') {
+            // 编辑时如果 API Key 为空，删除该字段，让后端保持原值
+            delete dataToSubmit.apiKey
+          }
+        }
+        
         // 如果 config 是字符串，尝试解析为对象
         if (dataToSubmit.config) {
           try {
@@ -234,6 +281,8 @@ const handleClose = () => {
 </script>
 
 <style scoped>
-/* 可以根据需要添加样式 */
+.form-item-hint {
+  margin-top: 4px;
+}
 </style>
 

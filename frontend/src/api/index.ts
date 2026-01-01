@@ -28,6 +28,7 @@ export * from './chat'
 export * from './llm'
 export * from './knowledgeBase'
 export * from './workflow'
+export * from './user'
 
 // 导出类型定义
 export * from '@/types/entity'

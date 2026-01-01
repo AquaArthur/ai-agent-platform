@@ -28,8 +28,8 @@
   --gradient-bg-primary: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   --gradient-bg-secondary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   --gradient-bg-light: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-  --gradient-bg-card-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-bg-primary-button: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-bg-card-header: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%);
+  --gradient-bg-primary-button: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   --gradient-bg-success: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
 }
 

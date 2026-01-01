@@ -7,7 +7,7 @@
     <!-- 搜索和筛选 -->
     <div class="filter-section">
       <el-row :gutter="16">
-        <el-col :span="10">
+        <el-col :span="8">
           <el-input
             v-model="searchParams.search"
             placeholder="搜索知识库名称、描述"
@@ -32,7 +32,7 @@
             <el-option label="个人级" value="personal" />
           </el-select>
         </el-col>
-        <el-col :span="8" style="text-align: right;">
+        <el-col :span="10" style="text-align: right;">
           <el-button @click="resetFilters">重置筛选</el-button>
           <el-button type="primary" :icon="Plus" @click="showCreateDialog = true">
             新增知识库
@@ -283,7 +283,7 @@ const resetFilters = () => {
 }
 
 const handleView = (kb: KnowledgeBase) => {
-  router.push(`/knowledge-bases/${kb.uuid}`)
+  router.push(`/main/knowledge-bases/${kb.uuid}`)
 }
 
 const handleEdit = (kb: KnowledgeBase) => {
