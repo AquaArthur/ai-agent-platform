@@ -7,7 +7,7 @@
     <!-- 搜索和筛选 -->
     <div class="filter-section">
       <el-row :gutter="16">
-        <el-col :span="10">
+        <el-col :span="6">
           <el-input
             v-model="searchKeyword"
             placeholder="搜索插件名称、标识符或描述"
@@ -28,11 +28,16 @@
             <el-option label="已禁用" value="disabled" />
           </el-select>
         </el-col>
-        <el-col :span="8" style="text-align: right;">
-          <el-button @click="resetFilters">重置筛选</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleCreate">
-            新增插件
-          </el-button>
+        <el-col :span="12" class="button-group-col">
+          <div class="button-group">
+            <el-button @click="resetFilters">重置筛选</el-button>
+            <el-button type="primary" :icon="Plus" @click="handleCreate">
+              新增插件
+            </el-button>
+            <el-button type="success" :icon="Upload" @click="importFromFile">
+              从文件导入
+            </el-button>
+          </div>
         </el-col>
       </el-row>
     </div>
@@ -81,19 +86,15 @@
             </div>
             <div class="stat-item">
               <el-icon><Clock /></el-icon>
-              <span>{{ formatDateTime(plugin.createTime) }}</span>
+              <span>{{ formatDateTime(getCreateTime(plugin)) }}</span>
             </div>
           </div>
         </div>
         
         <div class="card-footer">
-          <el-button 
-            :type="isPluginEnabled(plugin) ? 'warning' : 'success'" 
-            size="small" 
-            @click="handleToggleStatus(plugin)"
-          >
-            <el-icon><Switch /></el-icon>
-            {{ isPluginEnabled(plugin) ? '禁用' : '启用' }}
+          <el-button size="small" @click="handleView(plugin)">
+            <el-icon><View /></el-icon>
+            查看
           </el-button>
           <el-button type="info" size="small" @click="handleTest(plugin)">
             <el-icon><VideoPlay /></el-icon>
@@ -208,17 +209,82 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 查看详情弹窗 -->
+    <el-dialog
+      v-model="viewDialogVisible"
+      title="查看插件详情"
+      width="900px"
+    >
+      <div v-if="viewPluginData">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="插件名称">{{ viewPluginData.name }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="isPluginEnabled(viewPluginData) ? 'success' : 'info'">
+              {{ isPluginEnabled(viewPluginData) ? '已启用' : '已禁用' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="标识符">{{ viewPluginData.identifier || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ viewPluginData.type || 'http' }}</el-descriptions-item>
+          <el-descriptions-item label="描述" :span="2">{{ viewPluginData.description || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="基础URL" :span="2">{{ viewPluginData.baseUrl || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="鉴权类型">{{ viewPluginData.authType || 'none' }}</el-descriptions-item>
+          <el-descriptions-item label="API数量">
+            {{ viewPluginData.operations?.length || Object.keys(viewPluginData.openapiSpec?.paths || {}).length || 0 }}
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间" :span="2">{{ formatDateTime(getCreateTime(viewPluginData)) }}</el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 操作列表 -->
+        <el-divider v-if="viewPluginData.operations?.length">插件操作列表</el-divider>
+        <el-table v-if="viewPluginData.operations?.length" :data="viewPluginData.operations" border size="small">
+          <el-table-column prop="operationId" label="操作ID" width="150" />
+          <el-table-column prop="name" label="名称" width="150" />
+          <el-table-column prop="method" label="方法" width="80">
+            <template #default="{ row }">
+              <el-tag size="small" :type="getMethodTagType(row.method)">{{ row.method }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="path" label="路径" />
+          <el-table-column prop="description" label="描述" show-overflow-tooltip />
+        </el-table>
+
+        <!-- OpenAPI 规范 -->
+        <el-divider v-if="viewPluginData.openapiSpec">OpenAPI 规范</el-divider>
+        <pre v-if="viewPluginData.openapiSpec" class="openapi-spec">{{ JSON.stringify(viewPluginData.openapiSpec, null, 2) }}</pre>
+      </div>
+      <template #footer>
+        <el-button @click="viewDialogVisible = false">关闭</el-button>
+        <el-button 
+          :type="isPluginEnabled(viewPluginData) ? 'warning' : 'success'" 
+          @click="handleToggleStatusFromView"
+        >
+          {{ isPluginEnabled(viewPluginData) ? '禁用插件' : '启用插件' }}
+        </el-button>
+        <el-button type="primary" @click="handleEditFromView">编辑</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 文件上传（隐藏） -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept=".json"
+      style="display: none"
+      @change="handleFileImport"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Edit, Delete, Connection, Document, Link, Clock, Switch, VideoPlay, Loading } from '@element-plus/icons-vue'
+import { Plus, Search, Edit, Delete, Connection, Document, Link, Clock, VideoPlay, Loading, Upload, View } from '@element-plus/icons-vue'
 import { usePluginStore } from '@/stores/usePluginStore'
 import type { Plugin } from '@/types/entity'
 import PluginDialog from './PluginDialog.vue'
 import { formatDateTime } from '@/utils/formatters'
+import { importFromOpenApi } from '@/api/plugin'
 
 const pluginStore = usePluginStore()
 
@@ -247,6 +313,13 @@ const testParams = ref('')
 const testLoading = ref(false)
 const testResult = ref<any>(null)
 
+// 查看详情弹窗相关
+const viewDialogVisible = ref(false)
+const viewPluginData = ref<Plugin | null>(null)
+
+// 文件导入相关
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
 // 插件列表数据
 const pluginList = ref<Plugin[]>([])
 const loading = ref(false)
@@ -257,7 +330,6 @@ const loadPlugins = async () => {
   try {
     // 使用较大的pageSize获取所有插件，后续可以考虑支持后端搜索和过滤
     const result = await pluginStore.fetchPluginList({ page: 1, pageSize: 1000 })
-    console.log('Fetched plugin list result:', result); // 添加日志
     pluginList.value = result.list
     // 触发过滤计算以更新总数
     handleSearch()
@@ -307,9 +379,21 @@ const paginatedPluginList = computed(() => {
   return filteredPluginList.value.slice(start, end)
 })
 
-// 辅助函数：判断插件是否启用
-const isPluginEnabled = (plugin: Plugin): boolean => {
-  return plugin.isEnabled || plugin.status === 'enabled'
+// 辅助函数：判断插件是否启用（兼容 camelCase 和 snake_case）
+const isPluginEnabled = (plugin: Plugin | null): boolean => {
+  if (!plugin) return false
+  return plugin.isEnabled ?? (plugin as any).is_enabled ?? (plugin.status === 'enabled')
+}
+
+// 辅助函数：获取创建时间（兼容 camelCase 和 snake_case，以及数字/字符串格式）
+const getCreateTime = (plugin: Plugin | null): string | null => {
+  if (!plugin) return null
+  const time = plugin.createTime ?? (plugin as any).create_time
+  // 如果是数字（时间戳），转换为字符串
+  if (typeof time === 'number') {
+    return new Date(time).toISOString()
+  }
+  return time ?? null
 }
 
 // 搜索处理
@@ -369,17 +453,6 @@ const handleDialogSuccess = () => {
   dialogVisible.value = false
   currentPlugin.value = null
   loadPlugins() // 重新加载插件列表，确保数据显示最新
-}
-
-// 切换插件状态
-const handleToggleStatus = async (plugin: Plugin) => {
-  const newStatus = !isPluginEnabled(plugin)
-  try {
-    await pluginStore.togglePluginStatus(plugin.id!, newStatus)
-    ElMessage.success(newStatus ? '插件已启用' : '插件已禁用')
-  } catch (error: any) {
-    ElMessage.error(error.message || '操作失败')
-  }
 }
 
 // 测试插件
@@ -450,6 +523,115 @@ const executeTest = async () => {
   }
 }
 
+// 查看插件详情
+const handleView = async (plugin: Plugin) => {
+  try {
+    // 获取插件详情（包含 operations）
+    const detail = await pluginStore.fetchPluginById(plugin.id!)
+    viewPluginData.value = detail as Plugin
+    viewDialogVisible.value = true
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取插件详情失败')
+  }
+}
+
+// 从查看弹窗切换到编辑
+const handleEditFromView = () => {
+  if (viewPluginData.value) {
+    currentPlugin.value = { ...viewPluginData.value }
+    viewDialogVisible.value = false
+    dialogVisible.value = true
+  }
+}
+
+// 从查看弹窗切换状态
+const handleToggleStatusFromView = async () => {
+  if (!viewPluginData.value) return
+  
+  const newStatus = !isPluginEnabled(viewPluginData.value)
+  try {
+    await pluginStore.togglePluginStatus(viewPluginData.value.id!, newStatus)
+    ElMessage.success(newStatus ? '插件已启用' : '插件已禁用')
+    // 刷新详情
+    const detail = await pluginStore.fetchPluginById(viewPluginData.value.id!)
+    viewPluginData.value = detail as Plugin
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
+}
+
+// 从文件导入
+const importFromFile = () => {
+  fileInputRef.value?.click()
+}
+
+// 处理文件导入
+const handleFileImport = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const content = e.target?.result as string
+      const json = JSON.parse(content)
+      
+      // 验证 OpenAPI 格式
+      if (!json.openapi && !json.info && !json.paths) {
+        // 可能是简化格式，检查是否有 operations
+        if (!json.operations && !json.name) {
+          ElMessage.error('文件格式不正确，必须是有效的 OpenAPI 规范或包含 operations 的 JSON')
+          return
+        }
+      }
+      
+      // 构建导入请求
+      const importRequest: Plugin = {
+        name: json.info?.title || json.name || file.name.replace('.json', ''),
+        description: json.info?.description || json.description || '',
+        openapiSpec: json.openapi ? json : undefined,
+        authType: json.authType || 'none',
+        authConfig: json.authConfig || {}
+      }
+      
+      // 如果是标准 OpenAPI 格式，提取 baseUrl
+      if (json.servers?.[0]?.url) {
+        importRequest.baseUrl = json.servers[0].url
+      }
+
+      // 调用导入 API
+      await importFromOpenApi(importRequest)
+      ElMessage.success('导入成功')
+      loadPlugins()
+      
+    } catch (error: any) {
+      if (error instanceof SyntaxError) {
+        ElMessage.error('文件解析失败：不是有效的 JSON 格式')
+      } else {
+        ElMessage.error(error.message || '导入失败')
+      }
+    }
+  }
+  
+  reader.readAsText(file)
+  
+  // 重置文件输入
+  target.value = ''
+}
+
+// 获取 HTTP 方法的标签类型
+const getMethodTagType = (method: string): string => {
+  const types: Record<string, string> = {
+    'GET': 'success',
+    'POST': 'primary',
+    'PUT': 'warning',
+    'DELETE': 'danger',
+    'PATCH': 'info'
+  }
+  return types[method?.toUpperCase()] || 'info'
+}
+
 // 初始化加载数据
 onMounted(() => {
   loadPlugins()
@@ -458,7 +640,26 @@ onMounted(() => {
 
 <style scoped>
 .plugin-list-container {
-  padding: 20px;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background: #f8fafc;
+}
+
+/* 按钮组样式 */
+.button-group-col {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.button-group .el-button {
+  white-space: nowrap;
 }
 
 /* 使用公共样式类 */
@@ -544,6 +745,7 @@ onMounted(() => {
   min-height: 44px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -569,19 +771,50 @@ onMounted(() => {
   font-size: 16px;
 }
 
-/* 卡片底部 - 使用公共样式 */
+/* 卡片底部 - 使用 flex 一行布局（学习 CodeHubot 样式） */
 .plugin-card .card-footer {
   padding: 12px 20px;
   background: #f5f7fa;
   display: flex;
   gap: 8px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-light, #e4e7ed);
 }
 
-.plugin-card .card-footer .el-button {
+.plugin-card .card-footer :deep(.el-button) {
   flex: 1;
-  padding: 8px 4px;
-  font-size: 12px;
+  margin: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .plugins-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .plugin-list-container {
+    padding: 16px;
+  }
+  
+  .plugins-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .button-group-col {
+    margin-top: 12px;
+    justify-content: flex-start;
+  }
+  
+  .button-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .button-group .el-button {
+    flex: 1;
+    min-width: calc(33.333% - 6px);
+  }
 }
 
 /* 测试弹窗样式 */
@@ -619,5 +852,18 @@ onMounted(() => {
   font-size: 13px;
   overflow-x: auto;
   max-height: 200px;
+}
+
+/* 查看详情弹窗样式 */
+.openapi-spec {
+  background: #f5f7fa;
+  padding: 16px;
+  border-radius: 4px;
+  max-height: 400px;
+  overflow: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
 }
 </style>

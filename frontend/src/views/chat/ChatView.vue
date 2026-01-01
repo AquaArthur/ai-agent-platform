@@ -128,7 +128,7 @@ const handleAgentChange = (agentId: string) => {
 const handleBack = () => {
   // 如果是从模型管理页面进入的，返回模型管理页面
   if (routeModelId.value) {
-    router.push('/models')
+    router.push('/main/models')
   } else {
     // 否则返回上一页或智能体管理页面
     router.back()

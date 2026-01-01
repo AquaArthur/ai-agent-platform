@@ -2,15 +2,15 @@
   <div
     class="string-node workflow-node-base"
     :style="{
-      background: data?.color?.bg || 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+      background: data?.color?.bg || 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
       borderColor: data?.color?.border || 'rgba(255, 255, 255, 0.3)',
-      '--node-hover-shadow-color': 'rgba(139, 92, 246, 0.45)',
-      '--node-selected-shadow-color': 'rgba(139, 92, 246, 0.3)',
-      '--node-selected-shadow-color-strong': 'rgba(139, 92, 246, 0.4)',
-      '--node-pulse-shadow-color-1': 'rgba(139, 92, 246, 0.3)',
-      '--node-pulse-shadow-color-2': 'rgba(139, 92, 246, 0.4)',
-      '--node-pulse-shadow-color-3': 'rgba(139, 92, 246, 0.2)',
-      '--node-pulse-shadow-color-4': 'rgba(139, 92, 246, 0.5)'
+      '--node-hover-shadow-color': 'rgba(6, 182, 212, 0.45)',
+      '--node-selected-shadow-color': 'rgba(6, 182, 212, 0.3)',
+      '--node-selected-shadow-color-strong': 'rgba(6, 182, 212, 0.4)',
+      '--node-pulse-shadow-color-1': 'rgba(6, 182, 212, 0.3)',
+      '--node-pulse-shadow-color-2': 'rgba(6, 182, 212, 0.4)',
+      '--node-pulse-shadow-color-3': 'rgba(6, 182, 212, 0.2)',
+      '--node-pulse-shadow-color-4': 'rgba(6, 182, 212, 0.5)'
     }"
   >
     <!-- 输入连接点（左侧） -->
@@ -58,7 +58,7 @@ const hasConfig = computed(() => {
 /* 使用公共样式类，只保留节点特定的样式 */
 .string-node {
   box-shadow: 
-    0 8px 24px rgba(139, 92, 246, 0.35),
+    0 8px 24px rgba(6, 182, 212, 0.35),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset,
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }

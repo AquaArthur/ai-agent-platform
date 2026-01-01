@@ -60,6 +60,8 @@ services:
     volumes:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - app-network
 
   # ============================
   # 后端 Spring Boot
@@ -206,3 +208,5 @@ volumes:
     driver: local
     name: ${PROJECT_NAME:-ai-agent-platform}-kb-logs
   redis-data:
+    driver: local
+    name: ${PROJECT_NAME:-ai-agent-platform}-redis-data

@@ -7,7 +7,7 @@
     <!-- 搜索和筛选 -->
     <div class="filter-section">
       <el-row :gutter="16">
-        <el-col :span="10">
+        <el-col :span="8">
           <el-input
             v-model="searchKeyword"
             placeholder="搜索模型名称、提供商或描述"
@@ -28,9 +28,14 @@
             <el-option label="未激活" :value="false" />
           </el-select>
         </el-col>
-        <el-col :span="8" style="text-align: right;">
+        <el-col :span="10" style="text-align: right;">
           <el-button @click="resetFilters">重置筛选</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleCreate">
+          <el-button 
+            v-if="isAdmin" 
+            type="primary" 
+            :icon="Plus" 
+            @click="handleCreate"
+          >
             新增模型
           </el-button>
         </el-col>
@@ -40,7 +45,7 @@
     <!-- 模型列表 - 卡片形式 -->
     <div v-loading="loading" class="models-grid">
       <el-empty v-if="!loading && paginatedModelList.length === 0" description="暂无模型数据">
-        <el-button type="primary" @click="handleCreate">创建第一个模型</el-button>
+        <el-button v-if="isAdmin" type="primary" @click="handleCreate">创建第一个模型</el-button>
       </el-empty>
       
       <el-card
@@ -97,6 +102,7 @@
         
         <div class="card-footer">
           <el-button 
+            v-if="isAdmin"
             :type="model.isActive ? 'warning' : 'success'" 
             size="small" 
             @click="handleToggleStatus(model)"
@@ -104,12 +110,17 @@
             <el-icon><Switch /></el-icon>
             {{ model.isActive ? '禁用' : '启用' }}
           </el-button>
-          <el-button type="primary" size="small" @click="handleEdit(model)">
+          <el-button 
+            v-if="isAdmin"
+            type="primary" 
+            size="small" 
+            @click="handleEdit(model)"
+          >
             <el-icon><Edit /></el-icon>
             编辑
           </el-button>
           <el-button
-            v-if="!model.isSystem"
+            v-if="isAdmin && !model.isSystem"
             type="danger"
             size="small"
             @click="handleDelete(model)"
@@ -158,7 +169,12 @@ import {
 import { getLlmModelList, deleteLlmModel, updateLlmModel } from '@/api/llm'
 import type { LlmModel } from '@/types/entity'
 import { formatDateTime } from '@/utils/formatters'
+import { useUserStore } from '@/stores/useUserStore'
 import ModelDialog from './ModelDialog.vue' // 导入 ModelDialog 组件
+
+// 用户权限
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.isAdmin)
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -246,12 +262,20 @@ const handlePageChange = () => {
 
 // 创建模型
 const handleCreate = () => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员才能创建模型')
+    return
+  }
   currentModel.value = null
   dialogVisible.value = true
 }
 
 // 编辑模型
 const handleEdit = (model: LlmModel) => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员才能编辑模型')
+    return
+  }
   currentModel.value = { ...model }
   dialogVisible.value = true
 }
@@ -259,6 +283,11 @@ const handleEdit = (model: LlmModel) => {
 // 删除模型
 const handleDelete = async (model: LlmModel) => {
   if (!model.id) return
+
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员才能删除模型')
+    return
+  }
 
   try {
     await ElMessageBox.confirm(
@@ -284,6 +313,11 @@ const handleDelete = async (model: LlmModel) => {
 // 切换状态
 const handleToggleStatus = async (model: LlmModel) => {
   if (!model.id) return
+  
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员才能修改模型状态')
+    return
+  }
 
   try {
     const newStatus = !model.isActive
@@ -318,37 +352,23 @@ const handleDialogSuccess = () => {
   background: #f8fafc;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
+/* 使用公共样式类 */
 
-.page-header h2 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.filter-section {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
+/* 卡片网格布局 */
 .models-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 20px;
 }
 
+/* 模型卡片 */
 .model-card {
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light, #e4e7ed);
+  background: #ffffff;
 }
 
 .model-card:hover {
@@ -356,23 +376,23 @@ const handleDialogSuccess = () => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.card-header {
+/* 卡片头部 - 使用公共样式 */
+.model-card .card-header {
   padding: 20px;
-  background: var(--gradient-bg-primary);
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--gradient-bg-card-header);
 }
 
 .header-top {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
 }
 
 .model-icon {
   width: 48px;
   height: 48px;
-  background: var(--gradient-bg-primary-button);
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -389,7 +409,7 @@ const handleDialogSuccess = () => {
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -401,52 +421,74 @@ const handleDialogSuccess = () => {
   flex-wrap: wrap;
 }
 
-.card-body {
+/* 卡片主体 - 使用公共样式 */
+.model-card .card-body {
   padding: 20px;
+  background: #ffffff;
 }
 
 .model-description {
   margin: 0 0 16px 0;
-  color: #64748b;
   font-size: 14px;
+  color: var(--text-regular, #606266);
   line-height: 1.6;
-  white-space: nowrap;
+  min-height: 44px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
-  width: 100%;
 }
 
 .model-stats {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #64748b;
+  gap: 6px;
   font-size: 13px;
+  color: var(--text-secondary, #909399);
 }
 
 .stat-item .el-icon {
-  color: #94a3b8;
+  font-size: 16px;
 }
 
-.card-footer {
-  padding: 16px 20px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+/* 卡片底部 - 使用公共样式 */
+.model-card .card-footer {
+  padding: 12px 20px;
+  background: #f5f7fa;
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  border-top: 1px solid var(--border-light, #e4e7ed);
 }
 
-.card-footer .el-button {
+.model-card .card-footer .el-button {
   flex: 1;
   min-width: 80px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .models-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .model-list-container {
+    padding: 16px;
+  }
+  
+  .models-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 

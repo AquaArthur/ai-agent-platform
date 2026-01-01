@@ -56,6 +56,9 @@ public class SecurityConfig {
                 // 允许登录、注册端点无需认证
                 .requestMatchers("/api/v1/user/login", "/api/v1/user/register").permitAll()
                 
+                // 允许测试端点无需认证
+                .requestMatchers("/api/v1/hello").permitAll()
+                
                 // 允许Swagger UI相关端点无需认证
                 .requestMatchers(
                     "/swagger-ui/**",

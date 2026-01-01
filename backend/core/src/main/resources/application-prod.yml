@@ -1,3 +1,7 @@
+server:
+  # 生产环境使用 8080 端口（标准端口）
+  port: 8080
+
 spring:
   datasource:
     url: ${DATASOURCE_URL:jdbc:mysql://mysql:3306/ai_agent_platform_db?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true}

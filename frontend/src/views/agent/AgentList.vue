@@ -7,7 +7,7 @@
     <!-- 搜索和筛选 -->
     <div class="filter-section">
       <el-row :gutter="16">
-        <el-col :span="10">
+        <el-col :span="6">
           <el-input
             v-model="searchKeyword"
             placeholder="搜索智能体名称、描述或提示词"
@@ -28,7 +28,7 @@
             <el-option label="已发布" value="published" />
           </el-select>
         </el-col>
-        <el-col :span="8" style="text-align: right;">
+        <el-col :span="12" style="text-align: right;">
           <el-button @click="resetFilters">重置筛选</el-button>
           <el-button type="primary" :icon="Plus" @click="handleCreate">
             新增智能体
@@ -72,11 +72,11 @@
           <div class="agent-stats">
             <div class="stat-item">
               <el-icon><Connection /></el-icon>
-              <span>{{ agent.toolsConfig?.length || 0 }} 个插件</span>
+              <span>{{ (agent.toolsConfig || agent.tools_config)?.length || 0 }} 个插件</span>
             </div>
             <div class="stat-item">
               <el-icon><Clock /></el-icon>
-              <span>{{ formatDateTime(agent.createTime) }}</span>
+              <span>{{ formatDateTime(agent.createTime || agent.create_time) }}</span>
             </div>
           </div>
         </div>
@@ -237,8 +237,15 @@ const handleDelete = async (agent: Agent) => {
 // 初始化加载数据
 onMounted(async () => {
   try {
+    // 检查是否已登录
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // 未登录时，路由守卫应该会自动跳转到登录页
+      return
+    }
     await agentStore.fetchAgentList()
   } catch (error: any) {
+    // 如果是401/403权限错误，http拦截器会自动跳转登录页
     handleError(error, '加载智能体列表失败', true)
   }
 })
@@ -250,8 +257,6 @@ onMounted(async () => {
   min-height: calc(100vh - 64px);
   background: #f8fafc;
 }
-
-/* 使用公共样式类 */
 
 /* 卡片网格布局 */
 .agents-grid {
@@ -266,7 +271,7 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-light, #e4e7ed);
   background: #ffffff;
 }
 
@@ -320,7 +325,7 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-/* 卡片主体 - 使用公共样式 */
+/* 卡片主体 */
 .agent-card .card-body {
   padding: 20px;
   background: #ffffff;
@@ -329,7 +334,7 @@ onMounted(async () => {
 .agent-description {
   margin: 0 0 16px 0;
   font-size: 14px;
-  color: var(--text-regular);
+  color: var(--text-regular, #606266);
   line-height: 1.6;
   min-height: 44px;
   display: -webkit-box;
@@ -351,7 +356,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #909399);
 }
 
 .stat-item .el-icon {
@@ -364,6 +369,23 @@ onMounted(async () => {
   background: #f5f7fa;
   display: flex;
   gap: 8px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-light, #e4e7ed);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .agents-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .agent-list-container {
+    padding: 16px;
+  }
+  
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

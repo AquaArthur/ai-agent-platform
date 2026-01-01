@@ -104,7 +104,14 @@ export function useWorkflowExecution() {
   }
 
   // 执行工作流
-  const runWorkflow = async (workflowUuid: string, request: { input?: Record<string, any>; llm_model_id?: string }) => {
+  // @param agentId - 智能体ID（必填）
+  // @param workflowId - 工作流的数据库ID（必填，不是uuid）
+  // @param request - 执行请求，包含input输入参数和可选的llm_model_id
+  const runWorkflow = async (
+    agentId: string,
+    workflowId: string,
+    request: { input?: Record<string, any>; llm_model_id?: string }
+  ) => {
     running.value = true
     executionId.value = null
     executionStatus.value = 'pending'
@@ -112,7 +119,7 @@ export function useWorkflowExecution() {
     pollCount.value = 0
 
     try {
-      const result = await executeWorkflow(workflowUuid, request)
+      const result = await executeWorkflow(agentId, workflowId, request)
 
       const execId = result.execution_id || ''
       executionId.value = execId
@@ -138,7 +145,7 @@ export function useWorkflowExecution() {
       executionResult.value = {
         executionId: '',
         execution_id: '',
-        workflow_id: workflowUuid,
+        workflow_id: workflowId,
         status: 'failed',
         error_message: errorMsg,
         errorMessage: errorMsg,

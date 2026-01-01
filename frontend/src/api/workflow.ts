@@ -26,22 +26,22 @@ export interface WorkflowEdge {
   }
 }
 
-// 工作流类型
+// 工作流类型（与后端Workflow实体对齐）
 export interface Workflow {
-  id?: string
-  uuid?: string
-  agentId?: string
+  id?: string         // 数据库主键ID
+  uuid?: string       // 工作流UUID（用于外部接口）
+  agentId?: string    // 所属智能体ID
   name: string
   description?: string
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   config?: Record<string, any>
-  isValid?: boolean
-  isActive?: boolean
-  isPublic?: boolean
+  isValid?: boolean   // DAG校验是否通过
+  isActive?: boolean  // 工作流是否激活
+  isPublic?: boolean  // 工作流是否公开
   executionCount?: number
   successCount?: number
-  userId?: string
+  userId?: string     // 创建者ID
   createTime?: string
   updateTime?: string
 }
@@ -66,48 +66,35 @@ export interface WorkflowExecutionResult {
 }
 
 /**
- * 工作流执行记录（与后端实体对齐）
- * 注意：后端返回的是 snake_case 格式，前端同时支持两种格式以保持兼容性
+ * 工作流执行记录
+ * 同时支持 camelCase 和 snake_case 以兼容后端返回格式
  */
 export interface WorkflowExecution {
   id?: number
-  // 执行ID（优先使用 camelCase，兼容 snake_case）
   executionId?: string
   execution_id?: string
-  // 工作流ID
   workflowId?: string
   workflow_id?: string
   workflowUuid?: string
-  // 用户ID
   userId?: string
   user_id?: string
-  // 执行状态
   status: string
-  // 输入输出
   input?: Record<string, any>
   output?: Record<string, any>
-  // 错误信息（优先使用 camelCase，兼容 snake_case）
   errorMessage?: string
   error_message?: string
-  // 执行时间（毫秒，优先使用 camelCase，兼容 snake_case）
   executionTime?: number
   execution_time?: number
-  // 开始时间（优先使用 camelCase，兼容 snake_case）
   startedAt?: string
   started_at?: string
-  // 完成时间（优先使用 camelCase，兼容 snake_case）
   completedAt?: string
   completed_at?: string
-  // 节点执行记录（优先使用 camelCase，兼容 snake_case）
   nodeExecutions?: any[]
   node_executions?: any[]
-  // 运行类型
   runType?: string
   run_type?: string
-  // 创建时间（优先使用 camelCase，兼容 snake_case）
   createTime?: string
   create_time?: string
-  // 更新时间（优先使用 camelCase，兼容 snake_case）
   updateTime?: string
   update_time?: string
 }
@@ -151,11 +138,14 @@ export const deleteWorkflow = async (uuid: string): Promise<void> => {
   return http.delete<void>(`/v1/workflows/${uuid}`)
 }
 
-// 工作流验证结果（兼容后端返回的snake_case格式）
+/**
+ * 工作流验证结果
+ * 同时支持 camelCase 和 snake_case 以兼容后端返回格式
+ */
 export interface WorkflowValidationResult {
   valid: boolean
   errorMessage?: string
-  error_message?: string // 后端返回的snake_case格式
+  error_message?: string
   warnings?: string[]
   validationDetails?: {
     hasStartNode?: boolean
@@ -163,7 +153,7 @@ export interface WorkflowValidationResult {
     hasCycle?: boolean
     unreachableNodes?: string[]
   }
-  validation_details?: { // 后端返回的snake_case格式
+  validation_details?: {
     has_start_node?: boolean
     has_end_node?: boolean
     has_cycle?: boolean
@@ -180,9 +170,13 @@ export const validateWorkflow = async (uuid: string): Promise<WorkflowValidation
 
 /**
  * 执行工作流
+ * @param agentId 智能体ID（必填）
+ * @param workflowId 工作流的数据库ID（必填，不是uuid）
+ * @param request 执行请求，包含input输入参数和可选的llm_model_id
  */
 export const executeWorkflow = async (
-  uuid: string,
+  agentId: string,
+  workflowId: string,
   request: WorkflowExecutionRequest
 ): Promise<WorkflowExecutionResult> => {
   // 后端期望的格式：{ input: {...}, llm_model_id: "..." }
@@ -190,7 +184,9 @@ export const executeWorkflow = async (
     input: request.input || {},
     llm_model_id: request.llm_model_id
   }
-  return http.post<WorkflowExecutionResult>(`/v1/workflows/${uuid}/execute`, payload)
+  return http.post<WorkflowExecutionResult>('/v1/workflows/execute', payload, {
+    params: { agentId, workflowId }
+  })
 }
 
 /**
