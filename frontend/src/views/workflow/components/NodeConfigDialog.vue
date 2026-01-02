@@ -770,6 +770,11 @@ const llmModels = ref<LlmModel[]>([])
 const loadingModels = ref(false)
 const modelsLoaded = ref(false)
 
+// LLM模型列表（用于LLM节点）
+const llmModels = ref<LlmModel[]>([])
+const loadingModels = ref(false)
+const modelsLoaded = ref(false)
+
 // 知识库列表
 const knowledgeBases = ref<KnowledgeBase[]>([])
 const loadingKnowledgeBases = ref(false)
@@ -926,6 +931,28 @@ const initFormData = () => {
     concatStrings.value = []
     formatValues.value = {}
     formatKeys.value = []
+  }
+}
+
+// 加载LLM模型列表
+const loadModels = async () => {
+  if (modelsLoaded.value) return
+  
+  loadingModels.value = true
+  try {
+    llmModels.value = await getLlmModelList()
+    modelsLoaded.value = true
+  } catch (error: any) {
+    console.error('加载LLM模型列表失败:', error)
+    ElMessage.error(error.message || '加载LLM模型列表失败')
+  } finally {
+    loadingModels.value = false
+  }
+}
+
+const loadModelsIfNeeded = (visible: boolean) => {
+  if (visible && !modelsLoaded.value) {
+    loadModels()
   }
 }
 
