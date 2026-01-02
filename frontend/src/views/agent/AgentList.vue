@@ -72,11 +72,11 @@
           <div class="agent-stats">
             <div class="stat-item">
               <el-icon><Connection /></el-icon>
-              <span>{{ (agent.toolsConfig || agent.tools_config)?.length || 0 }} 个插件</span>
+              <span>{{ agent.toolsConfig?.length || 0 }} 个插件</span>
             </div>
             <div class="stat-item">
               <el-icon><Clock /></el-icon>
-              <span>{{ formatDateTime(agent.createTime || agent.create_time) }}</span>
+              <span>{{ formatDateTime(agent.createTime) }}</span>
             </div>
           </div>
         </div>

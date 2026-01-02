@@ -10,7 +10,6 @@
     <!-- JSON 文件导入区域 -->
     <div class="import-section">
       <el-upload
-        ref="uploadRef"
         class="json-upload"
         :auto-upload="false"
         :show-file-list="false"
@@ -121,7 +120,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { ElMessage, type FormInstance, type FormRules, type UploadInstance, type UploadFile } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { usePluginStore } from '@/stores/usePluginStore'
 import type { Plugin } from '@/types/entity'
@@ -144,7 +143,6 @@ const emit = defineEmits<Emits>()
 
 const pluginStore = usePluginStore()
 const formRef = ref<FormInstance>()
-const uploadRef = ref<UploadInstance>()
 const loading = ref(false)
 
 // 对话框显示状态

@@ -702,10 +702,9 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
-import { getAgentList } from '@/api/agent'
 import { getKnowledgeBaseList } from '@/api/knowledgeBase'
 import { getLlmModelList } from '@/api/llm'
-import type { Agent, LlmModel } from '@/types/entity'
+import type { LlmModel } from '@/types/entity'
 import type { KnowledgeBase } from '@/api/knowledgeBase'
 import type { WorkflowNode } from '@/api/workflow'
 
@@ -765,11 +764,6 @@ const maxTokensMarks = {
 const concatStrings = ref<string[]>([])
 const formatKeys = ref<string[]>([])
 const formatValues = ref<Record<string, string>>({})
-
-// 智能体列表（用于意图识别节点）
-const agents = ref<Agent[]>([])
-const loadingAgents = ref(false)
-const agentsLoaded = ref(false)
 
 // LLM模型列表（用于LLM节点）
 const llmModels = ref<LlmModel[]>([])
@@ -932,28 +926,6 @@ const initFormData = () => {
     concatStrings.value = []
     formatValues.value = {}
     formatKeys.value = []
-  }
-}
-
-// 加载智能体列表
-const loadAgents = async () => {
-  if (agentsLoaded.value) return
-  
-  loadingAgents.value = true
-  try {
-    agents.value = await getAgentList()
-    agentsLoaded.value = true
-  } catch (error: any) {
-    console.error('加载智能体列表失败:', error)
-    ElMessage.error(error.message || '加载智能体列表失败')
-  } finally {
-    loadingAgents.value = false
-  }
-}
-
-const loadAgentsIfNeeded = (visible: boolean) => {
-  if (visible && !agentsLoaded.value) {
-    loadAgents()
   }
 }
 

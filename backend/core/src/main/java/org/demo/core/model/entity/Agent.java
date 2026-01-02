@@ -94,10 +94,11 @@ public class Agent {
     private List<String> kbIds;
 
     /**
-     * 绑定的插件配置（JSON数组存储插件ID列表）
+     * 绑定的插件配置（JSON数组存储插件配置对象列表）
+     * 每个配置对象包含：pluginId（插件ID）、priority（优先级）、enabled（是否启用）
      */
     @TableField(value = "tools_config", typeHandler = JacksonTypeHandler.class)
-    private List<String> toolsConfig;
+    private List<Map<String, Object>> toolsConfig;
 
     /**
      * 创建时间

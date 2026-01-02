@@ -177,18 +177,16 @@
 
         <el-form-item label="绑定插件">
           <el-select
-            v-model="selectedPluginIds"
-            multiple
-            placeholder="请选择插件（可选）"
-            clearable
+            v-model="selectedPluginIdForAdd"
+            placeholder="选择要添加的插件"
             filterable
             style="width: 100%"
             :loading="loadingPlugins"
             @visible-change="loadPluginsIfNeeded"
-            @change="handlePluginsChange"
+            @change="handleAddPlugin"
           >
             <el-option
-              v-for="plugin in availablePlugins"
+              v-for="plugin in unselectedPlugins"
               :key="plugin.id"
               :label="plugin.name"
               :value="plugin.id!"
@@ -202,16 +200,55 @@
                   <el-tag v-if="!plugin.userId" size="small" type="warning">系统</el-tag>
                 </div>
                 <div v-if="plugin.description" class="plugin-option-desc">{{ plugin.description }}</div>
-                <div class="plugin-option-id">
-                  <span class="identifier-text">标识符: {{ plugin.identifier }}</span>
-                </div>
               </div>
             </el-option>
           </el-select>
-          <div class="form-tip">为智能体选择可用的插件工具</div>
-          <div v-if="selectedPluginIds.length > 0" class="selected-plugins">
-            <div class="selected-count">已选择 {{ selectedPluginIds.length }} 个插件</div>
+          <div class="form-tip">选择插件后可配置优先级和启用状态</div>
+        </el-form-item>
+
+        <!-- 已配置的插件列表 -->
+        <el-form-item v-if="pluginConfigs.length > 0" label="插件配置">
+          <div class="plugin-config-list">
+            <div
+              v-for="(config, index) in sortedPluginConfigs"
+              :key="config.pluginId"
+              class="plugin-config-item"
+            >
+              <div class="plugin-config-main">
+                <el-switch
+                  v-model="config.enabled"
+                  :active-text="''"
+                  :inactive-text="''"
+                  size="small"
+                  @change="handlePluginConfigChange"
+                />
+                <div class="plugin-config-info">
+                  <span class="plugin-config-name">{{ getPluginName(config.pluginId) }}</span>
+                  <el-tag v-if="!config.enabled" size="small" type="info">已禁用</el-tag>
+                </div>
+              </div>
+              <div class="plugin-config-actions">
+                <el-input-number
+                  v-model="config.priority"
+                  :min="0"
+                  :max="100"
+                  size="small"
+                  controls-position="right"
+                  placeholder="优先级"
+                  style="width: 100px"
+                  @change="handlePluginConfigChange"
+                />
+                <el-button
+                  type="danger"
+                  size="small"
+                  :icon="Delete"
+                  circle
+                  @click="handleRemovePlugin(index)"
+                />
+              </div>
+            </div>
           </div>
+          <div class="form-tip">优先级数值越大越先执行，可通过开关临时禁用插件</div>
         </el-form-item>
       </el-form>
         </el-card>
@@ -224,14 +261,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Delete } from '@element-plus/icons-vue'
 import { useAgentStore } from '@/stores/useAgentStore'
 import { getLlmModelList } from '@/api/llm'
 import { getPluginList } from '@/api'
 import { getKnowledgeBaseList, type KnowledgeBase } from '@/api/knowledgeBase'
 import { getAgentKnowledgeBases, syncAgentKnowledgeBases } from '@/api/agent'
 import { getScopeTagType, getScopeLabel, getAccessLevelTagType, getAccessLevelLabel } from '@/utils/formatters'
-import type { Agent, LlmModel, Plugin } from '@/types/entity'
+import type { Agent, LlmModel, Plugin, AgentPluginConfig } from '@/types/entity'
 import MonacoEditor from '@/components/MonacoEditor.vue'
 
 const route = useRoute()
@@ -265,8 +302,8 @@ const modelConfigForm = ref({
 
 // 选中的知识库ID列表（用于多选下拉框）
 const selectedKnowledgeBaseIds = ref<string[]>([])
-// 选中的插件ID列表（用于多选下拉框）
-const selectedPluginIds = ref<string[]>([])
+// 插件配置列表（包含优先级和启用状态）
+const pluginConfigs = ref<AgentPluginConfig[]>([])
 
 // LLM模型列表
 const llmModels = ref<LlmModel[]>([])
@@ -277,6 +314,78 @@ const modelsLoaded = ref(false)
 const availablePlugins = ref<Plugin[]>([])
 const loadingPlugins = ref(false)
 const pluginsLoaded = ref(false)
+// 用于添加新插件的临时选择
+const selectedPluginIdForAdd = ref<string>('')
+
+// 未选择的插件列表（排除已配置的）
+const unselectedPlugins = computed(() => {
+  const configuredIds = pluginConfigs.value.map(c => c.pluginId)
+  return availablePlugins.value.filter(p => !configuredIds.includes(p.id!))
+})
+
+// 按优先级排序的插件配置
+const sortedPluginConfigs = computed(() => {
+  return [...pluginConfigs.value].sort((a, b) => b.priority - a.priority)
+})
+
+// 获取插件名称
+const getPluginName = (pluginId: string): string => {
+  const plugin = availablePlugins.value.find(p => p.id === pluginId)
+  return plugin?.name || pluginId
+}
+
+// 添加插件到配置
+const handleAddPlugin = (pluginId: string) => {
+  if (!pluginId) return
+  
+  // 检查是否已存在
+  if (pluginConfigs.value.some(c => c.pluginId === pluginId)) {
+    return
+  }
+  
+  // 计算新优先级（比当前最高优先级高1）
+  const maxPriority = pluginConfigs.value.length > 0 
+    ? Math.max(...pluginConfigs.value.map(c => c.priority)) 
+    : 0
+  
+  pluginConfigs.value.push({
+    pluginId,
+    priority: maxPriority + 1,
+    enabled: true
+  })
+  
+  // 清空选择
+  selectedPluginIdForAdd.value = ''
+  
+  // 同步到 formData
+  syncPluginConfigsToForm()
+}
+
+// 移除插件配置
+const handleRemovePlugin = (index: number) => {
+  // 在排序后的列表中找到真正的索引
+  const sortedConfig = sortedPluginConfigs.value[index]
+  if (!sortedConfig) return
+  const realIndex = pluginConfigs.value.findIndex(c => c.pluginId === sortedConfig.pluginId)
+  if (realIndex !== -1) {
+    pluginConfigs.value.splice(realIndex, 1)
+    syncPluginConfigsToForm()
+  }
+}
+
+// 处理插件配置变更
+const handlePluginConfigChange = () => {
+  syncPluginConfigsToForm()
+}
+
+// 同步插件配置到表单数据
+const syncPluginConfigsToForm = () => {
+  formData.value.toolsConfig = pluginConfigs.value.map(c => ({
+    pluginId: c.pluginId,
+    priority: c.priority,
+    enabled: c.enabled
+  }))
+}
 
 // 知识库列表
 const availableKnowledgeBases = ref<KnowledgeBase[]>([])
@@ -316,10 +425,6 @@ const handleKnowledgeBasesChange = (value: string[]) => {
   }
 }
 
-// 处理插件ID列表变化
-const handlePluginsChange = (value: string[]) => {
-  formData.value.toolsConfig = value || []
-}
 
 // 获取模型标签
 const getModelLabel = (model: LlmModel) => {
@@ -407,12 +512,13 @@ const initFormData = async () => {
       await agentStore.fetchAgentById(agentId.value)
       const agent = agentStore.currentAgent
       if (agent) {
-        // 处理 snake_case 和 camelCase 兼容性
-        const modelCfg = agent.modelConfig || agent.model_config
-        const promptTpl = agent.promptTemplate || agent.prompt_template || ''
-        const kbId = agent.knowledgeBaseId || agent.knowledge_base_id
-        const kbIdList = agent.kbIds || agent.kb_ids || []
-        const toolsCfg = agent.toolsConfig || agent.tools_config || []
+        // 处理 snake_case 和 camelCase 兼容性（后端可能返回 snake_case 格式）
+        const agentData = agent as Record<string, any>
+        const modelCfg = agent.modelConfig || agentData.model_config
+        const promptTpl = agent.promptTemplate || agentData.prompt_template || ''
+        const kbId = agent.knowledgeBaseId || agentData.knowledge_base_id
+        const kbIdList = agent.kbIds || agentData.kb_ids || []
+        const toolsCfg = agent.toolsConfig || agentData.tools_config || []
 
         formData.value = {
           ...agent,
@@ -443,11 +549,25 @@ const initFormData = async () => {
           }
         }
 
-        // 处理插件ID列表
-        if (toolsCfg.length > 0) {
-          selectedPluginIds.value = toolsCfg
+        // 处理插件配置（兼容旧格式：string[] 和新格式：AgentPluginConfig[]）
+        if (toolsCfg && toolsCfg.length > 0) {
+          // 检查是否是新格式（对象数组）
+          if (typeof toolsCfg[0] === 'object' && toolsCfg[0] !== null) {
+            pluginConfigs.value = toolsCfg.map((c: any, index: number) => ({
+              pluginId: c.pluginId || c.plugin_id || '',
+              priority: c.priority ?? index,
+              enabled: c.enabled ?? true
+            }))
+          } else {
+            // 旧格式：string[] -> 转换为新格式
+            pluginConfigs.value = (toolsCfg as string[]).map((id: string, index: number) => ({
+              pluginId: id,
+              priority: index,
+              enabled: true
+            }))
+          }
         } else {
-          selectedPluginIds.value = []
+          pluginConfigs.value = []
         }
       }
     } catch (error: any) {
@@ -471,7 +591,7 @@ const initFormData = async () => {
       temperature: 0.7
     }
     selectedKnowledgeBaseIds.value = []
-    selectedPluginIds.value = []
+    pluginConfigs.value = []
   }
 }
 
@@ -493,17 +613,23 @@ const handleSave = async () => {
       modelConfig.temperature = modelConfigForm.value.temperature
     }
 
+    // 同步插件配置到表单
+    syncPluginConfigsToForm()
+
     // 构建提交数据（不再包含知识库字段，由关联API管理）
     const submitData: Agent = {
       ...formData.value,
       modelConfig: Object.keys(modelConfig).length > 0 ? modelConfig : undefined,
       // 清空旧的知识库字段，使用关联表管理
       kbIds: [],
-      knowledgeBaseId: ''
+      knowledgeBaseId: '',
+      // 使用最新的插件配置
+      toolsConfig: pluginConfigs.value.map(c => ({
+        pluginId: c.pluginId,
+        priority: c.priority,
+        enabled: c.enabled
+      }))
     }
-
-    // 确保数组字段正确
-    if (!submitData.toolsConfig) submitData.toolsConfig = []
 
     loading.value = true
 
@@ -766,6 +892,71 @@ onMounted(() => {
 /* 已选择知识库信息 */
 .selected-kbs {
   margin-top: 8px;
+}
+
+/* 插件配置列表样式 */
+.plugin-config-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.plugin-config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+}
+
+.plugin-config-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.plugin-config-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.plugin-config-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.plugin-config-name {
+  font-weight: 500;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plugin-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.plugin-config-actions :deep(.el-input-number) {
+  --el-input-number-unit-width: 18px;
+}
+
+.plugin-config-actions :deep(.el-input-number .el-input__inner) {
+  text-align: center;
 }
 </style>
 
