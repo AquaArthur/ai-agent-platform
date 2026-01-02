@@ -88,11 +88,16 @@ public class ToolDefinitionService {
     public List<ToolInfo> buildToolsFromAgent(Agent agent) {
         List<ToolInfo> toolInfoList = new ArrayList<>();
 
-        List<String> pluginIds = agent.getToolsConfig();
-        if (pluginIds == null || pluginIds.isEmpty()) {
+        List<Map<String, Object>> toolsConfig = agent.getToolsConfig();
+        if (toolsConfig == null || toolsConfig.isEmpty()) {
             log.debug("智能体 {} 没有绑定插件", agent.getId());
             return toolInfoList;
         }
+
+        List<String> pluginIds = toolsConfig.stream()
+                .map(config -> (String) config.get("pluginId"))
+                .filter(Objects::nonNull)
+                .toList();
 
         log.info("智能体 {} 绑定了 {} 个插件: {}", agent.getId(), pluginIds.size(), pluginIds);
 

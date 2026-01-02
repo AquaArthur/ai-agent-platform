@@ -4,6 +4,16 @@
  */
 
 /**
+ * 智能体插件配置
+ * 用于配置智能体关联的插件，包含优先级和启用状态
+ */
+export interface AgentPluginConfig {
+  pluginId: string
+  priority: number  // 优先级，数值越大优先级越高
+  enabled: boolean  // 是否启用
+}
+
+/**
  * 智能体实体
  */
 export interface Agent {
@@ -19,7 +29,7 @@ export interface Agent {
   workflows?: string[] // 关联的工作流ID列表
   knowledgeBaseId?: string
   kbIds?: string[]
-  toolsConfig?: string[] // 插件ID列表
+  toolsConfig?: AgentPluginConfig[] // 插件配置列表（含优先级和启用状态）
   createTime?: string
   updateTime?: string
 }

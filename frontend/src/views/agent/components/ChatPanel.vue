@@ -358,14 +358,16 @@ const loadBoundPlugins = async () => {
 
     // 获取每个插件的详情
     const plugins: Plugin[] = []
-    for (const pluginId of toolsConfig) {
+    for (const config of toolsConfig) {
       try {
+        const pluginId = typeof config === 'string' ? config : config.pluginId
         const plugin = await getPluginById(pluginId)
         if (plugin && plugin.isEnabled) {
           plugins.push(plugin)
         }
       } catch (e) {
-        console.warn(`加载插件 ${pluginId} 失败:`, e)
+        const pluginIdStr = typeof config === 'string' ? config : config.pluginId
+        console.warn(`加载插件 ${pluginIdStr} 失败:`, e)
       }
     }
     boundPlugins.value = plugins
