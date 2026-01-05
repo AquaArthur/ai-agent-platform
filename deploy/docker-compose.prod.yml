@@ -188,6 +188,8 @@ services:
                --queues=default"
     # 将日志直接输出到 stdout，便于 `docker compose logs -f celery-worker` 查看
     tty: true
+    networks:
+      - app-network
 
 networks:
   app-network:
