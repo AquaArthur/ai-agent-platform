@@ -14,6 +14,9 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+RUN mkdir -p /app/data/documents \
+    && chmod 777 -R /app/data  # 测试环境可用777，生产环境建议更严格（如755）
+
 # 安装必要工具（用于健康检查）
 RUN apk add --no-cache curl tzdata && \
     ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
