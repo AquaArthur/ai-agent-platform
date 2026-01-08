@@ -34,6 +34,8 @@ make dev           # 或 bash deploy.dev.sh
   - Swagger UI：`http://localhost:8081/swagger-ui.html`（dev 默认开启）
 - 数据库管理（phpMyAdmin）：`http://localhost:8082`
 - 知识库服务（KB 文档）：`http://localhost:9001/docs`
+- Redis（消息队列）：`localhost:6379`
+- Celery Worker：后台异步任务处理
 
 默认端口（可在 `.env.dev` 中修改）：
 
@@ -41,6 +43,7 @@ make dev           # 或 bash deploy.dev.sh
 - Backend：`localhost:8081`
 - Frontend：`localhost:3000`
 - KB：`localhost:9001`
+- Redis：`localhost:6379`
 
 ---
 
@@ -58,6 +61,8 @@ make prod          # 或 bash deploy.prod.sh
   - 若在 `.env.prod` 中开启 `ENABLE_SWAGGER=true`：`http://localhost:8080/swagger-ui.html`
 - 数据库管理（phpMyAdmin）：`http://localhost:8081`
 - 知识库服务（KB 文档）：`http://localhost:9000/docs`
+- Redis（消息队列）：`localhost:6379`
+- Celery Worker：后台异步任务处理
 
 默认端口（可在 `.env.prod` 中修改）：
 
@@ -65,6 +70,7 @@ make prod          # 或 bash deploy.prod.sh
 - Backend：`localhost:8080`
 - Frontend：`localhost:80`
 - KB：`localhost:9000`
+- Redis：`localhost:6379`
 
 ---
 
@@ -93,6 +99,8 @@ make stop       # 停止所有环境容器
   - `docker logs ai-agent-platform-dev-mysql`
   - `docker logs ai-agent-platform-dev-frontend`
   - `docker logs ai-agent-platform-dev-kb`
+  - `docker logs ai-agent-platform-dev-redis`
+  - `docker logs ai-agent-platform-dev-celery`
 
 如仍无法解决，可结合日志信息进行排查或提问。
 
