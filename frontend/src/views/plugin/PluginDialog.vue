@@ -382,12 +382,12 @@ const handleSubmit = async () => {
       status: formData.value.isEnabled ? 'enabled' : 'disabled'
     }
 
-    // 如果没有填写 JSON，清空对象
+    // 如果没有填写 JSON，设置为 null（避免可能的 MySQL JSON 字段问题）
     if (!authConfigJson.value || authConfigJson.value.trim() === '') {
-      submitData.authConfig = {}
+      submitData.authConfig = null as any
     }
     if (!openapiSpecJson.value || openapiSpecJson.value.trim() === '') {
-      submitData.openapiSpec = {}
+      submitData.openapiSpec = null as any
     }
 
     loading.value = true

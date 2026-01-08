@@ -579,6 +579,7 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .chat-card {
@@ -590,6 +591,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* 确保 el-card 内部 body 正确使用 flex 布局 */
+.chat-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  max-height: calc(100% - 60px); /* 减去 header 高度 */
 }
 
 .chat-header {
@@ -660,8 +673,34 @@ onUnmounted(() => {
 .messages-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px 16px;
   min-height: 0;
+  max-height: 100%;
+  /* 滚动条样式优化 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  /* 确保滚动行为流畅 */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Webkit 浏览器滚动条样式 */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
 }
 
 .messages-list {

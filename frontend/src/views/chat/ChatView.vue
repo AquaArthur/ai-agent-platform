@@ -200,6 +200,19 @@ onMounted(async () => {
 .chat-layout {
   height: calc(100% - 80px);
   margin-bottom: 0;
+  overflow: hidden;
+}
+
+/* 确保右侧对话区域高度正确 */
+.chat-layout :deep(.el-col) {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 确保 ChatPanel 组件能正确获取高度 */
+.chat-layout :deep(.el-col > *) {
+  height: 100%;
+  max-height: 100%;
 }
 
 /* 使用公共样式类 */

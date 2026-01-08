@@ -242,14 +242,17 @@ const handleSubmit = async () => {
           }
         }
         
-        // 如果 config 是字符串，尝试解析为对象
-        if (dataToSubmit.config) {
+        // 处理 config 字段：空字符串转为 null，非空则解析为对象
+        if (dataToSubmit.config && typeof dataToSubmit.config === 'string' && dataToSubmit.config.trim() !== '') {
           try {
             dataToSubmit.config = JSON.parse(dataToSubmit.config)
           } catch (e) {
             // 如果解析失败，说明不是有效JSON，但因为已在规则中校验，这里通常不会发生
             console.warn('Config is not valid JSON, submitting as string.', e)
           }
+        } else {
+          // 空字符串或空白字符串转为 null，避免 MySQL JSON 字段报错
+          dataToSubmit.config = null
         }
 
         if (isEdit.value && props.model?.id) {
