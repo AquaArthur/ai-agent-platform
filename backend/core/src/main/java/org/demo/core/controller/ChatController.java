@@ -152,18 +152,29 @@ public class ChatController {
                     List<AgentConversation> historyList = agentConversationMapper.selectList(historyQuery);
                     for (AgentConversation hist : historyList) {
                         // 添加用户消息
-                        if (hist.getQuery() != null) {
+                        if (hist.getQuery() != null && !hist.getQuery().trim().isEmpty()) {
                             Map<String, String> userMsg = new HashMap<>();
                             userMsg.put("role", "user");
                             userMsg.put("content", hist.getQuery());
                             conversationHistory.add(userMsg);
                         }
                         // 添加助手回答
+                        // 注意：answer字段可能因为数据库中的历史数据格式问题，
+                        // 被错误地反序列化为非字符串类型（如ArrayList），需要安全处理
                         if (hist.getAnswer() != null) {
-                            Map<String, String> assistantMsg = new HashMap<>();
-                            assistantMsg.put("role", "assistant");
-                            assistantMsg.put("content", hist.getAnswer());
-                            conversationHistory.add(assistantMsg);
+                            try {
+                                String answerStr = hist.getAnswer();
+                                if (answerStr != null && !answerStr.trim().isEmpty()) {
+                                    Map<String, String> assistantMsg = new HashMap<>();
+                                    assistantMsg.put("role", "assistant");
+                                    assistantMsg.put("content", answerStr);
+                                    conversationHistory.add(assistantMsg);
+                                }
+                            } catch (ClassCastException e) {
+                                // 如果answer字段类型错误（如数据库中存储了JSON数组），跳过该记录
+                                log.warn("跳过类型异常的历史记录: sessionId={}, histId={}, error={}",
+                                        hist.getSessionId(), hist.getId(), e.getMessage());
+                            }
                         }
                     }
                 } catch (Exception ex) {

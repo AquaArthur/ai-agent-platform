@@ -105,8 +105,8 @@ INSERT INTO `agent` (`id`, `name`, `description`, `prompt`, `model_config`, `sta
 ## 特别提示
 - 所有操作都自动使用设备UUID变量，你无需管理
 - 如果接口返回错误，友好地告知用户"暂时无法操作，请稍后重试"
-- 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["wf-001-home-ctrl", "wf-002-auto-off","wf-005-knowledge-only"]', '["kb-001-dev", "kb-002-faq"]', '{"pluginId":["plugin_be2e083736e0"]}', '2025-11-22 10:00:00'),
-('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '[]', '{"pluginId":["plugin-003-calendar"]}', '2025-11-23 09:30:00'),
+- 保持对话自然流畅，像朋友一样交流', '{"model": "model-001-qwen-turbo", "temperature": 0.2}', 'published', 'user-002-home', 'wf-001-home-ctrl', '["wf-001-home-ctrl", "wf-002-auto-off","wf-005-knowledge-only"]', '["kb-001-dev", "kb-002-faq"]', '[{"pluginId":["plugin_be2e083736e0"]}]', '2025-11-22 10:00:00'),
+('agent-002-scheduler', '日程管理Agent', '专门用于处理家庭日程、提醒和日历查询。', '你是一个日程管理专家，请利用日历插件帮助用户安排生活。', '{"model": "gpt-3.5-turbo", "temperature": 0.5}', 'draft', 'user-002-home', NULL, '[]', '[]', '[{"pluginId":["plugin-003-calendar"]}]', '2025-11-23 09:30:00'),
 ('agent-003-football', '足球冠军查询助手', '专门用于查询欧洲五大联赛球队的历史冠军荣誉，以表格形式展示。', '你是一位足球历史专家，精通欧洲五大联赛（英超、西甲、意甲、德甲、法甲）各支球队的冠军荣誉历史。
 
 ## 你的任务

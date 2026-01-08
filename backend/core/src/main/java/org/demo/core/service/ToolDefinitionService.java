@@ -95,7 +95,21 @@ public class ToolDefinitionService {
         }
 
         List<String> pluginIds = toolsConfig.stream()
-                .map(config -> (String) config.get("pluginId"))
+                .map(config -> {
+                    Object pluginIdObj = config.get("pluginId");
+                    // 防御性处理：pluginId 可能是字符串或数组（错误数据）
+                    if (pluginIdObj instanceof String) {
+                        return (String) pluginIdObj;
+                    } else if (pluginIdObj instanceof List) {
+                        List<?> list = (List<?>) pluginIdObj;
+                        if (!list.isEmpty() && list.get(0) instanceof String) {
+                            log.warn("检测到错误的 pluginId 格式（数组），已自动修正: {}", list);
+                            return (String) list.get(0);
+                        }
+                    }
+                    log.warn("无效的 pluginId 格式: {}", pluginIdObj);
+                    return null;
+                })
                 .filter(Objects::nonNull)
                 .toList();
 
