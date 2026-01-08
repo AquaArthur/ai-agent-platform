@@ -277,28 +277,70 @@
 
       <!-- HTTP请求节点配置 -->
       <template v-else-if="nodeType === 'http'">
-        <el-divider content-position="left">基础信息</el-divider>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          <template #title>
+            <span style="font-size: 13px;">HTTP节点用于调用外部API接口，支持GET/POST请求，可以集成各种第三方服务。</span>
+          </template>
+        </el-alert>
+
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            请求地址
+          </span>
+        </el-divider>
+
         <el-form-item label="请求URL" prop="url">
           <el-input
             v-model="formData.url"
-            placeholder="请输入请求URL，支持变量替换"
+            placeholder="请输入请求URL，例如：https://api.example.com/data"
           />
-          <div class="form-item-tip">
-            支持变量替换：{input.param}、{node_id}、{node_id.field}
+          <div class="variable-hint-box">
+            <div class="variable-hint-title">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              变量语法说明
+            </div>
+            <div class="variable-hint-content">
+              <div class="variable-example">
+                <code>{`{input.参数名}`}</code> - 引用工作流输入参数
+              </div>
+              <div class="variable-example">
+                <code>{`{节点ID.字段名}`}</code> - 引用其他节点输出的特定字段
+              </div>
+            </div>
           </div>
         </el-form-item>
 
-        <el-divider content-position="left">请求配置</el-divider>
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+            请求配置
+          </span>
+        </el-divider>
 
         <el-form-item label="请求方法" prop="method">
           <el-radio-group v-model="formData.method">
             <el-radio label="GET">GET</el-radio>
             <el-radio label="POST">POST</el-radio>
           </el-radio-group>
+          <div class="form-item-tip">
+            GET用于获取数据，POST用于提交数据
+          </div>
         </el-form-item>
 
         <el-form-item label="请求头" prop="headers">
-        <div class="key-value-editor">
+          <div class="key-value-editor">
             <div
               v-for="(key, index) in headerKeys"
               :key="key"
@@ -332,6 +374,9 @@
               添加请求头
             </el-button>
           </div>
+          <div class="form-item-tip">
+            常用请求头：Content-Type: application/json
+          </div>
         </el-form-item>
 
         <el-form-item
@@ -343,22 +388,42 @@
             v-model="bodyString"
             type="textarea"
             :rows="6"
-            placeholder="请输入请求体（JSON格式），支持变量替换"
+            placeholder='{"key": "value", "data": "{input.param}"}'
             @blur="handleBodyChange"
+            class="prompt-textarea"
           />
           <div class="form-item-tip">
-            支持JSON格式，支持变量替换：{input.param}、{node_id}、{node_id.field}
+            请输入JSON格式的请求体，支持变量替换
           </div>
         </el-form-item>
       </template>
 
       <!-- 知识库检索节点配置 -->
       <template v-else-if="nodeType === 'knowledge'">
-        <el-divider content-position="left">基础信息</el-divider>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          <template #title>
+            <span style="font-size: 13px;">知识库检索节点用于从知识库中检索相关文档，为LLM提供上下文参考信息。</span>
+          </template>
+        </el-alert>
+
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+            </svg>
+            知识库选择
+          </span>
+        </el-divider>
+
         <el-form-item label="知识库" prop="knowledgeBaseId">
           <el-select
             v-model="formData.knowledgeBaseId"
-            placeholder="请选择知识库"
+            placeholder="请选择要检索的知识库"
             filterable
             clearable
             style="width: 100%"
@@ -372,59 +437,194 @@
               :value="kb.id"
             />
           </el-select>
-          <div class="form-item-tip">选择要检索的知识库</div>
+          <div class="form-item-tip">
+            选择包含相关文档的知识库进行语义检索
+          </div>
         </el-form-item>
 
-        <el-divider content-position="left">检索配置</el-divider>
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            检索配置
+          </span>
+        </el-divider>
 
         <el-form-item label="查询文本" prop="query">
           <el-input
             v-model="formData.query"
             type="textarea"
             :rows="3"
-            placeholder="请输入查询文本，支持变量替换"
+            placeholder="请输入查询文本，例如：{input.question}"
+            class="prompt-textarea"
           />
-          <div class="form-item-tip">
-            支持变量替换：{input.param}、{node_id}、{node_id.field}
+          <div class="variable-hint-box">
+            <div class="variable-hint-title">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              变量语法说明
+            </div>
+            <div class="variable-hint-content">
+              <div class="variable-example">
+                <code>{`{input.参数名}`}</code> - 引用工作流输入参数
+              </div>
+              <div class="variable-example">
+                <code>{`{节点ID.字段名}`}</code> - 引用其他节点输出的特定字段
+              </div>
+            </div>
           </div>
         </el-form-item>
 
-        <el-form-item label="Top-K" prop="topK">
-          <el-input-number
-            v-model="formData.topK"
-            :min="1"
-            :max="10"
-            style="width: 100%"
-          />
-          <div class="form-item-tip">返回最相似的K个文档块，范围：1-10，默认5</div>
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+            </svg>
+            检索参数
+          </span>
+        </el-divider>
+
+        <el-form-item prop="topK">
+          <template #label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>返回数量 (Top-K)</span>
+              <el-tooltip effect="dark" placement="top">
+                <template #content>
+                  <div style="max-width: 280px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 600;">Top-K 说明：</p>
+                    <p style="margin: 0 0 4px 0;">• 数值越大，返回的文档块越多</p>
+                    <p style="margin: 0 0 4px 0;">• 建议根据问题复杂度调整</p>
+                    <p style="margin: 0;">• 一般设置3-5即可满足需求</p>
+                  </div>
+                </template>
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #909399; cursor: help;">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                </svg>
+              </el-tooltip>
+            </div>
+          </template>
+          <div class="parameter-control-row">
+            <el-slider
+              v-model="formData.topK"
+              :min="1"
+              :max="10"
+              :step="1"
+              :marks="{1: '1', 5: '5', 10: '10'}"
+              style="flex: 1;"
+            />
+            <el-input-number
+              v-model="formData.topK"
+              :min="1"
+              :max="10"
+              :step="1"
+              :controls="false"
+              style="width: 80px; margin-left: 16px;"
+            />
+          </div>
+          <div class="form-item-tip">
+            返回最相似的K个文档块
+          </div>
         </el-form-item>
 
-        <el-form-item label="相似度阈值" prop="similarityThreshold">
-          <el-slider
-            v-model="formData.similarityThreshold"
-            :min="0"
-            :max="1"
-            :step="0.01"
-            show-input
-            :show-input-controls="false"
-            style="width: 100%"
-          />
-          <div class="form-item-tip">范围：0-1，默认0.7</div>
+        <el-form-item prop="similarityThreshold">
+          <template #label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>相似度阈值</span>
+              <el-tooltip effect="dark" placement="top">
+                <template #content>
+                  <div style="max-width: 280px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 600;">相似度阈值说明：</p>
+                    <p style="margin: 0 0 4px 0;">• 0.5-0.6：宽松匹配，结果较多</p>
+                    <p style="margin: 0 0 4px 0;">• 0.7-0.8：平衡匹配（推荐）</p>
+                    <p style="margin: 0;">• 0.9+：严格匹配，结果精准</p>
+                  </div>
+                </template>
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #909399; cursor: help;">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                </svg>
+              </el-tooltip>
+            </div>
+          </template>
+          <div class="parameter-control-row">
+            <el-slider
+              v-model="formData.similarityThreshold"
+              :min="0"
+              :max="1"
+              :step="0.05"
+              :marks="{0: '0', 0.5: '0.5', 0.7: '0.7', 1: '1'}"
+              style="flex: 1;"
+            />
+            <el-input-number
+              v-model="formData.similarityThreshold"
+              :min="0"
+              :max="1"
+              :step="0.05"
+              :precision="2"
+              :controls="false"
+              style="width: 80px; margin-left: 16px;"
+            />
+          </div>
+          <div class="parameter-hint">
+            <span v-if="formData.similarityThreshold < 0.6" class="hint-badge hint-badge-orange">
+              宽松匹配 - 返回结果较多但可能不够精准
+            </span>
+            <span v-else-if="formData.similarityThreshold < 0.8" class="hint-badge hint-badge-green">
+              平衡匹配 - 推荐设置，兼顾召回率和精准度
+            </span>
+            <span v-else class="hint-badge hint-badge-blue">
+              严格匹配 - 结果精准但可能遗漏部分相关内容
+            </span>
+          </div>
         </el-form-item>
       </template>
 
       <!-- 意图识别节点配置 -->
       <template v-else-if="nodeType === 'intent'">
-        <el-divider content-position="left">基础信息</el-divider>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          <template #title>
+            <span style="font-size: 13px;">意图识别节点用于分析用户输入，识别用户的真实意图，支持LLM智能识别和关键词匹配两种方式。</span>
+          </template>
+        </el-alert>
+
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/>
+            </svg>
+            输入配置
+          </span>
+        </el-divider>
+
         <el-form-item label="输入文本" prop="inputText">
           <el-input
             v-model="formData.inputText"
             type="textarea"
             :rows="3"
-            placeholder="请输入要识别的文本，支持变量替换"
+            placeholder="请输入要识别的文本，例如：{input.user_message}"
+            class="prompt-textarea"
           />
-          <div class="form-item-tip">
-            支持变量替换：{input.param}、{node_id}、{node_id.field}
+          <div class="variable-hint-box">
+            <div class="variable-hint-title">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              变量语法说明
+            </div>
+            <div class="variable-hint-content">
+              <div class="variable-example">
+                <code>{`{input.参数名}`}</code> - 引用工作流输入参数
+              </div>
+              <div class="variable-example">
+                <code>{`{节点ID.字段名}`}</code> - 引用其他节点输出的特定字段
+              </div>
+            </div>
           </div>
         </el-form-item>
 
@@ -435,7 +635,7 @@
             filterable
             allow-create
             default-first-option
-            placeholder="请输入或选择意图类别"
+            placeholder="请输入或选择意图类别（如：查询、投诉、咨询）"
             style="width: 100%"
           >
             <el-option
@@ -445,16 +645,39 @@
               :value="category"
             />
           </el-select>
-          <div class="form-item-tip">可以输入新的意图类别，多个类别用逗号分隔</div>
+          <div class="form-item-tip">
+            定义需要识别的意图类别，按回车添加新类别
+          </div>
         </el-form-item>
 
-        <el-divider content-position="left">识别配置</el-divider>
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+            识别配置
+          </span>
+        </el-divider>
 
         <el-form-item label="识别方式" prop="recognitionMethod">
           <el-radio-group v-model="formData.recognitionMethod">
-            <el-radio label="llm">LLM识别</el-radio>
+            <el-radio label="llm">LLM智能识别</el-radio>
             <el-radio label="keyword">关键词匹配</el-radio>
           </el-radio-group>
+          <div class="parameter-hint" style="margin-top: 8px;">
+            <span v-if="formData.recognitionMethod === 'llm'" class="hint-badge hint-badge-blue">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 12px; height: 12px;">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7z"/>
+              </svg>
+              使用大模型进行智能意图理解，准确度高
+            </span>
+            <span v-else class="hint-badge hint-badge-green">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 12px; height: 12px;">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/>
+              </svg>
+              基于关键词快速匹配，响应速度快
+            </span>
+          </div>
         </el-form-item>
 
         <el-form-item
@@ -464,7 +687,7 @@
         >
           <el-select
             v-model="formData.llmModelId"
-            placeholder="请选择LLM模型"
+            placeholder="请选择用于意图识别的LLM模型"
             filterable
             clearable
             style="width: 100%"
@@ -478,12 +701,17 @@
               :value="model.id"
             >
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>{{ model.displayName || model.name }}</span>
-                <span style="color: #909399; font-size: 12px; margin-left: 8px;">{{ model.provider }}</span>
+                <span style="font-weight: 500;">{{ model.displayName || model.name }}</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <el-tag v-if="model.isDefault" type="success" size="small" effect="plain">默认</el-tag>
+                  <span style="color: #909399; font-size: 12px;">{{ model.provider }}</span>
+                </div>
               </div>
             </el-option>
           </el-select>
-          <div class="form-item-tip">选择用于意图识别的LLM模型</div>
+          <div class="form-item-tip">
+            选择用于意图识别的LLM模型，推荐使用响应速度快的模型
+          </div>
         </el-form-item>
 
         <el-form-item
@@ -529,13 +757,33 @@
               添加意图关键词
             </el-button>
           </div>
+          <div class="form-item-tip">
+            为每个意图配置触发关键词，当输入包含关键词时匹配对应意图
+          </div>
         </el-form-item>
       </template>
 
       <!-- 字符串处理节点配置 -->
       <template v-else-if="nodeType === 'string'">
-        <el-divider content-position="left">基础信息</el-divider>
-        <el-divider content-position="left">操作配置</el-divider>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          <template #title>
+            <span style="font-size: 13px;">字符串处理节点用于对文本进行各种操作，如拼接、替换、截取、格式化等。</span>
+          </template>
+        </el-alert>
+
+        <el-divider content-position="left">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+              <path d="M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9z"/>
+            </svg>
+            操作配置
+          </span>
+        </el-divider>
 
         <el-form-item label="操作类型" prop="operation">
           <el-select
@@ -551,6 +799,29 @@
             <el-option label="转大写 (upper)" value="upper" />
             <el-option label="转小写 (lower)" value="lower" />
           </el-select>
+          <div class="parameter-hint" style="margin-top: 8px;">
+            <span v-if="formData.operation === 'concat'" class="hint-badge hint-badge-blue">
+              将多个字符串连接成一个
+            </span>
+            <span v-else-if="formData.operation === 'replace'" class="hint-badge hint-badge-green">
+              查找并替换指定文本
+            </span>
+            <span v-else-if="formData.operation === 'substring'" class="hint-badge hint-badge-orange">
+              截取字符串的一部分
+            </span>
+            <span v-else-if="formData.operation === 'format'" class="hint-badge hint-badge-blue">
+              使用模板格式化字符串
+            </span>
+            <span v-else-if="formData.operation === 'trim'" class="hint-badge hint-badge-gray">
+              去除首尾空白字符
+            </span>
+            <span v-else-if="formData.operation === 'upper'" class="hint-badge hint-badge-gray">
+              转换为大写字母
+            </span>
+            <span v-else-if="formData.operation === 'lower'" class="hint-badge hint-badge-gray">
+              转换为小写字母
+            </span>
+          </div>
         </el-form-item>
 
         <el-form-item label="输入字符串" prop="inputString">
@@ -558,23 +829,43 @@
             v-model="formData.inputString"
             type="textarea"
             :rows="3"
-            placeholder="请输入字符串，支持变量替换"
+            placeholder="请输入字符串，例如：{input.text}"
+            class="prompt-textarea"
           />
-          <div class="form-item-tip">
-            支持变量替换：{input.param}、{node_id}、{node_id.field}
+          <div class="variable-hint-box">
+            <div class="variable-hint-title">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              变量语法说明
+            </div>
+            <div class="variable-hint-content">
+              <div class="variable-example">
+                <code>{`{input.参数名}`}</code> - 引用工作流输入参数
+              </div>
+              <div class="variable-example">
+                <code>{`{节点ID.字段名}`}</code> - 引用其他节点输出的特定字段
+              </div>
+            </div>
           </div>
         </el-form-item>
 
-        <el-divider content-position="left">操作参数</el-divider>
-
         <!-- 根据操作类型显示不同的参数配置 -->
         <template v-if="formData.operation === 'concat'">
+          <el-divider content-position="left">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              </svg>
+              拼接参数
+            </span>
+          </el-divider>
           <el-form-item label="分隔符" prop="parameters.separator">
             <el-input
               v-model="formData.parameters.separator"
               placeholder="分隔符（可选，默认为空）"
             />
-            <div class="form-item-tip">用于分隔多个字符串的分隔符</div>
+            <div class="form-item-tip">用于分隔多个字符串的分隔符，如逗号、空格等</div>
           </el-form-item>
           <el-form-item label="拼接字符串列表" prop="parameters.strings">
             <div class="key-value-editor">
@@ -585,7 +876,7 @@
               >
                 <el-input
                   v-model="concatStrings[index]"
-                  :placeholder="`字符串 ${index + 1}`"
+                  :placeholder="`字符串 ${index + 1}，支持变量替换`"
                   style="width: calc(100% - 40px)"
                 />
                 <el-button
@@ -610,6 +901,14 @@
         </template>
 
         <template v-else-if="formData.operation === 'replace'">
+          <el-divider content-position="left">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                <path d="M11 6c1.38 0 2.63.56 3.54 1.46L12 10h6V4l-2.05 2.05C14.68 4.78 12.93 4 11 4c-3.53 0-6.43 2.61-6.92 6H6.1c.46-2.28 2.48-4 4.9-4zm5.64 9.14c.66-.9 1.12-1.97 1.28-3.14H15.9c-.46 2.28-2.48 4-4.9 4-1.38 0-2.63-.56-3.54-1.46L10 12H4v6l2.05-2.05C7.32 17.22 9.07 18 11 18c1.55 0 2.98-.51 4.14-1.36L20 21.49 21.49 20l-4.85-4.86z"/>
+              </svg>
+              替换参数
+            </span>
+          </el-divider>
           <el-form-item label="查找字符串" prop="parameters.target">
             <el-input
               v-model="formData.parameters.target"
@@ -620,32 +919,50 @@
           <el-form-item label="替换为" prop="parameters.replacement">
             <el-input
               v-model="formData.parameters.replacement"
-              placeholder="替换为的字符串"
+              placeholder="替换为的字符串，支持变量替换"
             />
             <div class="form-item-tip">用于替换查找字符串的文本</div>
           </el-form-item>
         </template>
 
         <template v-else-if="formData.operation === 'substring'">
+          <el-divider content-position="left">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                <path d="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/>
+              </svg>
+              截取参数
+            </span>
+          </el-divider>
           <el-form-item label="起始位置" prop="parameters.start">
             <el-input-number
               v-model="formData.parameters.start"
               :min="-9999"
               style="width: 100%"
+              placeholder="0"
             />
-            <div class="form-item-tip">支持负数索引，-1表示最后一个字符</div>
+            <div class="form-item-tip">从0开始计数，支持负数索引（-1表示最后一个字符）</div>
           </el-form-item>
           <el-form-item label="结束位置" prop="parameters.end">
             <el-input-number
               v-model="formData.parameters.end"
               :min="-9999"
               style="width: 100%"
+              placeholder="可选"
             />
             <div class="form-item-tip">可选，不填则截取到末尾。支持负数索引</div>
           </el-form-item>
         </template>
 
         <template v-else-if="formData.operation === 'format'">
+          <el-divider content-position="left">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+              </svg>
+              格式化参数
+            </span>
+          </el-divider>
           <el-form-item label="格式化值映射" prop="parameters.values">
             <div class="key-value-editor">
               <div
@@ -655,7 +972,7 @@
               >
                 <el-input
                   v-model="formatKeys[index]"
-                  placeholder="占位符key（如：name）"
+                  placeholder="占位符名称（如：name）"
                   style="width: 40%"
                   @input="updateFormatKey(index, $event)"
                 />
