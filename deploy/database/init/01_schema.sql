@@ -422,7 +422,11 @@ create table if not exists `vector` (
     create_time timestamp default CURRENT_TIMESTAMP null,
     constraint fk_vector_kb
         foreign key (kb_id) references `knowledge_base` (id)
-            on delete cascade
+            on delete cascade,
+    constraint fk_vector_document
+        foreign key (document_id) references `document` (id)
+            on delete cascade  -- 级联删除：当document表记录删除时，关联的vector记录也自动删除
+
 )
 ENGINE=InnoDB 
 DEFAULT CHARSET=utf8mb4 
