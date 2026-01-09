@@ -71,11 +71,11 @@ public class PluginServiceImpl implements PluginService {
         // 分页查询
         Page<Plugin> pageParam = new Page<>(pageNo, pageSize);
         LambdaQueryWrapper<Plugin> queryWrapper = new LambdaQueryWrapper<>();
-        
+
         // 权限过滤：只能看到系统插件（user_id为null）或自己创建的插件
         // 注意：这里暂时返回所有插件，因为方法签名中没有 userId 参数
         // 建议后续修改接口签名添加 userId 参数
-        
+
         queryWrapper.orderByDesc(Plugin::getCreateTime);
 
         Page<Plugin> resultPage = pluginMapper.selectPage(pageParam, queryWrapper);
@@ -219,7 +219,7 @@ public class PluginServiceImpl implements PluginService {
         if (plugin == null) {
             throw new PluginNotFoundException(pluginId);
         }
-        
+
         // 权限检查：只有创建者可以删除自己的插件
         if (plugin.getUserId() == null) {
             throw new SecurityException("系统插件不允许删除");
@@ -227,7 +227,7 @@ public class PluginServiceImpl implements PluginService {
         if (!plugin.getUserId().equals(userId)) {
             throw new SecurityException("无权删除该插件");
         }
-        
+
         // 先删除关联的操作
         pluginOperationService.deleteByPluginId(pluginId);
         // 再删除插件
@@ -625,12 +625,23 @@ public class PluginServiceImpl implements PluginService {
                 // 获取description
                 operation.setDescription((String) operationSpec.get("description"));
 
-                // 解析requestBody作为inputSchema
+                // 解析输入参数schema
+                // 优先解析requestBody（POST/PUT等），其次解析parameters（GET等）
+                Map<String, Object> inputSchema = null;
                 Object requestBody = operationSpec.get("requestBody");
                 if (requestBody instanceof Map) {
-                    Map<String, Object> inputSchema = extractSchemaFromRequestBody((Map<String, Object>) requestBody);
-                    operation.setInputSchema(inputSchema);
+                    inputSchema = extractSchemaFromRequestBody((Map<String, Object>) requestBody);
                 }
+
+                // 如果没有requestBody，尝试解析parameters（用于GET请求的query参数）
+                if (inputSchema == null) {
+                    Object parameters = operationSpec.get("parameters");
+                    if (parameters instanceof List) {
+                        inputSchema = extractSchemaFromParameters((List<Map<String, Object>>) parameters);
+                    }
+                }
+
+                operation.setInputSchema(inputSchema);
 
                 // 解析responses中的200响应作为outputSchema
                 Object responses = operationSpec.get("responses");
@@ -676,6 +687,68 @@ public class PluginServiceImpl implements PluginService {
             return (Map<String, Object>) schema;
         }
         return null;
+    }
+
+    /**
+     * 从parameters数组中提取schema（用于GET请求的query参数）
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractSchemaFromParameters(List<Map<String, Object>> parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new HashMap<>();
+        List<String> required = new ArrayList<>();
+
+        for (Map<String, Object> param : parameters) {
+            String paramName = (String) param.get("name");
+            String paramIn = (String) param.get("in");
+            Boolean paramRequired = (Boolean) param.get("required");
+
+            // 只处理 query 和 path 参数
+            if (!"query".equals(paramIn) && !"path".equals(paramIn)) {
+                continue;
+            }
+
+            if (paramName == null) {
+                continue;
+            }
+
+            // 获取参数的 schema
+            Object paramSchema = param.get("schema");
+            if (paramSchema instanceof Map) {
+                properties.put(paramName, paramSchema);
+            } else {
+                // 如果没有 schema，创建一个简单的 string schema
+                Map<String, Object> defaultSchema = new HashMap<>();
+                defaultSchema.put("type", "string");
+                String description = (String) param.get("description");
+                if (description != null) {
+                    defaultSchema.put("description", description);
+                }
+                properties.put(paramName, defaultSchema);
+            }
+
+            // 添加到必填列表
+            if (Boolean.TRUE.equals(paramRequired)) {
+                required.add(paramName);
+            }
+        }
+
+        if (properties.isEmpty()) {
+            return null;
+        }
+
+        schema.put("properties", properties);
+        if (!required.isEmpty()) {
+            schema.put("required", required);
+        }
+
+        return schema;
     }
 
     /**
